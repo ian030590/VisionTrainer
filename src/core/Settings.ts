@@ -14,6 +14,14 @@ export interface AppSettings {
   // ── Calibration ──
   distanceInCM: number;
   calBarLengthInMM: number;
+  rulerLengthInMM: number;        // Ruler-based calibration (length of blue ruler in mm)
+
+  // ── Display Calibration ──
+  gammaValue: number;             // Monitor gamma (FrACT10 default 2.0)
+
+  // ── Crowding ──
+  crowdingType: number;           // 0=None, 1=Flanking bars, 2=Surrounding box, 3=Surrounding circle, 4=Adjacent optotypes, 5=Flanking optotypes, 6=Full surround
+  crowdingDistanceType: number;   // 0=2.6 bar-widths, 1=1 optotype, 2=0.5 optotype, 3=abutting
 
   // ── Training defaults ──
   totalRounds: number;
@@ -41,6 +49,10 @@ interface SettingMeta<T> {
 const META: { [K in keyof AppSettings]: SettingMeta<AppSettings[K]> } = {
   distanceInCM:           { dflt: DEFAULT_DISTANCE_CM,      min: 10,   max: 500 },
   calBarLengthInMM:       { dflt: DEFAULT_CAL_BAR_LENGTH_MM, min: 1,   max: 10000 },
+  rulerLengthInMM:        { dflt: 0,    min: 0,    max: 10000 },
+  gammaValue:             { dflt: 2.0,  min: 0.8,  max: 4.0 },
+  crowdingType:           { dflt: 0,    min: 0,    max: 6 },
+  crowdingDistanceType:   { dflt: 0,    min: 0,    max: 3 },
   totalRounds:            { dflt: 5,   min: 1,   max: 100 },
   optionCount:            { dflt: 18,  min: 4,   max: 40 },
   optionMoveIntervalMs:   { dflt: 800, min: 200, max: 5000 },

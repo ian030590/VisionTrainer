@@ -7,13 +7,13 @@ import type { Scene, SceneManager } from '../core/SceneManager';
 import { Theme } from '../ui/Theme';
 import { Button } from '../ui/Button';
 import { Slider } from '../ui/Slider';
-import { CARD_WIDTH_MM, CARD_HEIGHT_MM } from '../core/Globals';
+import { CARD_WIDTH_MM, CARD_HEIGHT_MM, CAL_BAR_LENGTH_PX } from '../core/Globals';
 import { getSetting, setSetting, isCalibrated, getMMPerPixel } from '../core/Settings';
 import { pixelFromMillimeter } from '../utils/SpatialUtils';
 import { SoundManager } from '../core/SoundManager';
 import { drawArrowLeft, drawGear, drawPencil, drawCheck, drawCross, drawWarning } from '../ui/Icons';
 
-type Tab = 'general' | 'calibration';
+type Tab = 'general' | 'calibration' | 'display';
 
 export class SettingsScene implements Scene {
   readonly container = new Container();
@@ -30,6 +30,7 @@ export class SettingsScene implements Scene {
   // content containers
   private generalContainer = new Container();
   private calContainer = new Container();
+  private displayContainer = new Container();
 
   // calibration state
   private calInstrText = new Text();
@@ -71,6 +72,7 @@ export class SettingsScene implements Scene {
     this.container.addChild(this.tabsContainer);
     this.container.addChild(this.generalContainer);
     this.container.addChild(this.calContainer);
+    this.container.addChild(this.displayContainer);
 
     this.initHeader();
     this.initCalibrationElements();
@@ -80,6 +82,7 @@ export class SettingsScene implements Scene {
     SoundManager.init();
     this.buildTabs();
     this.buildGeneralTab();
+    this.buildDisplayTab();
     this.updateCalibrationUI();
     this.switchTab(this.activeTab);
   }
@@ -146,7 +149,9 @@ export class SettingsScene implements Scene {
     this.buildTabs();
     this.generalContainer.visible = tab === 'general';
     this.calContainer.visible = tab === 'calibration';
+    this.displayContainer.visible = tab === 'display';
     if (tab === 'calibration') this.updateCalibrationUI();
+    if (tab === 'display') this.buildDisplayTab();
   }
 
   private buildTabs(): void {
@@ -176,6 +181,7 @@ export class SettingsScene implements Scene {
 
     drawTab('一般設定', 0, 'general');
     drawTab('螢幕校正', tabW + 12, 'calibration');
+    drawTab('顯示校正', (tabW + 12) * 2, 'display');
   }
 
   private buildGeneralTab(): void {
@@ -299,6 +305,61 @@ export class SettingsScene implements Scene {
     const cal = isCalibrated();
     this.calStatusText.text = cal ? ' 校正完成' : ' 尚未校正（使用預設值）';
     this.calStatusText.style.fill = cal ? Theme.success : Theme.warning;
+
+    // ── Ruler Calibration (alternative method) ──
+    // Remove old ruler elements if any
+    if ((this as any)._rulerGroup) { this.calContainer.removeChild((this as any)._rulerGroup); }
+    const rulerGroup = new Container();
+    (this as any)._rulerGroup = rulerGroup;
+
+    const rulerY = cardBottomY + 270;
+    const rulerTitle = new Text({ text: '替代方式: 尺規校正', style: { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeM, fontWeight: '600', fill: Theme.textPrimary } });
+    rulerTitle.anchor.set(0.5, 0); rulerTitle.y = 0;
+    rulerGroup.addChild(rulerTitle);
+
+    const rulerDesc = new Text({ text: '將實體尺放在螢幕藍色尺規旁，輸入藍色尺規的實際長度 (mm)。', style: { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeXS, fill: Theme.textMuted, align: 'center' } });
+    rulerDesc.anchor.set(0.5, 0); rulerDesc.y = 24;
+    rulerGroup.addChild(rulerDesc);
+
+    // Draw blue ruler bar (fixed 400px)
+    const rulerBarPx = 400;
+    const rulerGfx = new Graphics();
+    rulerGfx.roundRect(-rulerBarPx / 2, 50, rulerBarPx, 24, 4).fill({ color: Theme.accent, alpha: 0.85 }).stroke({ color: Theme.accentHover, width: 2 });
+    // Tick marks every 50px
+    for (let t = 0; t <= rulerBarPx; t += 50) {
+      const tx = -rulerBarPx / 2 + t;
+      const tickH = t % 100 === 0 ? 12 : 7;
+      rulerGfx.moveTo(tx, 50).lineTo(tx, 50 + tickH).stroke({ color: Theme.textPrimary, width: 1 });
+    }
+    rulerGroup.addChild(rulerGfx);
+
+    const curRulerMM = getSetting('rulerLengthInMM');
+    const rulerLabel = new Text({ text: curRulerMM > 0 ? `${curRulerMM} mm` : '(未設定)', style: { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeM, fontWeight: '700', fill: curRulerMM > 0 ? Theme.accent : Theme.textMuted } });
+    rulerLabel.anchor.set(0.5, 0); rulerLabel.y = 82;
+    rulerGroup.addChild(rulerLabel);
+
+    const rulerEditBtn = new Button({ label: ' 輸入長度 (mm)', width: 160, height: 32, fontSize: Theme.fontSizeS, variant: 'secondary', onClick: () => {
+      const input = window.prompt('請輸入藍色尺規的實際長度 (mm):', curRulerMM > 0 ? curRulerMM.toString() : '');
+      if (input !== null) {
+        const val = parseFloat(input);
+        if (!isNaN(val) && val > 0 && val <= 10000) {
+          setSetting('rulerLengthInMM', val);
+          // Also update calBarLengthInMM based on ruler: calBar is proportional
+          const pxPerMM = rulerBarPx / val;
+          const newCalBarMM = CAL_BAR_LENGTH_PX / pxPerMM;
+          setSetting('calBarLengthInMM', newCalBarMM);
+          this.updateCalibrationUI();
+        }
+      }
+    }});
+    const editPencil = drawPencil(14, Theme.textSecondary);
+    editPencil.x = 8; editPencil.y = 9;
+    rulerEditBtn.addChild(editPencil);
+    rulerEditBtn.x = -80; rulerEditBtn.y = 110;
+    rulerGroup.addChild(rulerEditBtn);
+
+    rulerGroup.y = rulerY;
+    this.calContainer.addChild(rulerGroup);
   }
 
   onResize(width: number, height: number): void {
@@ -314,7 +375,7 @@ export class SettingsScene implements Scene {
     const cx = width / 2;
     
     const tabW = 140;
-    this.tabsContainer.x = cx - (tabW * 2 + 12) / 2;
+    this.tabsContainer.x = cx - (tabW * 3 + 12 * 2) / 2;
     this.tabsContainer.y = 80;
 
     const contentY = 140;
@@ -326,13 +387,166 @@ export class SettingsScene implements Scene {
     this.generalContainer.y = contentY;
 
     // Cal container centering and scaling
-    const calScale = Math.min(1, height / 700);
+    const calScale = Math.min(1, height / 900);
     this.calContainer.scale.set(calScale);
-    this.calContainer.x = cx; // elements inside use cx=0, scaling from cx keeps it perfectly centered
+    this.calContainer.x = cx;
     this.calContainer.y = contentY;
+
+    // Display container centering and scaling
+    const dispScale = Math.min(1, height / 750);
+    this.displayContainer.scale.set(dispScale);
+    this.displayContainer.x = cx - (Math.min(600, width - 40) / 2) * dispScale;
+    this.displayContainer.y = contentY;
 
     // Refresh general if width changed
     if (this.activeTab === 'general') this.buildGeneralTab();
+    if (this.activeTab === 'display') this.buildDisplayTab();
+  }
+
+  // ── Display Calibration Tab ──
+  private buildDisplayTab(): void {
+    this.displayContainer.removeChildren();
+    const cardW = Math.min(600, this.cachedW - 40);
+    let y = 0;
+
+    // ── Section 1: Gamma Calibration ──
+    const gammaCard = new Container();
+    const gammaBg = new Graphics();
+    gammaBg.roundRect(0, 0, cardW, 180, Theme.radiusM).fill({ color: Theme.bgCard }).stroke({ color: Theme.border, width: 1 });
+    gammaCard.addChild(gammaBg);
+    const gammaTitle = new Text({ text: 'Gamma 校正', style: { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeM, fontWeight: '600', fill: Theme.textPrimary } });
+    gammaTitle.x = Theme.paddingL; gammaTitle.y = 12;
+    gammaCard.addChild(gammaTitle);
+    const gammaDesc = new Text({ text: '調整 Gamma 值直到棋盤圖案與周圍灰色融合。預設值 2.0。', style: { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeXS, fill: Theme.textMuted } });
+    gammaDesc.x = Theme.paddingL; gammaDesc.y = 34;
+    gammaCard.addChild(gammaDesc);
+
+    // Gamma checkerboard preview
+    const gammaVal = getSetting('gammaValue');
+    const checkGfx = new Graphics();
+    const checkSize = 2;
+    const checkW = 80, checkH = 60;
+    const checkX = Theme.paddingL, checkY = 58;
+    // Surrounding 50% gray
+    const gray50 = Math.pow(0.5, 1.0 / gammaVal);
+    const gray50Hex = Math.round(gray50 * 255);
+    const gray50Color = (gray50Hex << 16) | (gray50Hex << 8) | gray50Hex;
+    checkGfx.rect(checkX - 4, checkY - 4, checkW + 8, checkH + 8).fill({ color: gray50Color });
+    // Checkerboard
+    const gPlus = Math.pow(0.05, 1.0 / gammaVal);
+    const gMinus = Math.pow(0.95, 1.0 / gammaVal);
+    const gPlusHex = Math.round(gPlus * 255);
+    const gMinusHex = Math.round(gMinus * 255);
+    const darkColor = (gPlusHex << 16) | (gPlusHex << 8) | gPlusHex;
+    const lightColor = (gMinusHex << 16) | (gMinusHex << 8) | gMinusHex;
+    for (let iy = 0; iy < checkH; iy += checkSize) {
+      for (let ix = 0; ix < checkW; ix += checkSize) {
+        const isEven = ((ix / checkSize + iy / checkSize) % 2) === 0;
+        checkGfx.rect(checkX + ix, checkY + iy, checkSize, checkSize).fill({ color: isEven ? darkColor : lightColor });
+      }
+    }
+    gammaCard.addChild(checkGfx);
+
+    const gammaLabel = new Text({ text: `Gamma: ${gammaVal.toFixed(2)}`, style: { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeL, fontWeight: '700', fill: Theme.accent } });
+    gammaLabel.x = checkX + checkW + 30; gammaLabel.y = 65;
+    gammaCard.addChild(gammaLabel);
+
+    // Gamma +/- buttons
+    const gmBtns = [{ label: '− 0.1', delta: -0.1 }, { label: '− 0.01', delta: -0.01 }, { label: '+ 0.01', delta: 0.01 }, { label: '+ 0.1', delta: 0.1 }];
+    gmBtns.forEach((b, i) => {
+      const btn = new Button({ label: b.label, width: 75, height: 32, fontSize: Theme.fontSizeS, variant: 'secondary', onClick: () => {
+        const cur = getSetting('gammaValue');
+        const nv = Math.round((cur + b.delta) * 100) / 100;
+        if (nv >= 0.8 && nv <= 4.0) { setSetting('gammaValue', nv); this.buildDisplayTab(); }
+      }});
+      btn.x = Theme.paddingL + i * 87; btn.y = 130;
+      gammaCard.addChild(btn);
+    });
+    gammaCard.y = y;
+    this.displayContainer.addChild(gammaCard);
+    y += 200;
+
+    // ── Section 2: Contrast Check ──
+    const contCard = new Container();
+    const contBg = new Graphics();
+    contBg.roundRect(0, 0, cardW, 140, Theme.radiusM).fill({ color: Theme.bgCard }).stroke({ color: Theme.border, width: 1 });
+    contCard.addChild(contBg);
+    const contTitle = new Text({ text: '對比度檢查 (Check Contrast)', style: { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeM, fontWeight: '600', fill: Theme.textPrimary } });
+    contTitle.x = Theme.paddingL; contTitle.y = 12;
+    contCard.addChild(contTitle);
+    const contDesc = new Text({ text: '檢查您的螢幕能否顯示不同 Weber 對比度等級。應能看到內圈與外圈之差異。', style: { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeXS, fill: Theme.textMuted } });
+    contDesc.x = Theme.paddingL; contDesc.y = 34;
+    contCard.addChild(contDesc);
+
+    const weberLevels = [1, 3, 10, 30, 90];
+    const gv = getSetting('gammaValue');
+    weberLevels.forEach((wp, i) => {
+      const logCS = Math.log10(100 / wp);
+      const michelson = wp / (200 + wp); // Weber to Michelson approximation
+      const lum1 = 0.5 * (1 - michelson);
+      const lum2 = 0.5 * (1 + michelson);
+      const dg1 = Math.pow(lum1, 1.0 / gv);
+      const dg2 = Math.pow(lum2, 1.0 / gv);
+      const hex1 = Math.round(dg1 * 255);
+      const hex2 = Math.round(dg2 * 255);
+      const c1 = (hex1 << 16) | (hex1 << 8) | hex1;
+      const c2 = (hex2 << 16) | (hex2 << 8) | hex2;
+
+      const sw = 80, sh = 50;
+      const sx = Theme.paddingL + i * (sw + 16);
+      const sy = 58;
+      const sampleGfx = new Graphics();
+      sampleGfx.rect(sx, sy, sw, sh).fill({ color: c2 });
+      sampleGfx.circle(sx + sw / 2, sy + sh / 2, sw * 0.28).fill({ color: c1 });
+      contCard.addChild(sampleGfx);
+      const lbl = new Text({ text: `${wp}%`, style: { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeXS, fill: Theme.textSecondary, align: 'center' } });
+      lbl.anchor.set(0.5, 0); lbl.x = sx + sw / 2; lbl.y = sy + sh + 4;
+      contCard.addChild(lbl);
+    });
+    contCard.y = y;
+    this.displayContainer.addChild(contCard);
+    y += 160;
+
+    // ── Section 3: Crowding Settings ──
+    const crowdCard = new Container();
+    const crowdBg = new Graphics();
+    crowdBg.roundRect(0, 0, cardW, 160, Theme.radiusM).fill({ color: Theme.bgCard }).stroke({ color: Theme.border, width: 1 });
+    crowdCard.addChild(crowdBg);
+    const crowdTitle = new Text({ text: 'Crowding 設定', style: { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeM, fontWeight: '600', fill: Theme.textPrimary } });
+    crowdTitle.x = Theme.paddingL; crowdTitle.y = 12;
+    crowdCard.addChild(crowdTitle);
+    const crowdDesc = new Text({ text: '設定擠壓效應類型與間距，影響周邊字符對目標的干擾程度。', style: { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeXS, fill: Theme.textMuted } });
+    crowdDesc.x = Theme.paddingL; crowdDesc.y = 34;
+    crowdCard.addChild(crowdDesc);
+
+    // Crowding type
+    const crowdTypes = ['無', '兩側橫棒', '包圍方框', '包圍圓圈', '相鄰字符', '兩側字符', '完整包圍'];
+    const curCrowd = getSetting('crowdingType');
+    const crowdTypeLabel = new Text({ text: `擠壓類型: ${crowdTypes[curCrowd]}`, style: { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeM, fontWeight: '600', fill: Theme.accent } });
+    crowdTypeLabel.x = Theme.paddingL; crowdTypeLabel.y = 60;
+    crowdCard.addChild(crowdTypeLabel);
+    const crowdCycleBtn = new Button({ label: '切換類型', width: 100, height: 32, fontSize: Theme.fontSizeS, variant: 'secondary', onClick: () => {
+      setSetting('crowdingType', ((getSetting('crowdingType') + 1) % 7) as any);
+      this.buildDisplayTab();
+    }});
+    crowdCycleBtn.x = cardW - Theme.paddingL - 100; crowdCycleBtn.y = 56;
+    crowdCard.addChild(crowdCycleBtn);
+
+    // Crowding distance
+    const distTypes = ['2.6 樛寬 (DIN)', '1 個字符', '0.5 個字符', '緊貼'];
+    const curDist = getSetting('crowdingDistanceType');
+    const crowdDistLabel = new Text({ text: `擠壓間距: ${distTypes[curDist]}`, style: { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeM, fontWeight: '600', fill: Theme.accent } });
+    crowdDistLabel.x = Theme.paddingL; crowdDistLabel.y = 105;
+    crowdCard.addChild(crowdDistLabel);
+    const distCycleBtn = new Button({ label: '切換間距', width: 100, height: 32, fontSize: Theme.fontSizeS, variant: 'secondary', onClick: () => {
+      setSetting('crowdingDistanceType', ((getSetting('crowdingDistanceType') + 1) % 4) as any);
+      this.buildDisplayTab();
+    }});
+    distCycleBtn.x = cardW - Theme.paddingL - 100; distCycleBtn.y = 101;
+    crowdCard.addChild(distCycleBtn);
+
+    crowdCard.y = y;
+    this.displayContainer.addChild(crowdCard);
   }
 
   onExit(): void {}
