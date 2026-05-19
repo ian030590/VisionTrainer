@@ -248,9 +248,9 @@ export class SettingsScene implements Scene {
     const wPx = pixelFromMillimeter(CARD_WIDTH_MM);
     const hPx = pixelFromMillimeter(CARD_HEIGHT_MM);
 
-    // Instead of fixed center, anchor to Top center + margin
-    const cx = 0; // relative to calContainer which is centered
-    const cy = hPx / 2; // card anchor is top-left in calContainer, so cy is half height
+    // Anchor to Top center + margin (70px below the instruction text)
+    const cx = 0; 
+    const cy = 70 + hPx / 2;
 
     // shadow
     this.calCardGfx.roundRect(cx - wPx / 2 + 3, cy - hPx / 2 + 3, wPx, hPx, 8).fill({ color: 0x000000, alpha: 0.3 });
