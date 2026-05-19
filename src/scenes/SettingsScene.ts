@@ -6,7 +6,6 @@ import { Container, Graphics, Text } from 'pixi.js';
 import type { Scene, SceneManager } from '../core/SceneManager';
 import { Theme } from '../ui/Theme';
 import { Button } from '../ui/Button';
-import { Slider } from '../ui/Slider';
 import { CARD_WIDTH_MM, CARD_HEIGHT_MM, CAL_BAR_LENGTH_PX } from '../core/Globals';
 import { getSetting, setSetting, isCalibrated, getMMPerPixel } from '../core/Settings';
 import { pixelFromMillimeter } from '../utils/SpatialUtils';
@@ -93,7 +92,7 @@ export class SettingsScene implements Scene {
   private initHeader(): void {
     this.headerTitle.text = '設定與校正';
     this.headerTitle.style = { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeL, fontWeight: '700', fill: Theme.textPrimary };
-    this.headerTitle.x = Theme.paddingL + 26;
+    this.headerTitle.x = Theme.paddingL + 32;
     const gearIcon = drawGear(20, Theme.accent);
     gearIcon.x = Theme.paddingL;
     gearIcon.y = 18;
@@ -281,19 +280,20 @@ export class SettingsScene implements Scene {
     const wPx = pixelFromMillimeter(CARD_WIDTH_MM);
     const hPx = pixelFromMillimeter(CARD_HEIGHT_MM);
 
-    // Anchor to Top center + margin (70px below the instruction text)
-    const cx = 0; 
+    // Layout variables for side-by-side
+    const cardCx = -220; 
+    const rulerCx = 180;
     const cy = 70 + hPx / 2;
 
     // shadow
-    this.calCardGfx.roundRect(cx - wPx / 2 + 3, cy - hPx / 2 + 3, wPx, hPx, 8).fill({ color: 0x000000, alpha: 0.3 });
+    this.calCardGfx.roundRect(cardCx - wPx / 2 + 3, cy - hPx / 2 + 3, wPx, hPx, 8).fill({ color: 0x000000, alpha: 0.3 });
     // card body
-    this.calCardGfx.roundRect(cx - wPx / 2, cy - hPx / 2, wPx, hPx, 8).fill({ color: Theme.calibrationBox, alpha: 0.85 });
-    this.calCardGfx.roundRect(cx - wPx / 2, cy - hPx / 2, wPx, hPx, 8).stroke({ color: Theme.accentHover, width: 2 });
+    this.calCardGfx.roundRect(cardCx - wPx / 2, cy - hPx / 2, wPx, hPx, 8).fill({ color: Theme.calibrationBox, alpha: 0.85 });
+    this.calCardGfx.roundRect(cardCx - wPx / 2, cy - hPx / 2, wPx, hPx, 8).stroke({ color: Theme.accentHover, width: 2 });
     
     // corner markers
     const m = 10;
-    const corners = [[cx - wPx / 2, cy - hPx / 2], [cx + wPx / 2, cy - hPx / 2], [cx - wPx / 2, cy + hPx / 2], [cx + wPx / 2, cy + hPx / 2]];
+    const corners = [[cardCx - wPx / 2, cy - hPx / 2], [cardCx + wPx / 2, cy - hPx / 2], [cardCx - wPx / 2, cy + hPx / 2], [cardCx + wPx / 2, cy + hPx / 2]];
     corners.forEach(([x, y]) => {
       this.calCardGfx.circle(x, y, 3).fill({ color: Theme.textPrimary });
       this.calCardGfx.moveTo(x - m, y).lineTo(x + m, y).moveTo(x, y - m).lineTo(x, y + m).stroke({ color: Theme.textPrimary, width: 1, alpha: 0.5 });
@@ -305,14 +305,18 @@ export class SettingsScene implements Scene {
     
     this.calLabelText.y = cardBottomY + 15;
     this.calBtnContainer.y = cardBottomY + 45;
-    this.btnInstr.y = cardBottomY + 75;
-    this.calInfoText.y = cardBottomY + 105;
-    this.calStatusText.y = cardBottomY + 130;
-    this.calResetBtn.y = cardBottomY + 165;
+    this.btnInstr.y = cardBottomY + 95; // Increased spacing to prevent overlap with buttons
+    this.calInfoText.y = cardBottomY + 125;
+    this.calStatusText.y = cardBottomY + 155;
+    this.calResetBtn.y = cardBottomY + 195;
     
-    // Center button container X
-    this.calBtnContainer.x = -(70 * 4 + 12 * 3) / 2;
-    this.calResetBtn.x = -70;
+    // Center card items on left side
+    this.calLabelText.x = cardCx;
+    this.calBtnContainer.x = cardCx - (70 * 4 + 12 * 3) / 2;
+    this.btnInstr.x = cardCx;
+    this.calInfoText.x = cardCx;
+    this.calStatusText.x = cardCx;
+    this.calResetBtn.x = cardCx - 70;
 
     const mmPerPx = getMMPerPixel();
     this.calInfoText.text = `解析度: ${mmPerPx.toFixed(3)} mm/px  (${(1 / mmPerPx).toFixed(2)} px/mm)`;
@@ -326,30 +330,31 @@ export class SettingsScene implements Scene {
     const rulerGroup = new Container();
     (this as any)._rulerGroup = rulerGroup;
 
-    const rulerY = cardBottomY + 215;
+    // Fixed Y position for ruler so it never gets pushed off screen
+    const rulerY = 70;
     const rulerTitle = new Text({ text: '替代方式: 尺規校正', style: { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeM, fontWeight: '600', fill: Theme.textPrimary } });
     rulerTitle.anchor.set(0.5, 0); rulerTitle.y = 0;
     rulerGroup.addChild(rulerTitle);
 
-    const rulerDesc = new Text({ text: '將實體尺放在螢幕藍色尺規旁，輸入藍色尺規的實際長度 (mm)。', style: { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeXS, fill: Theme.textMuted, align: 'center' } });
+    const rulerDesc = new Text({ text: '將實體尺放在螢幕藍色尺規旁，\n輸入藍色尺規的實際長度(mm)。', style: { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeXS, fill: Theme.textMuted, align: 'center', lineHeight: 18 } });
     rulerDesc.anchor.set(0.5, 0); rulerDesc.y = 24;
     rulerGroup.addChild(rulerDesc);
 
-    // Draw blue ruler bar (fixed 400px)
-    const rulerBarPx = 400;
+    // Draw blue ruler bar (fixed 300px to fit side-by-side better)
+    const rulerBarPx = 300;
     const rulerGfx = new Graphics();
-    rulerGfx.roundRect(-rulerBarPx / 2, 50, rulerBarPx, 24, 4).fill({ color: Theme.accent, alpha: 0.85 }).stroke({ color: Theme.accentHover, width: 2 });
+    rulerGfx.roundRect(-rulerBarPx / 2, 70, rulerBarPx, 24, 4).fill({ color: Theme.accent, alpha: 0.85 }).stroke({ color: Theme.accentHover, width: 2 });
     // Tick marks every 50px
     for (let t = 0; t <= rulerBarPx; t += 50) {
       const tx = -rulerBarPx / 2 + t;
       const tickH = t % 100 === 0 ? 12 : 7;
-      rulerGfx.moveTo(tx, 50).lineTo(tx, 50 + tickH).stroke({ color: Theme.textPrimary, width: 1 });
+      rulerGfx.moveTo(tx, 70).lineTo(tx, 70 + tickH).stroke({ color: Theme.textPrimary, width: 1 });
     }
     rulerGroup.addChild(rulerGfx);
 
     const curRulerMM = getSetting('rulerLengthInMM');
     const rulerLabel = new Text({ text: curRulerMM > 0 ? `${curRulerMM} mm` : '(未設定)', style: { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeM, fontWeight: '700', fill: curRulerMM > 0 ? Theme.accent : Theme.textMuted } });
-    rulerLabel.anchor.set(0.5, 0); rulerLabel.y = 82;
+    rulerLabel.anchor.set(0.5, 0); rulerLabel.y = 110;
     rulerGroup.addChild(rulerLabel);
 
     const rulerEditBtn = new Button({ label: ' 輸入長度 (mm)', width: 160, height: 32, fontSize: Theme.fontSizeS, variant: 'secondary', onClick: () => {
@@ -369,9 +374,10 @@ export class SettingsScene implements Scene {
     const editPencil = drawPencil(14, Theme.textSecondary);
     editPencil.x = 8; editPencil.y = 9;
     rulerEditBtn.addChild(editPencil);
-    rulerEditBtn.x = -80; rulerEditBtn.y = 110;
+    rulerEditBtn.x = -80; rulerEditBtn.y = 138;
     rulerGroup.addChild(rulerEditBtn);
 
+    rulerGroup.x = rulerCx;
     rulerGroup.y = rulerY;
     this.calContainer.addChild(rulerGroup);
   }
@@ -383,7 +389,7 @@ export class SettingsScene implements Scene {
     this.bg.clear().rect(0, 0, width, height).fill({ color: Theme.bg });
     this.header.clear().rect(0, 0, width, 56).fill({ color: Theme.bgPanel }).rect(0, 55, width, 1).fill({ color: Theme.border });
     
-    this.headerTitle.x = Theme.paddingL; this.headerTitle.y = 16;
+    this.headerTitle.x = Theme.paddingL + 32; this.headerTitle.y = 16;
     this.backBtn.x = width - 150; this.backBtn.y = 10;
     
     const cx = width / 2;
@@ -431,23 +437,33 @@ export class SettingsScene implements Scene {
     const gammaVal = getSetting('gammaValue');
     const checkGfx = new Graphics();
     const checkSize = 2;
-    // Large surrounding 50% gray area (much bigger than checkerboard, like FrACT10)
+    
+    // Background is 9x larger than the checkerboard in area
+    // So edge length is 3x the checkerboard edge length. Both are squares.
+    const bgSize = 240; 
+    const checkW = bgSize / 3;
+    const checkH = bgSize / 3;
+    
     const gray50 = Math.pow(0.5, 1.0 / gammaVal);
     const gray50Hex = Math.round(gray50 * 255);
     const gray50Color = (gray50Hex << 16) | (gray50Hex << 8) | gray50Hex;
-    const areaW = Math.min(cardW, 500), areaH = 200;
-    const areaX = (cardW - areaW) / 2;
-    checkGfx.roundRect(areaX, 60, areaW, areaH, Theme.radiusM).fill({ color: gray50Color });
+    
+    const areaX = (cardW - bgSize) / 2;
+    const areaY = 70;
+    // Strict square background
+    checkGfx.rect(areaX, areaY, bgSize, bgSize).fill({ color: gray50Color });
+    
     // Small centered checkerboard
-    const checkW = Math.round(areaW * 0.25), checkH = Math.round(areaH * 0.5);
-    const checkX = areaX + (areaW - checkW) / 2;
-    const checkY = 60 + (areaH - checkH) / 2;
+    const checkX = areaX + (bgSize - checkW) / 2;
+    const checkY = areaY + (bgSize - checkH) / 2;
+    
     const gPlus = Math.pow(0.05, 1.0 / gammaVal);
     const gMinus = Math.pow(0.95, 1.0 / gammaVal);
     const gPlusHex = Math.round(gPlus * 255);
     const gMinusHex = Math.round(gMinus * 255);
     const darkColor = (gPlusHex << 16) | (gPlusHex << 8) | gPlusHex;
     const lightColor = (gMinusHex << 16) | (gMinusHex << 8) | gMinusHex;
+    
     for (let iy = 0; iy < checkH; iy += checkSize) {
       for (let ix = 0; ix < checkW; ix += checkSize) {
         const isEven = ((ix / checkSize + iy / checkSize) % 2) === 0;
@@ -455,31 +471,19 @@ export class SettingsScene implements Scene {
       }
     }
     this.gammaContainer.addChild(checkGfx);
+    
     const gammaTitle = new Text({ text: 'Gamma 校正', style: { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeM, fontWeight: '600', fill: Theme.textPrimary } });
     gammaTitle.x = Theme.paddingL; gammaTitle.y = 8;
     this.gammaContainer.addChild(gammaTitle);
+    
     const gammaDesc = new Text({ text: '調整 Gamma 值直到中央棋盤圖案與周圍灰色完全融合。預設值 2.0。', style: { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeXS, fill: Theme.textMuted } });
     gammaDesc.x = Theme.paddingL; gammaDesc.y = 32;
     this.gammaContainer.addChild(gammaDesc);
+    
+    const bottomY = areaY + bgSize + 30;
     const gammaLabel = new Text({ text: `Gamma: ${gammaVal.toFixed(2)}`, style: { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeL, fontWeight: '700', fill: Theme.accent } });
-    gammaLabel.x = Theme.paddingL; gammaLabel.y = 275;
+    gammaLabel.x = Theme.paddingL; gammaLabel.y = bottomY;
     this.gammaContainer.addChild(gammaLabel);
-
-    // Gamma Slider
-    const gammaSlider = new Slider({
-      width: 200,
-      min: 0.8, max: 4.0,
-      value: gammaVal,
-      onChange: (val) => {
-        setSetting('gammaValue', val);
-        // Throttle updates or just re-render checkGfx dynamically if needed, 
-        // but since we redraw the whole tab, let's just redraw.
-        this.buildGammaTab();
-      }
-    });
-    gammaSlider.x = Theme.paddingL + 130;
-    gammaSlider.y = 282;
-    this.gammaContainer.addChild(gammaSlider);
 
     // Gamma +/- buttons
     const gmBtns = [{ label: '− 0.1', delta: -0.1 }, { label: '− 0.01', delta: -0.01 }, { label: '+ 0.01', delta: 0.01 }, { label: '+ 0.1', delta: 0.1 }];
@@ -489,7 +493,7 @@ export class SettingsScene implements Scene {
         const nv = Math.round((cur + b.delta) * 100) / 100;
         if (nv >= 0.8 && nv <= 4.0) { setSetting('gammaValue', nv); this.buildGammaTab(); }
       }});
-      btn.x = cardW - Theme.paddingL - (4 - i) * 87; btn.y = 275;
+      btn.x = cardW - Theme.paddingL - (4 - i) * 87; btn.y = bottomY;
       this.gammaContainer.addChild(btn);
     });
   }
