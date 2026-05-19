@@ -50,6 +50,12 @@ export class SettingsScene implements Scene {
   private calMode: 'ruler' | 'card' = 'ruler';
   private isRulerInputActive = false;
   private rulerInputStr = "";
+  
+  private isDistanceInputActive = false;
+  private distanceInputStr = "";
+  
+  private isPrefixInputActive = false;
+  private prefixInputStr = "";
 
   constructor(sm: SceneManager) {
     this.sm = sm;
@@ -99,6 +105,48 @@ export class SettingsScene implements Scene {
   }
 
   private handleKeyDown = (e: KeyboardEvent) => {
+    if (this.activeTab === 'general') {
+      if (this.isDistanceInputActive) {
+        if (e.key === 'Enter' || e.key === 'Escape') {
+          this.isDistanceInputActive = false;
+          this.applyDistanceInput();
+          return;
+        }
+        if (e.key === 'Backspace') {
+          this.distanceInputStr = this.distanceInputStr.slice(0, -1);
+          this.buildGeneralTab();
+          return;
+        }
+        if (e.key >= '0' && e.key <= '9') {
+          if (this.distanceInputStr.length < 3) {
+            this.distanceInputStr += e.key;
+            this.buildGeneralTab();
+          }
+        }
+        return;
+      }
+
+      if (this.isPrefixInputActive) {
+        if (e.key === 'Enter' || e.key === 'Escape') {
+          this.isPrefixInputActive = false;
+          this.applyPrefixInput();
+          return;
+        }
+        if (e.key === 'Backspace') {
+          this.prefixInputStr = this.prefixInputStr.slice(0, -1);
+          this.buildGeneralTab();
+          return;
+        }
+        if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
+          if (this.prefixInputStr.length < 20) {
+            this.prefixInputStr += e.key;
+            this.buildGeneralTab();
+          }
+        }
+        return;
+      }
+    }
+
     if (this.activeTab !== 'calibration' || this.calMode !== 'ruler' || !this.isRulerInputActive) return;
     
     if (e.key === 'Enter' || e.key === 'Escape') {
@@ -137,6 +185,21 @@ export class SettingsScene implements Scene {
       setSetting('calBarLengthInMM', newCalBarMM);
     }
     this.buildCalibrationTab();
+  }
+
+  private applyDistanceInput() {
+    const val = parseFloat(this.distanceInputStr);
+    if (!isNaN(val) && val >= 10 && val <= 500) {
+      setSetting('distanceInCM', val);
+    } else {
+      window.alert('請輸入有效的數字 (10 ~ 500)');
+    }
+    this.buildGeneralTab();
+  }
+
+  private applyPrefixInput() {
+    setSetting('downloadDirectory', this.prefixInputStr);
+    this.buildGeneralTab();
   }
 
   private initHeader(): void {
@@ -245,28 +308,48 @@ export class SettingsScene implements Scene {
     // Viewing Distance
     const distCard = this.makeSettingCard('觀看距離', '受試者眼睛至螢幕的距離（公分）', cardW, 80);
     distCard.y = y;
-    const distLabel = new Text({ text: `${getSetting('distanceInCM')} cm`, style: { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeL, fontWeight: '700', fill: Theme.accent } });
-    const distEditBtn = new Button({
-      label: ' 編輯', width: 90, height: 32, fontSize: Theme.fontSizeS, variant: 'secondary',
-      onClick: () => {
-        const input = window.prompt('請輸入觀看距離 (cm):', getSetting('distanceInCM').toString());
-        if (input !== null) {
-          const val = parseFloat(input);
-          if (!isNaN(val) && val >= 10 && val <= 500) {
-            setSetting('distanceInCM', val);
-            this.buildGeneralTab();
-          } else {
-            window.alert('請輸入有效的數字 (10 ~ 500)');
-          }
+    
+    if (this.isDistanceInputActive) {
+      const inputBox = new Container();
+      const boxW = 100, boxH = 40;
+      const bg = new Graphics();
+      bg.roundRect(0, 0, boxW, boxH, Theme.radiusS).fill({ color: Theme.bg });
+      bg.roundRect(0, 0, boxW, boxH, Theme.radiusS).stroke({ color: Theme.accent, width: 2 });
+      inputBox.addChild(bg);
+
+      const txt = new Text({ text: this.distanceInputStr + '|', style: { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeM, fill: Theme.textPrimary, fontWeight: '700' } });
+      txt.anchor.set(0.5);
+      txt.x = boxW / 2; txt.y = boxH / 2;
+      inputBox.addChild(txt);
+
+      const okBtn = new Button({ label: '確認', width: 60, height: 40, fontSize: Theme.fontSizeS, variant: 'primary', onClick: () => {
+        this.isDistanceInputActive = false;
+        this.applyDistanceInput();
+      }});
+      okBtn.x = boxW + 10;
+      inputBox.addChild(okBtn);
+
+      inputBox.x = cardW - Theme.paddingL - boxW - 70;
+      inputBox.y = 20;
+      distCard.addChild(inputBox);
+    } else {
+      const distLabel = new Text({ text: `${getSetting('distanceInCM')} cm`, style: { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeL, fontWeight: '700', fill: Theme.accent } });
+      const distEditBtn = new Button({
+        label: ' 編輯', width: 90, height: 32, fontSize: Theme.fontSizeS, variant: 'secondary',
+        onClick: () => {
+          this.isDistanceInputActive = true;
+          this.isPrefixInputActive = false;
+          this.distanceInputStr = getSetting('distanceInCM').toString();
+          this.buildGeneralTab();
         }
-      }
-    });
-    distEditBtn.x = cardW - Theme.paddingL - 90; distEditBtn.y = 24;
-    const distPencil = drawPencil(14, Theme.textSecondary);
-    distPencil.x = 8; distPencil.y = 9;
-    distEditBtn.addChild(distPencil);
-    distLabel.x = distEditBtn.x - distLabel.width - 20; distLabel.y = 26;
-    distCard.addChild(distLabel, distEditBtn);
+      });
+      distEditBtn.x = cardW - Theme.paddingL - 90; distEditBtn.y = 24;
+      const distPencil = drawPencil(14, Theme.textSecondary);
+      distPencil.x = 8; distPencil.y = 9;
+      distEditBtn.addChild(distPencil);
+      distLabel.x = distEditBtn.x - distLabel.width - 20; distLabel.y = 26;
+      distCard.addChild(distLabel, distEditBtn);
+    }
     this.generalContainer.addChild(distCard);
     y += 100;
 
@@ -274,26 +357,51 @@ export class SettingsScene implements Scene {
     const dirCard = this.makeSettingCard('成績下載檔案前綴', '設定匯出成績時的檔案前綴或識別碼', cardW, 80);
     dirCard.y = y;
     let dirVal = getSetting('downloadDirectory');
-    let displayVal = dirVal || '(未設定)';
-    if (displayVal.length > 12) displayVal = displayVal.substring(0, 12) + '...';
     
-    const dirLabel = new Text({ text: displayVal, style: { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeM, fontWeight: '700', fill: dirVal ? Theme.accent : Theme.textMuted } });
-    const dirEditBtn = new Button({
-      label: ' 編輯', width: 90, height: 32, fontSize: Theme.fontSizeS, variant: 'secondary',
-      onClick: () => {
-        const input = window.prompt('請輸入成績檔案前綴:', getSetting('downloadDirectory'));
-        if (input !== null) {
-          setSetting('downloadDirectory', input);
+    if (this.isPrefixInputActive) {
+      const inputBox = new Container();
+      const boxW = 160, boxH = 40;
+      const bg = new Graphics();
+      bg.roundRect(0, 0, boxW, boxH, Theme.radiusS).fill({ color: Theme.bg });
+      bg.roundRect(0, 0, boxW, boxH, Theme.radiusS).stroke({ color: Theme.accent, width: 2 });
+      inputBox.addChild(bg);
+
+      const txt = new Text({ text: this.prefixInputStr + '|', style: { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeM, fill: Theme.textPrimary, fontWeight: '700' } });
+      txt.anchor.set(0.5);
+      txt.x = boxW / 2; txt.y = boxH / 2;
+      inputBox.addChild(txt);
+
+      const okBtn = new Button({ label: '確認', width: 60, height: 40, fontSize: Theme.fontSizeS, variant: 'primary', onClick: () => {
+        this.isPrefixInputActive = false;
+        this.applyPrefixInput();
+      }});
+      okBtn.x = boxW + 10;
+      inputBox.addChild(okBtn);
+
+      inputBox.x = cardW - Theme.paddingL - boxW - 70;
+      inputBox.y = 20;
+      dirCard.addChild(inputBox);
+    } else {
+      let displayVal = dirVal || '(未設定)';
+      if (displayVal.length > 12) displayVal = displayVal.substring(0, 12) + '...';
+      
+      const dirLabel = new Text({ text: displayVal, style: { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeM, fontWeight: '700', fill: dirVal ? Theme.accent : Theme.textMuted } });
+      const dirEditBtn = new Button({
+        label: ' 編輯', width: 90, height: 32, fontSize: Theme.fontSizeS, variant: 'secondary',
+        onClick: () => {
+          this.isPrefixInputActive = true;
+          this.isDistanceInputActive = false;
+          this.prefixInputStr = getSetting('downloadDirectory');
           this.buildGeneralTab();
         }
-      }
-    });
-    dirEditBtn.x = cardW - Theme.paddingL - 90; dirEditBtn.y = 24;
-    const dirPencil = drawPencil(14, Theme.textSecondary);
-    dirPencil.x = 8; dirPencil.y = 9;
-    dirEditBtn.addChild(dirPencil);
-    dirLabel.x = dirEditBtn.x - dirLabel.width - 20; dirLabel.y = 28;
-    dirCard.addChild(dirLabel, dirEditBtn);
+      });
+      dirEditBtn.x = cardW - Theme.paddingL - 90; dirEditBtn.y = 24;
+      const dirPencil = drawPencil(14, Theme.textSecondary);
+      dirPencil.x = 8; dirPencil.y = 9;
+      dirEditBtn.addChild(dirPencil);
+      dirLabel.x = dirEditBtn.x - dirLabel.width - 20; dirLabel.y = 28;
+      dirCard.addChild(dirLabel, dirEditBtn);
+    }
     this.generalContainer.addChild(dirCard);
     y += 100;
 
