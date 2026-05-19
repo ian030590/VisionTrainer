@@ -323,24 +323,25 @@ export class SettingsScene implements Scene {
     const cal = isCalibrated();
     const infoTextStr = `解析度: ${mmPerPx.toFixed(3)} mm/px  (${(1 / mmPerPx).toFixed(2)} px/mm)\n${cal ? '校正完成' : '尚未校正（使用預設值）'}`;
 
-    if (this.calMode === 'ruler') {
-      const rulerTitle = new Text({ text: '尺規校正', style: { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeL, fontWeight: '700', fill: Theme.textPrimary } });
-      rulerTitle.anchor.set(0.5, 0); rulerTitle.y = 0; rulerTitle.x = cx;
-      this.calContainer.addChild(rulerTitle);
+    // Mode Switch Buttons at the top
+    const btnRuler = new Button({ label: '尺規校正', width: 140, height: 36, fontSize: Theme.fontSizeM, variant: this.calMode === 'ruler' ? 'primary' : 'ghost', onClick: () => { this.calMode = 'ruler'; this.buildCalibrationTab(); } });
+    btnRuler.x = cx - 145; btnRuler.y = -10;
+    this.calContainer.addChild(btnRuler);
 
-      const rulerDesc = new Text({ text: '請拿出一把實體尺放在螢幕上，與下方的藍色尺規對齊。\n然後在下方直接點擊輸入藍色尺規的實際長度(mm)。', style: { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeM, fill: Theme.textSecondary, align: 'center', lineHeight: 24 } });
-      rulerDesc.anchor.set(0.5, 0); rulerDesc.y = 40; rulerDesc.x = cx;
+    const btnCard = new Button({ label: '卡片校正', width: 140, height: 36, fontSize: Theme.fontSizeM, variant: this.calMode === 'card' ? 'primary' : 'ghost', onClick: () => { this.calMode = 'card'; this.buildCalibrationTab(); } });
+    btnCard.x = cx + 5; btnCard.y = -10;
+    this.calContainer.addChild(btnCard);
+
+    if (this.calMode === 'ruler') {
+      const rulerDesc = new Text({ text: '請拿出一把實體尺放在螢幕上，與下方的藍色線條對齊。\n然後在下方直接點擊輸入藍色線條的實際長度(mm)。', style: { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeM, fill: Theme.textSecondary, align: 'center', lineHeight: 24 } });
+      rulerDesc.anchor.set(0.5, 0); rulerDesc.y = 50; rulerDesc.x = cx;
       this.calContainer.addChild(rulerDesc);
 
       const rulerBarPx = 500;
       const rulerGfx = new Graphics();
       const rulerY = 120;
-      rulerGfx.roundRect(cx - rulerBarPx / 2, rulerY, rulerBarPx, 30, 6).fill({ color: Theme.accent, alpha: 0.85 }).stroke({ color: Theme.accentHover, width: 2 });
-      for (let t = 0; t <= rulerBarPx; t += 50) {
-        const tx = cx - rulerBarPx / 2 + t;
-        const tickH = t % 100 === 0 ? 15 : 8;
-        rulerGfx.moveTo(tx, rulerY).lineTo(tx, rulerY + tickH).stroke({ color: Theme.textPrimary, width: 1 });
-      }
+      // Single thick line
+      rulerGfx.roundRect(cx - rulerBarPx / 2, rulerY, rulerBarPx, 8, 4).fill({ color: Theme.accent });
       this.calContainer.addChild(rulerGfx);
 
       const inputBox = new Container();
@@ -357,7 +358,7 @@ export class SettingsScene implements Scene {
       });
       const boxW = 200, boxH = 46;
       inputBox.x = cx - boxW / 2;
-      inputBox.y = rulerY + 60;
+      inputBox.y = rulerY + 50;
       
       const bg = new Graphics();
       bg.roundRect(0, 0, boxW, boxH, Theme.radiusS).fill({ color: Theme.bgCard });
@@ -385,22 +386,23 @@ export class SettingsScene implements Scene {
       this.calContainer.addChild(inputBox);
 
       const infoText = new Text({ text: infoTextStr, style: { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeS, fill: cal ? Theme.success : Theme.warning, align: 'center', lineHeight: 22 } });
-      infoText.anchor.set(0.5, 0); infoText.x = cx; infoText.y = rulerY + 130;
+      infoText.anchor.set(0.5, 0); infoText.x = cx; infoText.y = rulerY + 115;
       this.calContainer.addChild(infoText);
 
-      const switchBtn = new Button({ label: '切換至卡片校正', width: 160, height: 36, fontSize: Theme.fontSizeS, variant: 'ghost', onClick: () => { this.calMode = 'card'; this.buildCalibrationTab(); } });
-      switchBtn.x = cx - 80; switchBtn.y = rulerY + 200;
-      this.calContainer.addChild(switchBtn);
+      const saveBtn = new Button({ label: '儲存校正', width: 140, height: 40, fontSize: Theme.fontSizeS, variant: 'primary', onClick: () => { window.alert('尺規校正值已儲存！'); } });
+      saveBtn.x = cx - 70; saveBtn.y = rulerY + 175;
+      this.calContainer.addChild(saveBtn);
 
     } else {
       // CARD CALIBRATION MODE
+      this.calInstrText.y = 50;
       this.calContainer.addChild(this.calInstrText);
       
       this.calCardGfx.clear();
       const wPx = pixelFromMillimeter(CARD_WIDTH_MM);
       const hPx = pixelFromMillimeter(CARD_HEIGHT_MM);
 
-      const cy = 100 + hPx / 2;
+      const cy = 110 + hPx / 2;
 
       // shadow
       this.calCardGfx.roundRect(cx - wPx / 2 + 3, cy - hPx / 2 + 3, wPx, hPx, 8).fill({ color: 0x000000, alpha: 0.3 });
@@ -434,14 +436,15 @@ export class SettingsScene implements Scene {
       this.calInfoText.y = cardBottomY + 125;
       this.calInfoText.x = cx;
       this.calContainer.addChild(this.calInfoText);
-
-      this.calResetBtn.y = cardBottomY + 185;
-      this.calResetBtn.x = cx - 70;
+      
+      const btnGrpY = cardBottomY + 185;
+      this.calResetBtn.y = btnGrpY;
+      this.calResetBtn.x = cx - 150;
       this.calContainer.addChild(this.calResetBtn);
 
-      const switchBtn = new Button({ label: '切換至尺規校正', width: 160, height: 36, fontSize: Theme.fontSizeS, variant: 'ghost', onClick: () => { this.calMode = 'ruler'; this.buildCalibrationTab(); } });
-      switchBtn.x = cx - 80; switchBtn.y = cardBottomY + 235;
-      this.calContainer.addChild(switchBtn);
+      const saveBtn = new Button({ label: '儲存校正', width: 140, height: 36, fontSize: Theme.fontSizeS, variant: 'primary', onClick: () => { window.alert('卡片校正值已儲存！'); } });
+      saveBtn.x = cx + 10; saveBtn.y = btnGrpY;
+      this.calContainer.addChild(saveBtn);
     }
   }
 
@@ -486,8 +489,8 @@ export class SettingsScene implements Scene {
       c.y = contentY;
     }
     
-    // Gamma container needs more height room because bgSize is 720
-    const gammaScale = Math.min(1, height / 1000);
+    // Gamma container scaling
+    const gammaScale = Math.min(1, height / 800);
     this.gammaContainer.scale.set(gammaScale);
     this.gammaContainer.x = cx - (cardW / 2) * gammaScale;
     this.gammaContainer.y = contentY;
@@ -506,11 +509,11 @@ export class SettingsScene implements Scene {
     const cardW = Math.min(600, this.cachedW - 40);
     const gammaVal = getSetting('gammaValue');
     const checkGfx = new Graphics();
-    const checkSize = 6;
+    const checkSize = 4;
     
     // Background is 9x larger than the checkerboard in area
     // So edge length is 3x the checkerboard edge length. Both are squares.
-    const bgSize = 720; 
+    const bgSize = 480; 
     const checkW = bgSize / 3;
     const checkH = bgSize / 3;
     
