@@ -62,6 +62,7 @@ export class PeripheralVisionScene implements Scene {
   private stateIdle = new Container();
   private idleStartBtn: Button;
   private idleHint = new Text();
+  private idleDiffBtn: Button;
   
   private statePlaying = new Container();
   private playBorder = new Graphics();
@@ -84,7 +85,24 @@ export class PeripheralVisionScene implements Scene {
       onClick: () => this.startGame(),
     });
 
+    this.idleDiffBtn = new Button({
+      label: this.getDiffLabel(), width: 200, height: 40, fontSize: Theme.fontSizeM, variant: 'secondary',
+      onClick: () => this.cycleDifficulty(),
+    });
+
     this.initHierarchy();
+  }
+
+  private getDiffLabel(): string {
+    const diffMap: Record<string, string> = { beginner: '難度: 初級 (網格)', intermediate: '難度: 中級 (散落)', advanced: '難度: 高級 (旋轉)' };
+    return diffMap[getSetting('difficulty')] || '切換難度';
+  }
+
+  private cycleDifficulty(): void {
+    const diffs = ['beginner', 'intermediate', 'advanced'] as const;
+    const next = diffs[(diffs.indexOf(getSetting('difficulty')) + 1) % diffs.length];
+    setSetting('difficulty', next);
+    this.idleDiffBtn.setLabel(this.getDiffLabel());
   }
 
   private initHierarchy(): void {
@@ -102,6 +120,7 @@ export class PeripheralVisionScene implements Scene {
 
     this.stateIdle.addChild(this.idleStartBtn);
     this.stateIdle.addChild(this.idleHint);
+    this.stateIdle.addChild(this.idleDiffBtn);
 
     this.statePlaying.addChild(this.playBorder);
     this.statePlaying.addChild(this.playCross);
@@ -150,6 +169,7 @@ export class PeripheralVisionScene implements Scene {
     const cx = width / 2;
     this.idleStartBtn.x = cx - 110; this.idleStartBtn.y = 100;
     this.idleHint.x = cx; this.idleHint.y = 180;
+    this.idleDiffBtn.x = cx - 100; this.idleDiffBtn.y = 230;
 
     // Play border
     const pW = width - 60;

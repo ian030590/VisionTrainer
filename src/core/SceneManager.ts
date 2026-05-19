@@ -33,7 +33,7 @@ export class SceneManager {
       }
     });
     // resize
-    window.addEventListener('resize', () => this.handleResize());
+    this.app.renderer.on('resize', () => this.handleResize());
   }
 
   /** Register a scene by name */
