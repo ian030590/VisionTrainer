@@ -24,16 +24,30 @@ export class SceneManager {
   private currentScene: Scene | null = null;
   private scenes = new Map<string, Scene>();
 
+  private lastWidth = 0;
+  private lastHeight = 0;
+
   constructor(app: Application) {
     this.app = app;
     // tick update
     this.app.ticker.add((ticker) => {
+      // Reliable resize detection
+      if (this.app.screen.width !== this.lastWidth || this.app.screen.height !== this.lastHeight) {
+        this.lastWidth = this.app.screen.width;
+        this.lastHeight = this.app.screen.height;
+        this.handleResize();
+      }
+
       if (this.currentScene?.onUpdate) {
         this.currentScene.onUpdate(ticker.deltaTime);
       }
     });
     // resize
     this.app.renderer.on('resize', () => this.handleResize());
+    window.addEventListener('resize', () => {
+      if (this.app.resize) this.app.resize();
+      this.handleResize();
+    });
   }
 
   /** Register a scene by name */
