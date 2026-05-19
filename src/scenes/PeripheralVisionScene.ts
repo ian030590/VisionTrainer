@@ -346,13 +346,62 @@ export class PeripheralVisionScene implements Scene {
   }
 
   private moveRandomOption(): void {
-    // Basic implementation of movement is tricky with scattered layouts without overlap. 
-    // To keep it simple, we just skip it for scattered layout or randomly move slightly if safe.
-    // Given the constraints, let's just redraw for beginner, or disable for scattered to avoid collision issues.
     if (this.gameState !== 'playing' || this.options.length === 0) return;
-    if (getSetting('difficulty') !== 'beginner') return; // skip for now in advanced
+    
+    const opt = this.options[Math.floor(Math.random() * this.options.length)];
+    
+    // Bounds
+    const gridX = 40, gridY = 120;
+    const gridW = this.cachedW - 80;
+    const gridH = this.cachedH - 95 - 60 - 140;
+    const sizePx = pixelFromMillimeter(getSetting('optionPhysicalSizeMm'));
+    const oW = sizePx * 3; // Approx physical width needed
+    const oH = sizePx * 3;
+    const minDistSq = Math.pow(Math.max(oW, oH) * 1.1, 2);
 
-    // ... keeping original simple grid move logic for beginner if needed, but omitted here to save lines and focus on core task.
+    let bestPos = null;
+    for (let attempt = 0; attempt < 100; attempt++) {
+      const px = gridX + oW/2 + Math.random() * (gridW - oW);
+      const py = gridY + oH/2 + Math.random() * (gridH - oH);
+      
+      let overlap = false;
+      for (const other of this.options) {
+        if (other === opt) continue;
+        const dx = px - other.currentX;
+        const dy = py - other.currentY;
+        if (dx * dx + dy * dy < minDistSq) {
+          overlap = true;
+          break;
+        }
+      }
+      if (!overlap) {
+        bestPos = { x: px, y: py };
+        break;
+      }
+    }
+
+    if (bestPos) {
+      opt.currentX = bestPos.x;
+      opt.currentY = bestPos.y;
+      
+      const startX = opt.container.x;
+      const startY = opt.container.y;
+      const duration = 300;
+      const startTime = performance.now();
+      
+      const animate = () => {
+        if (this.gameState !== 'playing') return;
+        const elapsed = performance.now() - startTime;
+        const t = Math.min(1, elapsed / duration);
+        // simple ease out
+        const ease = 1 - Math.pow(1 - t, 3);
+        opt.container.x = startX + (bestPos.x - startX) * ease;
+        opt.container.y = startY + (bestPos.y - startY) * ease;
+        
+        if (t < 1) requestAnimationFrame(animate);
+      };
+      requestAnimationFrame(animate);
+    }
   }
 
   private endGame(): void {
@@ -384,38 +433,61 @@ export class PeripheralVisionScene implements Scene {
 
     // Dashboard Table
     let tableY = 160;
-    const tableHeader = new Text({
-      text: '題目       |   反應時間 (毫秒)   |   發現座標 (X, Y)',
-      style: { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeM, fill: Theme.textSecondary, fontWeight: 'bold' }
-    });
-    tableHeader.anchor.set(0.5, 0);
-    tableHeader.x = cx; tableHeader.y = tableY;
-    this.stateGameover.addChild(tableHeader);
+    const tableW = Math.min(600, this.cachedW - 40);
+    const displayRecords = this.records.slice(0, 10);
+    const tableH = 40 + displayRecords.length * 30 + (this.records.length > 10 ? 30 : 0) + 10;
     
-    tableY += 30;
+    // Table Background
+    const tableBg = new Graphics();
+    tableBg.roundRect(cx - tableW/2, tableY, tableW, tableH, 8).fill({ color: Theme.bgCard }).stroke({ color: Theme.border, width: 1 });
+    this.stateGameover.addChild(tableBg);
     
-    // Draw up to 10 records
-    this.records.slice(0, 10).forEach(r => {
-      const row = new Text({
-        text: `[ ${r.target} ]      |   ${r.timeMs} ms        |   (${r.foundX}, ${r.foundY})`,
-        style: { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeS, fill: Theme.textMuted }
-      });
-      row.anchor.set(0.5, 0);
-      row.x = cx; row.y = tableY;
-      this.stateGameover.addChild(row);
-      tableY += 24;
+    // Header Row Bg
+    tableBg.roundRect(cx - tableW/2, tableY, tableW, 40, 8).fill({ color: Theme.bgPanel });
+
+    const col1 = cx - tableW/2 + 60;
+    const col2 = cx;
+    const col3 = cx + tableW/2 - 100;
+
+    const tableHeader1 = new Text({ text: '題目', style: { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeM, fill: Theme.textSecondary, fontWeight: 'bold' } });
+    tableHeader1.anchor.set(0.5, 0.5); tableHeader1.x = col1; tableHeader1.y = tableY + 20;
+    this.stateGameover.addChild(tableHeader1);
+
+    const tableHeader2 = new Text({ text: '反應時間 (ms)', style: { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeM, fill: Theme.textSecondary, fontWeight: 'bold' } });
+    tableHeader2.anchor.set(0.5, 0.5); tableHeader2.x = col2; tableHeader2.y = tableY + 20;
+    this.stateGameover.addChild(tableHeader2);
+
+    const tableHeader3 = new Text({ text: '發現座標 (X, Y)', style: { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeM, fill: Theme.textSecondary, fontWeight: 'bold' } });
+    tableHeader3.anchor.set(0.5, 0.5); tableHeader3.x = col3; tableHeader3.y = tableY + 20;
+    this.stateGameover.addChild(tableHeader3);
+    
+    tableY += 55;
+    
+    // Rows
+    displayRecords.forEach((r, i) => {
+      const targetTxt = new Text({ text: r.target, style: { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeS, fill: Theme.accent, fontWeight: 'bold' } });
+      targetTxt.anchor.set(0.5, 0.5); targetTxt.x = col1; targetTxt.y = tableY;
+      this.stateGameover.addChild(targetTxt);
+
+      const timeTxt = new Text({ text: `${r.timeMs} ms`, style: { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeS, fill: Theme.textPrimary } });
+      timeTxt.anchor.set(0.5, 0.5); timeTxt.x = col2; timeTxt.y = tableY;
+      this.stateGameover.addChild(timeTxt);
+
+      const posTxt = new Text({ text: `(${r.foundX}, ${r.foundY})`, style: { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeS, fill: Theme.textMuted } });
+      posTxt.anchor.set(0.5, 0.5); posTxt.x = col3; posTxt.y = tableY;
+      this.stateGameover.addChild(posTxt);
+      
+      tableY += 30;
     });
     
     if (this.records.length > 10) {
-      const extra = new Text({
-        text: `...以及其他 ${this.records.length - 10} 筆紀錄`,
-        style: { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeS, fill: Theme.textMuted }
-      });
-      extra.anchor.set(0.5, 0);
-      extra.x = cx; extra.y = tableY;
+      const extra = new Text({ text: `...以及其他 ${this.records.length - 10} 筆紀錄`, style: { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeS, fill: Theme.textMuted } });
+      extra.anchor.set(0.5, 0.5); extra.x = cx; extra.y = tableY;
       this.stateGameover.addChild(extra);
       tableY += 30;
     }
+
+    tableY += 20;
 
     // Save Button
     const saveBtn = new Button({
