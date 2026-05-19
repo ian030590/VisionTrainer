@@ -251,8 +251,9 @@ export class MovingCardScene implements Scene {
     
     this.currentTarget = generateRandomLetters(2);
     const targetSize = pixelFromMillimeter(getSetting('targetPhysicalSizeMm'));
+    const safeTargetSize = Math.min(targetSize, this.cachedH * 0.2); // Cap at 20% of screen height
     this.targetText.text = this.currentTarget;
-    this.targetText.style.fontSize = Math.max(16, targetSize);
+    this.targetText.style.fontSize = Math.max(16, safeTargetSize);
     
     const diff = getSetting('difficulty');
     const optionCount = getSetting('optionCount');
@@ -388,9 +389,11 @@ export class MovingCardScene implements Scene {
       drawState('normal');
       optContainer.addChild(optBg);
 
+      const safeFontSize = Math.min(optionFontSize, Math.min(oW, oH) * 0.7);
+
       const optText = new Text({
         text: opt.letters,
-        style: { fontFamily: Theme.fontFamily, fontSize: optionFontSize, fontWeight: '600', fill: Theme.textPrimary },
+        style: { fontFamily: Theme.fontFamily, fontSize: safeFontSize, fontWeight: '600', fill: Theme.textPrimary },
       });
       optText.anchor.set(0.5);
       optText.x = oW / 2; optText.y = oH / 2;
