@@ -1,24 +1,78 @@
 # Reading Trainer
 
-Reading Trainer 是一個專注於視覺與閱讀能力訓練的 Web 應用程式。本專案透過靜態網頁（HTML/CSS/JS）建構，無需複雜的後端伺服器即可運行，確保了極高的部署便利性與使用者隱私。
+Reading Trainer 是一個基於 **TypeScript + PixiJS** 建構的視覺與閱讀能力訓練 Web 應用程式。UI/UX 設計參考了 [FrACT10](https://michaelbach.de/fract/) 的科學化測試介面，使用 Canvas 渲染確保精確的視覺刺激呈現。
+
+## 技術棧
+
+- **TypeScript** — 強型別開發
+- **PixiJS v8** — 高效能 2D Canvas 渲染
+- **Vite** — 快速開發與建置工具
+- **GitHub Pages** — 自動化部署（GitHub Actions）
 
 ## 系統架構設計
 
-本系統設計為**模組化擴充架構**，首頁將引導使用者進入「訓練清單」，未來可以持續增加各式各樣的視覺訓練模組，而不會影響現有功能。
+本系統設計為**模組化擴充架構**（Plugin Pattern），新的訓練模組只需實作 `TrainingModule` 介面並註冊至 `TrainingRegistry` 即可自動出現在訓練清單中。
 
-主要的頁面架構如下：
-- `index.html` - 歡迎頁面與主要功能入口。
-- `settings.html` - 設定與校正頁面（使用者透過實體卡片校正螢幕尺寸與觀看距離）。
-- `training.html` - 訓練清單（Menu），列出所有可用的訓練項目。
-- `peripheral-vision-training.html` - 第一個實際的訓練模組（周邊視覺訓練）。
+### 核心架構
+
+```
+src/
+├── main.ts                    # 應用程式入口
+├── core/
+│   ├── Globals.ts             # 全域常數
+│   ├── SceneManager.ts        # 場景生命週期管理
+│   ├── Settings.ts            # 設定持久化（localStorage）
+│   └── SoundManager.ts        # 音效回饋
+├── scenes/
+│   ├── MainMenuScene.ts       # 主選單
+│   ├── TrainingListScene.ts   # 訓練清單（自動讀取 Registry）
+│   ├── SettingsScene.ts       # 設定與螢幕校正
+│   └── PeripheralVisionScene.ts  # 周邊視覺訓練
+├── trainings/
+│   ├── TrainingModule.ts      # 模組介面定義
+│   ├── TrainingRegistry.ts    # 模組註冊中心
+│   └── PeripheralVisionModule.ts  # 周邊視覺訓練模組
+├── ui/
+│   ├── Theme.ts               # 設計 token（暗色主題）
+│   ├── Button.ts              # 互動按鈕元件
+│   ├── Panel.ts               # 面板容器
+│   └── Slider.ts              # 滑桿元件
+└── utils/
+    ├── SpatialUtils.ts        # 空間轉換（px↔mm↔degree）
+    └── MathUtils.ts           # 數學/動畫工具函式
+```
+
+### 新增訓練模組
+
+1. 在 `src/scenes/` 新增場景類別（實作 `Scene` 介面）
+2. 在 `src/trainings/` 新增模組類別（實作 `TrainingModule` 介面）
+3. 在 `src/main.ts` 中 `register()` 新模組
+
+```typescript
+// 範例：新增 XxxModule
+const xxx = new XxxModule();
+xxx.setGoBack(() => sm.goTo('trainingList'));
+TrainingRegistry.register(xxx);
+```
 
 ## 目前可用的訓練模組
 
 ### 1. 周邊視覺訓練 (Peripheral Vision Training)
 
-這是一個動態的字母配對遊戲，旨在訓練使用者在注視中心點時，快速辨識周邊文字的能力。
+動態字母配對遊戲，訓練注視中心點時快速辨識周邊文字的能力。
 
-- **運作方式**：畫面中央會顯示一組隨機的目標字母組合（如 "AB"）。在周圍的網格中，會出現多個選項（包含正確的目標與其他干擾選項）。選項會隨機在網格中移動。
-- **訓練目標**：使用者需要保持注意力，在干擾選項中快速找出與目標相符的字母，並點擊它。
-- **校正機制**：遊戲中顯示的文字大小（刺激物大小）會根據使用者在 `settings.html` 中所設定的 `px/mm` 值動態計算。這確保了不同裝置、不同螢幕解析度下的物理尺寸一致性，達到科學化的訓練標準。
-- **參考資料（Inspired By）**：styts/eye-training（https://github.com/styts/eye-training）
+- **校正機制**：文字大小根據螢幕校正值（塑膠卡片法）動態計算
+- **參考資料**：FrACT10 CardController、styts/eye-training
+
+## 開發
+
+```bash
+npm install       # 安裝依賴
+npm run dev       # 啟動開發伺服器
+npm run build     # 建置生產版本
+npm run preview   # 預覽生產版本
+```
+
+## 部署
+
+推送到 `main` 分支會自動觸發 GitHub Actions 部署至 GitHub Pages。

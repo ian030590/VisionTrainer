@@ -1,37 +1,25 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reading Trainer</title>
-    <!-- 引入Google Fonts: Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/styles.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="ReadingTrainer — 基於 PixiJS 的視覺與閱讀能力訓練系統" />
+  <title>ReadingTrainer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #0D1117; }
+    #app-container {
+      width: 100%; height: 100%;
+      display: flex; align-items: center; justify-content: center;
+    }
+    canvas { display: block; }
+  </style>
 </head>
 <body>
-    <header>
-        <a href="index.html" class="header-title">ReadingTrainer</a>
-    </header>
-
-    <main>
-        <div style="text-align: center; margin-bottom: 2rem;">
-            <h1>歡迎來到 ReadingTrainer</h1>
-            <p>本系統提供閱讀訓練以及視覺校正功能，請選擇下方選項繼續。</p>
-        </div>
-        
-        <div class="menu-grid">
-            <a href="training.html" class="menu-card">
-                <h2>訓練清單</h2>
-                <p>選擇並進入不同的閱讀與視覺訓練項目，請確保您已完成設定與校正。</p>
-            </a>
-            
-            <a href="settings.html" class="menu-card">
-                <h2>設定與校正</h2>
-                <p>調整觀看距離、進行實體卡片螢幕尺寸校正與偏好設定。</p>
-            </a>
-        </div>
-    </main>
-
-    <script src="js/app.js"></script>
+  <div id="app-container"></div>
+  <script type="module" src="/src/main.ts"></script>
 </body>
 </html>

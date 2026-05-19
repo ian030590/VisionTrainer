@@ -1,0 +1,100 @@
+/**
+ * Settings manager with localStorage persistence.
+ * Inspired by FrACT10 Settings.j — typed getter/setter with range validation.
+ */
+import {
+  DEFAULT_DISTANCE_CM,
+  DEFAULT_CAL_BAR_LENGTH_MM,
+  CAL_BAR_LENGTH_PX,
+  STORAGE_PREFIX,
+} from './Globals';
+
+/** Shape of all persisted settings */
+export interface AppSettings {
+  // ── Calibration ──
+  distanceInCM: number;
+  calBarLengthInMM: number;
+
+  // ── Training defaults ──
+  totalRounds: number;
+  optionCount: number;
+  optionMoveIntervalMs: number;
+  targetPhysicalSizeMm: number;
+  optionPhysicalSizeMm: number;
+
+  // ── Audio ──
+  soundVolume: number;
+  auditoryFeedbackEnabled: boolean;
+}
+
+/** Metadata for each setting: default, min, max */
+interface SettingMeta<T> {
+  dflt: T;
+  min?: number;
+  max?: number;
+}
+
+const META: { [K in keyof AppSettings]: SettingMeta<AppSettings[K]> } = {
+  distanceInCM:           { dflt: DEFAULT_DISTANCE_CM,      min: 10,   max: 500 },
+  calBarLengthInMM:       { dflt: DEFAULT_CAL_BAR_LENGTH_MM, min: 1,   max: 10000 },
+  totalRounds:            { dflt: 5,   min: 1,   max: 100 },
+  optionCount:            { dflt: 18,  min: 4,   max: 40 },
+  optionMoveIntervalMs:   { dflt: 800, min: 200, max: 5000 },
+  targetPhysicalSizeMm:   { dflt: 15,  min: 2,   max: 100 },
+  optionPhysicalSizeMm:   { dflt: 10,  min: 2,   max: 80 },
+  soundVolume:            { dflt: 50,  min: 0,   max: 100 },
+  auditoryFeedbackEnabled:{ dflt: true },
+};
+
+function storageKey(name: string): string {
+  return STORAGE_PREFIX + name;
+}
+
+/** Get a setting value, falling back to default */
+export function getSetting<K extends keyof AppSettings>(key: K): AppSettings[K] {
+  const raw = localStorage.getItem(storageKey(key));
+  if (raw === null) return META[key].dflt;
+
+  const meta = META[key];
+  if (typeof meta.dflt === 'boolean') {
+    return (raw === 'true') as AppSettings[K];
+  }
+  if (typeof meta.dflt === 'number') {
+    const num = parseFloat(raw);
+    if (isNaN(num)) return meta.dflt;
+    if (meta.min !== undefined && num < meta.min) return meta.dflt;
+    if (meta.max !== undefined && num > meta.max) return meta.dflt;
+    return num as AppSettings[K];
+  }
+  return raw as unknown as AppSettings[K];
+}
+
+/** Set a setting value */
+export function setSetting<K extends keyof AppSettings>(key: K, value: AppSettings[K]): void {
+  localStorage.setItem(storageKey(key), String(value));
+}
+
+/** Check if the device has been calibrated (distance AND bar differ from defaults) */
+export function isCalibrated(): boolean {
+  return (
+    getSetting('distanceInCM') !== DEFAULT_DISTANCE_CM ||
+    getSetting('calBarLengthInMM') !== DEFAULT_CAL_BAR_LENGTH_MM
+  );
+}
+
+/** Reset all settings to defaults */
+export function resetAllSettings(): void {
+  for (const key of Object.keys(META) as (keyof AppSettings)[]) {
+    setSetting(key, META[key].dflt);
+  }
+}
+
+/** Pixels per millimeter derived from calibration */
+export function getPixelsPerMM(): number {
+  return CAL_BAR_LENGTH_PX / getSetting('calBarLengthInMM');
+}
+
+/** Millimeters per pixel */
+export function getMMPerPixel(): number {
+  return getSetting('calBarLengthInMM') / CAL_BAR_LENGTH_PX;
+}
