@@ -326,8 +326,8 @@ export class PeripheralVisionScene implements Scene {
       const optBg = new Graphics();
       const drawState = (state: 'normal' | 'hover' | 'correct' | 'wrong') => {
         optBg.clear();
-        let bgColor = state === 'hover' ? Theme.bgCardHover : Theme.bgCard;
-        let borderColor = state === 'hover' ? Theme.accent : Theme.border;
+        let bgColor: number = state === 'hover' ? Theme.bgCardHover : Theme.bgCard;
+        let borderColor: number = state === 'hover' ? Theme.accent : Theme.border;
         let borderWidth = state === 'hover' ? 2 : 1;
         
         if (state === 'correct') {
