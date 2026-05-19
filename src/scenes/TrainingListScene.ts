@@ -109,7 +109,12 @@ export class TrainingListScene implements Scene {
     this.emptyText.x = cx;
     this.emptyText.y = 300;
     
-    this.cardContainer.x = cx - 350; // cardW is 700
+    const cardW = 700;
+    const requiredH = 165 + (this.cardContainers.length * 102);
+    const contentScale = Math.min(1, width / (cardW + 40), height / (requiredH + 20));
+    
+    this.cardContainer.scale.set(contentScale);
+    this.cardContainer.x = cx - (cardW / 2) * contentScale;
     this.cardContainer.y = 165;
   }
 

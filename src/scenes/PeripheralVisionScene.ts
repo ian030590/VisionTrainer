@@ -185,6 +185,9 @@ export class PeripheralVisionScene implements Scene {
     // However, real-time responsive game repositioning is complex. For now, it's best to restart round if extreme resize happens
     if (this.gameState === 'gameover') {
       this.renderGameOver();
+      const scale = Math.min(1, height / 650);
+      this.stateGameover.scale.set(scale);
+      this.stateGameover.x = cx * (1 - scale);
     }
   }
 
@@ -451,6 +454,12 @@ export class PeripheralVisionScene implements Scene {
     this.switchState('gameover');
     SoundManager.playRunEnd();
     this.renderGameOver();
+    
+    // Apply responsive scaling for gameover screen
+    const cx = this.cachedW / 2;
+    const scale = Math.min(1, this.cachedH / 650);
+    this.stateGameover.scale.set(scale);
+    this.stateGameover.x = cx * (1 - scale);
   }
 
   private renderGameOver(): void {

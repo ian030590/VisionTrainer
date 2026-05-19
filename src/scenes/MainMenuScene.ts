@@ -117,8 +117,10 @@ export class MainMenuScene implements Scene {
 
     // Cards
     const totalCardW = 320 * 2 + 40;
-    this.cardContainer.x = (width - totalCardW) / 2;
-    this.cardContainer.y = topMargin + 160;
+    const contentScale = Math.min(1, width / (totalCardW + 40), height / 500);
+    this.cardContainer.scale.set(contentScale);
+    this.cardContainer.x = cx - (totalCardW / 2) * contentScale;
+    this.cardContainer.y = topMargin + 160 * contentScale;
 
     // Version
     this.version.x = cx;

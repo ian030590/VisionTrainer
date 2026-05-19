@@ -306,12 +306,16 @@ export class SettingsScene implements Scene {
 
     const contentY = 140;
     
-    // General container centering
-    this.generalContainer.x = cx - Math.min(600, width - 40) / 2;
+    // General container centering and scaling
+    const generalScale = Math.min(1, height / 650);
+    this.generalContainer.scale.set(generalScale);
+    this.generalContainer.x = cx - (Math.min(600, width - 40) / 2) * generalScale;
     this.generalContainer.y = contentY;
 
-    // Cal container centering
-    this.calContainer.x = cx; // elements inside use cx=0
+    // Cal container centering and scaling
+    const calScale = Math.min(1, height / 700);
+    this.calContainer.scale.set(calScale);
+    this.calContainer.x = cx; // elements inside use cx=0, scaling from cx keeps it perfectly centered
     this.calContainer.y = contentY;
 
     // Refresh general if width changed
