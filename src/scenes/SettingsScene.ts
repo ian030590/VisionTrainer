@@ -175,68 +175,63 @@ export class SettingsScene implements Scene {
     let y = 0;
 
     // Viewing Distance
-    const distCard = this.makeSettingCard('觀看距離', '受試者眼睛至螢幕的距離（公分）', cardW, 100);
+    const distCard = this.makeSettingCard('觀看距離', '受試者眼睛至螢幕的距離（公分）', cardW, 80);
     distCard.y = y;
     const distLabel = new Text({ text: `${getSetting('distanceInCM')} cm`, style: { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeL, fontWeight: '700', fill: Theme.accent } });
-    distLabel.x = cardW - Theme.paddingL - 80; distLabel.y = 14;
-    distCard.addChild(distLabel);
-    const distSlider = new Slider({
-      width: cardW - Theme.paddingL * 2, min: 20, max: 200, value: getSetting('distanceInCM'), step: 5,
-      onChange: (v) => { setSetting('distanceInCM', v); distLabel.text = `${v} cm`; },
-    });
-    distSlider.x = Theme.paddingL; distSlider.y = 60;
-    distCard.addChild(distSlider);
-    this.generalContainer.addChild(distCard);
-    y += 120;
-
-    // Difficulty
-    const diffCard = this.makeSettingCard('訓練難易度', '選擇周邊視覺訓練的排版與旋轉難度', cardW, 100);
-    diffCard.y = y;
-    const diffMap: Record<string, string> = { beginner: '初級 (網格排列)', intermediate: '中級 (散落排列)', advanced: '高級 (散落+旋轉)' };
-    const diffLabel = new Text({ text: diffMap[getSetting('difficulty')], style: { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeM, fontWeight: '700', fill: Theme.accent } });
-    diffLabel.x = cardW - Theme.paddingL - 120; diffLabel.y = 16;
-    diffCard.addChild(diffLabel);
-    
-    // simple toggle button to cycle diff
-    const diffs = ['beginner', 'intermediate', 'advanced'] as const;
-    const diffBtn = new Button({
-      label: '切換難度', width: 100, height: 32, fontSize: Theme.fontSizeS, variant: 'primary',
+    const distEditBtn = new Button({
+      label: '✏️ 編輯', width: 90, height: 32, fontSize: Theme.fontSizeS, variant: 'secondary',
       onClick: () => {
-        const cur = getSetting('difficulty');
-        const next = diffs[(diffs.indexOf(cur) + 1) % diffs.length];
-        setSetting('difficulty', next);
-        diffLabel.text = diffMap[next];
+        const input = window.prompt('請輸入觀看距離 (cm):', getSetting('distanceInCM').toString());
+        if (input !== null) {
+          const val = parseFloat(input);
+          if (!isNaN(val) && val >= 10 && val <= 500) {
+            setSetting('distanceInCM', val);
+            this.buildGeneralTab();
+          } else {
+            window.alert('請輸入有效的數字 (10 ~ 500)');
+          }
+        }
       }
     });
-    diffBtn.x = Theme.paddingL; diffBtn.y = 60;
-    diffCard.addChild(diffBtn);
-    this.generalContainer.addChild(diffCard);
-    y += 120;
+    distEditBtn.x = cardW - Theme.paddingL - 90; distEditBtn.y = 24;
+    distLabel.x = distEditBtn.x - distLabel.width - 20; distLabel.y = 26;
+    distCard.addChild(distLabel, distEditBtn);
+    this.generalContainer.addChild(distCard);
+    y += 100;
 
-    // Total Rounds
-    const roundsCard = this.makeSettingCard('訓練回合數', '每次訓練的總回合數', cardW, 100);
-    roundsCard.y = y;
-    const roundsLabel = new Text({ text: `${getSetting('totalRounds')} 回合`, style: { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeL, fontWeight: '700', fill: Theme.accent } });
-    roundsLabel.x = cardW - Theme.paddingL - 100; roundsLabel.y = 14;
-    roundsCard.addChild(roundsLabel);
-    const roundsSlider = new Slider({
-      width: cardW - Theme.paddingL * 2, min: 1, max: 30, value: getSetting('totalRounds'), step: 1,
-      onChange: (v) => { setSetting('totalRounds', v); roundsLabel.text = `${v} 回合`; },
+    // Download Directory
+    const dirCard = this.makeSettingCard('成績下載檔案前綴', '設定匯出成績時的檔案前綴或識別碼', cardW, 80);
+    dirCard.y = y;
+    let dirVal = getSetting('downloadDirectory');
+    let displayVal = dirVal || '(未設定)';
+    if (displayVal.length > 12) displayVal = displayVal.substring(0, 12) + '...';
+    
+    const dirLabel = new Text({ text: displayVal, style: { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeM, fontWeight: '700', fill: dirVal ? Theme.accent : Theme.textMuted } });
+    const dirEditBtn = new Button({
+      label: '✏️ 編輯', width: 90, height: 32, fontSize: Theme.fontSizeS, variant: 'secondary',
+      onClick: () => {
+        const input = window.prompt('請輸入成績檔案前綴:', getSetting('downloadDirectory'));
+        if (input !== null) {
+          setSetting('downloadDirectory', input);
+          this.buildGeneralTab();
+        }
+      }
     });
-    roundsSlider.x = Theme.paddingL; roundsSlider.y = 60;
-    roundsCard.addChild(roundsSlider);
-    this.generalContainer.addChild(roundsCard);
-    y += 120;
+    dirEditBtn.x = cardW - Theme.paddingL - 90; dirEditBtn.y = 24;
+    dirLabel.x = dirEditBtn.x - dirLabel.width - 20; dirLabel.y = 28;
+    dirCard.addChild(dirLabel, dirEditBtn);
+    this.generalContainer.addChild(dirCard);
+    y += 100;
 
     // Sound toggle
-    const soundCard = this.makeSettingCard('音效回饋', '訓練時的正確/錯誤音效', cardW, 70);
+    const soundCard = this.makeSettingCard('音效回饋', '訓練時的正確/錯誤音效', cardW, 80);
     soundCard.y = y;
     const soundEnabled = getSetting('auditoryFeedbackEnabled');
     const toggleBtn = new Button({
       label: soundEnabled ? '✓ 已開啟' : '✗ 已關閉', width: 120, height: 32, fontSize: Theme.fontSizeS, variant: soundEnabled ? 'primary' : 'secondary',
       onClick: () => { setSetting('auditoryFeedbackEnabled', !getSetting('auditoryFeedbackEnabled')); this.buildGeneralTab(); },
     });
-    toggleBtn.x = cardW - Theme.paddingL - 120; toggleBtn.y = 15;
+    toggleBtn.x = cardW - Theme.paddingL - 120; toggleBtn.y = 24;
     soundCard.addChild(toggleBtn);
     this.generalContainer.addChild(soundCard);
   }

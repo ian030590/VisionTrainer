@@ -63,6 +63,7 @@ export class PeripheralVisionScene implements Scene {
   private idleStartBtn: Button;
   private idleHint = new Text();
   private idleDiffBtn: Button;
+  private idleRoundsBtn: Button;
   
   private statePlaying = new Container();
   private playBorder = new Graphics();
@@ -90,6 +91,11 @@ export class PeripheralVisionScene implements Scene {
       onClick: () => this.cycleDifficulty(),
     });
 
+    this.idleRoundsBtn = new Button({
+      label: this.getRoundsLabel(), width: 200, height: 40, fontSize: Theme.fontSizeM, variant: 'secondary',
+      onClick: () => this.promptRounds(),
+    });
+
     this.initHierarchy();
   }
 
@@ -103,6 +109,24 @@ export class PeripheralVisionScene implements Scene {
     const next = diffs[(diffs.indexOf(getSetting('difficulty')) + 1) % diffs.length];
     setSetting('difficulty', next);
     this.idleDiffBtn.setLabel(this.getDiffLabel());
+  }
+
+  private getRoundsLabel(): string {
+    return `回合數: ${getSetting('totalRounds')}`;
+  }
+
+  private promptRounds(): void {
+    const input = window.prompt('請輸入訓練回合數 (1~100):', getSetting('totalRounds').toString());
+    if (input !== null) {
+      const val = parseInt(input, 10);
+      if (!isNaN(val) && val >= 1 && val <= 100) {
+        setSetting('totalRounds', val);
+        this.idleRoundsBtn.setLabel(this.getRoundsLabel());
+        this.updateScoreboard();
+      } else {
+        window.alert('請輸入有效的數字 (1 ~ 100)');
+      }
+    }
   }
 
   private initHierarchy(): void {
@@ -121,6 +145,7 @@ export class PeripheralVisionScene implements Scene {
     this.stateIdle.addChild(this.idleStartBtn);
     this.stateIdle.addChild(this.idleHint);
     this.stateIdle.addChild(this.idleDiffBtn);
+    this.stateIdle.addChild(this.idleRoundsBtn);
 
     this.statePlaying.addChild(this.playBorder);
     this.statePlaying.addChild(this.playCross);
@@ -169,7 +194,8 @@ export class PeripheralVisionScene implements Scene {
     const cx = width / 2;
     this.idleStartBtn.x = cx - 110; this.idleStartBtn.y = 100;
     this.idleHint.x = cx; this.idleHint.y = 180;
-    this.idleDiffBtn.x = cx - 100; this.idleDiffBtn.y = 230;
+    this.idleDiffBtn.x = cx - 210; this.idleDiffBtn.y = 230;
+    this.idleRoundsBtn.x = cx + 10; this.idleRoundsBtn.y = 230;
 
     // Play border
     const pW = width - 60;
@@ -585,7 +611,9 @@ export class PeripheralVisionScene implements Scene {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `閱讀訓練分數_周邊視覺訓練_${new Date().toISOString().split('T')[0]}.txt`;
+    let prefix = getSetting('downloadDirectory');
+    if (prefix) prefix += '_';
+    a.download = `${prefix}閱讀訓練分數_周邊視覺訓練_${new Date().toISOString().split('T')[0]}.txt`;
     a.click();
     URL.revokeObjectURL(url);
   }

@@ -26,6 +26,9 @@ export interface AppSettings {
   // ── Audio ──
   soundVolume: number;
   auditoryFeedbackEnabled: boolean;
+
+  // ── System ──
+  downloadDirectory: string;
 }
 
 /** Metadata for each setting: default, min, max */
@@ -46,6 +49,7 @@ const META: { [K in keyof AppSettings]: SettingMeta<AppSettings[K]> } = {
   difficulty:             { dflt: 'beginner' },
   soundVolume:            { dflt: 50,  min: 0,   max: 100 },
   auditoryFeedbackEnabled:{ dflt: true },
+  downloadDirectory:      { dflt: '' },
 };
 
 function storageKey(name: string): string {
