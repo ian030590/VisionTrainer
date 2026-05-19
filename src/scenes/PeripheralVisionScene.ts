@@ -7,7 +7,7 @@ import { Container, Graphics, Text } from 'pixi.js';
 import type { Scene } from '../core/SceneManager';
 import { Theme } from '../ui/Theme';
 import { Button } from '../ui/Button';
-import { getSetting, saveTrainingRecord } from '../core/Settings';
+import { getSetting, setSetting, saveTrainingRecord } from '../core/Settings';
 import { SoundManager } from '../core/SoundManager';
 import { shuffleArray, generateRandomLetters, generateScatteredPositions } from '../utils/MathUtils';
 import { pixelFromMillimeter } from '../utils/SpatialUtils';
