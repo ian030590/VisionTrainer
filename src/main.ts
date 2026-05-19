@@ -12,7 +12,7 @@ import { MainMenuScene } from './scenes/MainMenuScene';
 import { TrainingListScene } from './scenes/TrainingListScene';
 import { SettingsScene } from './scenes/SettingsScene';
 import { TrainingRegistry } from './trainings/TrainingRegistry';
-import { PeripheralVisionModule } from './trainings/PeripheralVisionModule';
+import { MovingCardModule } from './trainings/MovingCardModule';
 import { Theme } from './ui/Theme';
 
 async function bootstrap(): Promise<void> {
@@ -37,9 +37,9 @@ async function bootstrap(): Promise<void> {
 
   // ── Register Training Modules ──
   // (Future modules: simply create a new XxxModule class and register here)
-  const peripheralVision = new PeripheralVisionModule();
-  peripheralVision.setGoBack(() => sm.goTo('trainingList'));
-  TrainingRegistry.register(peripheralVision);
+  const movingCard = new MovingCardModule();
+  movingCard.setGoBack(() => sm.goTo('trainingList'));
+  TrainingRegistry.register(movingCard);
 
   // ── Register Scenes ──
   sm.register('mainMenu', new MainMenuScene(sm));

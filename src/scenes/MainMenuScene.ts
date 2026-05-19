@@ -9,6 +9,7 @@ import { APP_VERSION } from '../core/Globals';
 import { isCalibrated } from '../core/Settings';
 import { SoundManager } from '../core/SoundManager';
 import { easeOutCubic } from '../utils/MathUtils';
+import { drawWarning, drawDumbbell, drawGear, drawArrowRight } from '../ui/Icons';
 
 export class MainMenuScene implements Scene {
   readonly container = new Container();
@@ -20,6 +21,7 @@ export class MainMenuScene implements Scene {
   private subtitle = new Text();
   private statusDot = new Graphics();
   private statusText = new Text();
+  private statusIcon: Graphics | null = null;
   private version = new Text();
   private glow = new Graphics();
   private cardContainer = new Container();
@@ -65,21 +67,28 @@ export class MainMenuScene implements Scene {
     this.animProgress = 0;
     const calibrated = isCalibrated();
     this.statusDot.fill({ color: calibrated ? Theme.success : Theme.warning });
-    this.statusText.text = calibrated ? '已完成螢幕校正' : '⚠ 尚未校正螢幕';
+    this.statusText.text = calibrated ? '已完成螢幕校正' : '尚未校正螢幕';
     this.statusText.style.fill = calibrated ? Theme.success : Theme.warning;
+    
+    // Add warning icon if not calibrated
+    if (this.statusIcon) { this.container.removeChild(this.statusIcon); this.statusIcon = null; }
+    if (!calibrated) {
+      this.statusIcon = drawWarning(14, Theme.warning);
+      this.container.addChild(this.statusIcon);
+    }
 
     this.cardContainer.removeChildren();
     this.cards = [];
     const cardData = [
-      { title: '🏋️  訓練清單', desc: '選擇並進入不同的閱讀與視覺訓練項目', target: 'trainingList' },
-      { title: '⚙️  設定與校正', desc: '調整觀看距離、進行螢幕尺寸校正', target: 'settings' },
+      { title: '訓練清單', desc: '選擇並進入不同的閱讀與視覺訓練項目', target: 'trainingList', iconFn: () => drawDumbbell(28, Theme.accent) },
+      { title: '設定與校正', desc: '調整觀看距離、進行螢幕尺寸校正', target: 'settings', iconFn: () => drawGear(28, Theme.accent) },
     ];
     
     cardData.forEach((data, i) => {
       const card = this.createCard(data.title, data.desc, 320, 180, () => {
         SoundManager.init();
         this.sceneManager.goTo(data.target);
-      });
+      }, data.iconFn());
       card.x = i * 360; // 320 width + 40 gap
       card.y = 40; // anim start offset
       card.alpha = 0;
@@ -114,6 +123,10 @@ export class MainMenuScene implements Scene {
     this.statusDot.y = topMargin + 100;
     this.statusText.x = cx - 50;
     this.statusText.y = topMargin + 93;
+    if (this.statusIcon) {
+      this.statusIcon.x = cx - 75;
+      this.statusIcon.y = topMargin + 92;
+    }
 
     // Cards
     const totalCardW = 320 * 2 + 40;
@@ -141,7 +154,7 @@ export class MainMenuScene implements Scene {
 
   onExit(): void {}
 
-  private createCard(title: string, desc: string, w: number, h: number, onClick: () => void): Container {
+  private createCard(title: string, desc: string, w: number, h: number, onClick: () => void, icon?: Graphics): Container {
     const card = new Container();
     card.eventMode = 'static';
     card.cursor = 'pointer';
@@ -157,11 +170,17 @@ export class MainMenuScene implements Scene {
     drawBg(false);
     card.addChild(bg);
 
+    if (icon) {
+      icon.x = Theme.paddingL; icon.y = 38;
+      card.addChild(icon);
+    }
+    const titleOffsetX = icon ? Theme.paddingL + 36 : Theme.paddingL;
+
     const titleText = new Text({
       text: title,
       style: { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeXL, fontWeight: '700', fill: Theme.textPrimary },
     });
-    titleText.x = Theme.paddingL; titleText.y = 40;
+    titleText.x = titleOffsetX; titleText.y = 40;
     card.addChild(titleText);
 
     const descText = new Text({
@@ -171,11 +190,8 @@ export class MainMenuScene implements Scene {
     descText.x = Theme.paddingL; descText.y = 85;
     card.addChild(descText);
 
-    const arrow = new Text({
-      text: '→',
-      style: { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeXL, fill: Theme.accent },
-    });
-    arrow.x = w - Theme.paddingL - 20; arrow.y = h - Theme.paddingL - 20;
+    const arrow = drawArrowRight(22, Theme.accent);
+    arrow.x = w - Theme.paddingL - 22; arrow.y = h - Theme.paddingL - 22;
     card.addChild(arrow);
 
     card.on('pointerover', () => { drawBg(true); card.scale.set(1.02); });

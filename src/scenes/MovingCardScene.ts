@@ -1,5 +1,5 @@
 /**
- * Peripheral Vision Training Scene.
+ * Moving Card Training Scene.
  * State machine: idle → playing → gameover.
  * Supports different difficulty levels and responsive layout.
  */
@@ -30,7 +30,7 @@ interface RoundRecord {
   timeMs: number;
 }
 
-export class PeripheralVisionScene implements Scene {
+export class MovingCardScene implements Scene {
   readonly container = new Container();
   private goBack: () => void;
   
@@ -152,7 +152,7 @@ export class PeripheralVisionScene implements Scene {
     this.statePlaying.addChild(this.targetText);
     this.statePlaying.addChild(this.optionsLayer);
 
-    this.headerTitle.text = '👁️  周邊視覺訓練';
+    this.headerTitle.text = '👁️  移動卡片訓練';
     this.headerTitle.style = { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeL, fontWeight: '700', fill: Theme.textPrimary };
     
     this.scoreText.style = { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeM, fontWeight: '600', fill: Theme.textPrimary };
@@ -661,7 +661,7 @@ export class PeripheralVisionScene implements Scene {
   }
 
   private downloadRecords(): void {
-    let text = `--- 訓練紀錄 [周邊視覺訓練] ---\n`;
+    let text = `--- 訓練紀錄 [移動卡片訓練] ---\n`;
     text += `時間: ${new Date().toLocaleString()}\n`;
     text += `難度: ${getSetting('difficulty')}\n`;
     text += `總分: ${this.score}\n\n`;
@@ -672,7 +672,7 @@ export class PeripheralVisionScene implements Scene {
     });
     text += `\n`;
     
-    saveTrainingRecord('周邊視覺訓練', text);
+    saveTrainingRecord('移動卡片訓練', text);
 
     // To simulate appending, we download ALL records of today.
     const allRecords = getSetting('difficulty'); // dummy use
@@ -691,7 +691,7 @@ export class PeripheralVisionScene implements Scene {
     a.href = url;
     let prefix = getSetting('downloadDirectory');
     if (prefix) prefix += '_';
-    a.download = `${prefix}閱讀訓練分數_周邊視覺訓練_${new Date().toISOString().split('T')[0]}.txt`;
+    a.download = `${prefix}閱讀訓練分數_移動卡片訓練_${new Date().toISOString().split('T')[0]}.txt`;
     a.click();
     URL.revokeObjectURL(url);
   }

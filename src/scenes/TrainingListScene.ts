@@ -9,6 +9,7 @@ import { Button } from '../ui/Button';
 import { TrainingRegistry } from '../trainings/TrainingRegistry';
 import { SoundManager } from '../core/SoundManager';
 import { easeOutCubic } from '../utils/MathUtils';
+import { drawArrowLeft, drawArrowRight, drawEye } from '../ui/Icons';
 
 export class TrainingListScene implements Scene {
   readonly container = new Container();
@@ -33,9 +34,12 @@ export class TrainingListScene implements Scene {
     this.container.addChild(this.headerTitle);
     
     this.backBtn = new Button({
-      label: '← 返回目錄', width: 130, height: 36, fontSize: Theme.fontSizeS, variant: 'ghost',
+      label: '  返回目錄', width: 130, height: 36, fontSize: Theme.fontSizeS, variant: 'ghost',
       onClick: () => this.sm.goTo('mainMenu'),
     });
+    const backArrow = drawArrowLeft(14, Theme.textSecondary);
+    backArrow.x = 8; backArrow.y = 11;
+    this.backBtn.addChild(backArrow);
     this.container.addChild(this.backBtn);
     
     this.container.addChild(this.title);
@@ -145,9 +149,10 @@ export class TrainingListScene implements Scene {
     drawBg(false);
     card.addChild(bg);
 
-    const iconText = new Text({ text: icon, style: { fontFamily: Theme.fontFamily, fontSize: 32 } });
-    iconText.x = Theme.paddingL; iconText.y = (h - 40) / 2;
-    card.addChild(iconText);
+    // Icon: use a Graphics icon based on the icon string
+    const iconGfx = drawEye(32, Theme.accent);
+    iconGfx.x = Theme.paddingL; iconGfx.y = (h - 32) / 2;
+    card.addChild(iconGfx);
 
     const titleText = new Text({ text: name, style: { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeL, fontWeight: '700', fill: Theme.textPrimary } });
     titleText.x = 75; titleText.y = 18;
@@ -157,8 +162,8 @@ export class TrainingListScene implements Scene {
     descText.x = 75; descText.y = 48;
     card.addChild(descText);
 
-    const arrow = new Text({ text: '→', style: { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeXL, fill: Theme.accent } });
-    arrow.x = w - Theme.paddingL - 20; arrow.y = (h - 28) / 2;
+    const arrow = drawArrowRight(20, Theme.accent);
+    arrow.x = w - Theme.paddingL - 20; arrow.y = (h - 20) / 2;
     card.addChild(arrow);
 
     card.on('pointerover', () => { drawBg(true); card.scale.set(1.01); });
