@@ -47,6 +47,10 @@ export class SettingsScene implements Scene {
   private cachedW = 800;
   private cachedH = 600;
 
+  private calMode: 'ruler' | 'card' = 'ruler';
+  private isRulerInputActive = false;
+  private rulerInputStr = "";
+
   constructor(sm: SceneManager) {
     this.sm = sm;
 
@@ -62,7 +66,7 @@ export class SettingsScene implements Scene {
       label: '重設校正值', width: 140, height: 36, fontSize: Theme.fontSizeS, variant: 'danger',
       onClick: () => {
         setSetting('calBarLengthInMM', 149);
-        this.updateCalibrationUI();
+        this.buildCalibrationTab();
       },
     });
 
@@ -83,10 +87,56 @@ export class SettingsScene implements Scene {
 
   onEnter(): void {
     SoundManager.init();
+    window.addEventListener('keydown', this.handleKeyDown);
     this.buildTabs();
     this.buildGeneralTab();
-    this.updateCalibrationUI();
+    this.buildCalibrationTab();
     this.switchTab(this.activeTab);
+  }
+
+  onExit(): void {
+    window.removeEventListener('keydown', this.handleKeyDown);
+  }
+
+  private handleKeyDown = (e: KeyboardEvent) => {
+    if (this.activeTab !== 'calibration' || this.calMode !== 'ruler' || !this.isRulerInputActive) return;
+    
+    if (e.key === 'Enter' || e.key === 'Escape') {
+      this.isRulerInputActive = false;
+      this.applyRulerInput();
+      return;
+    }
+
+    if (e.key === 'Backspace') {
+      this.rulerInputStr = this.rulerInputStr.slice(0, -1);
+      this.buildCalibrationTab();
+      return;
+    }
+
+    if (e.key >= '0' && e.key <= '9') {
+      if (this.rulerInputStr.length < 5) {
+        this.rulerInputStr += e.key;
+        this.buildCalibrationTab();
+      }
+    } else if (e.key === '.') {
+      if (!this.rulerInputStr.includes('.')) {
+        this.rulerInputStr += '.';
+        this.buildCalibrationTab();
+      }
+    }
+  };
+
+  private applyRulerInput() {
+    const val = parseFloat(this.rulerInputStr);
+    if (!isNaN(val) && val > 0 && val <= 10000) {
+      setSetting('rulerLengthInMM', val);
+      // For calibration, assume standard pixel length 500 for the ruler UI
+      const rulerBarPx = 500; 
+      const pxPerMM = rulerBarPx / val;
+      const newCalBarMM = CAL_BAR_LENGTH_PX / pxPerMM;
+      setSetting('calBarLengthInMM', newCalBarMM);
+    }
+    this.buildCalibrationTab();
   }
 
   private initHeader(): void {
@@ -103,14 +153,10 @@ export class SettingsScene implements Scene {
     this.calInstrText.text = '請拿出一張標準塑膠卡片（身分證、信用卡或健保卡），\n輕靠在螢幕上。使用下方按鈕調整，直到卡片大小完全一致。';
     this.calInstrText.style = { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeM, fill: Theme.textSecondary, align: 'center', lineHeight: 22 };
     this.calInstrText.anchor.set(0.5, 0);
-    this.calContainer.addChild(this.calInstrText);
-    
-    this.calContainer.addChild(this.calCardGfx);
-    
+
     this.calLabelText.text = `${CARD_WIDTH_MM}mm × ${CARD_HEIGHT_MM}mm`;
     this.calLabelText.style = { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeS, fill: Theme.textPrimary };
     this.calLabelText.anchor.set(0.5);
-    this.calContainer.addChild(this.calLabelText);
 
     const btnLabels = ['− −', '−', '+', '+ +'];
     const factors = [1.1, 1.01, 1.0 / 1.01, 1.0 / 1.1];
@@ -122,28 +168,22 @@ export class SettingsScene implements Scene {
         onClick: () => {
           const current = getSetting('calBarLengthInMM');
           setSetting('calBarLengthInMM', current * factors[i]);
-          this.updateCalibrationUI();
+          this.buildCalibrationTab();
         },
       });
       btn.x = i * (btnW + gap);
       this.calBtnContainer.addChild(btn);
     });
-    this.calContainer.addChild(this.calBtnContainer);
 
     this.btnInstr.text = '使用 ± 按鈕調整螢幕上的卡片大小';
     this.btnInstr.style = { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeS, fill: Theme.textMuted };
     this.btnInstr.anchor.set(0.5);
-    this.calContainer.addChild(this.btnInstr);
 
     this.calInfoText.style = { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeM, fill: Theme.textSecondary, align: 'center' };
     this.calInfoText.anchor.set(0.5);
-    this.calContainer.addChild(this.calInfoText);
 
     this.calStatusText.style = { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeM, fontWeight: '600' };
     this.calStatusText.anchor.set(0.5);
-    this.calContainer.addChild(this.calStatusText);
-
-    this.calContainer.addChild(this.calResetBtn);
   }
 
   private switchTab(tab: Tab): void {
@@ -154,7 +194,7 @@ export class SettingsScene implements Scene {
     this.gammaContainer.visible = tab === 'gamma';
     this.contrastContainer.visible = tab === 'contrast';
     this.crowdingContainer.visible = tab === 'crowding';
-    if (tab === 'calibration') this.updateCalibrationUI();
+    if (tab === 'calibration') this.buildCalibrationTab();
     if (tab === 'gamma') this.buildGammaTab();
     if (tab === 'contrast') this.buildContrastTab();
     if (tab === 'crowding') this.buildCrowdingTab();
@@ -273,113 +313,136 @@ export class SettingsScene implements Scene {
     this.generalContainer.addChild(soundCard);
   }
 
-  private updateCalibrationUI(): void {
+  private buildCalibrationTab(): void {
     if (this.activeTab !== 'calibration') return;
 
-    this.calCardGfx.clear();
-    const wPx = pixelFromMillimeter(CARD_WIDTH_MM);
-    const hPx = pixelFromMillimeter(CARD_HEIGHT_MM);
+    this.calContainer.removeChildren();
 
-    // Layout variables for side-by-side
-    const cardCx = -220; 
-    const rulerCx = 180;
-    const cy = 70 + hPx / 2;
-
-    // shadow
-    this.calCardGfx.roundRect(cardCx - wPx / 2 + 3, cy - hPx / 2 + 3, wPx, hPx, 8).fill({ color: 0x000000, alpha: 0.3 });
-    // card body
-    this.calCardGfx.roundRect(cardCx - wPx / 2, cy - hPx / 2, wPx, hPx, 8).fill({ color: Theme.calibrationBox, alpha: 0.85 });
-    this.calCardGfx.roundRect(cardCx - wPx / 2, cy - hPx / 2, wPx, hPx, 8).stroke({ color: Theme.accentHover, width: 2 });
-    
-    // corner markers
-    const m = 10;
-    const corners = [[cardCx - wPx / 2, cy - hPx / 2], [cardCx + wPx / 2, cy - hPx / 2], [cardCx - wPx / 2, cy + hPx / 2], [cardCx + wPx / 2, cy + hPx / 2]];
-    corners.forEach(([x, y]) => {
-      this.calCardGfx.circle(x, y, 3).fill({ color: Theme.textPrimary });
-      this.calCardGfx.moveTo(x - m, y).lineTo(x + m, y).moveTo(x, y - m).lineTo(x, y + m).stroke({ color: Theme.textPrimary, width: 1, alpha: 0.5 });
-    });
-
-    // Update positions dynamically based on card height
-    // So buttons are always below the card, no overlapping!
-    const cardBottomY = cy + hPx / 2;
-    
-    this.calLabelText.y = cardBottomY + 15;
-    this.calBtnContainer.y = cardBottomY + 45;
-    this.btnInstr.y = cardBottomY + 95; // Increased spacing to prevent overlap with buttons
-    this.calInfoText.y = cardBottomY + 125;
-    this.calStatusText.y = cardBottomY + 155;
-    this.calResetBtn.y = cardBottomY + 195;
-    
-    // Center card items on left side
-    this.calLabelText.x = cardCx;
-    this.calBtnContainer.x = cardCx - (70 * 4 + 12 * 3) / 2;
-    this.btnInstr.x = cardCx;
-    this.calInfoText.x = cardCx;
-    this.calStatusText.x = cardCx;
-    this.calResetBtn.x = cardCx - 70;
-
+    const cx = 0;
     const mmPerPx = getMMPerPixel();
-    this.calInfoText.text = `解析度: ${mmPerPx.toFixed(3)} mm/px  (${(1 / mmPerPx).toFixed(2)} px/mm)`;
     const cal = isCalibrated();
-    this.calStatusText.text = cal ? ' 校正完成' : ' 尚未校正（使用預設值）';
-    this.calStatusText.style.fill = cal ? Theme.success : Theme.warning;
+    const infoTextStr = `解析度: ${mmPerPx.toFixed(3)} mm/px  (${(1 / mmPerPx).toFixed(2)} px/mm)\n${cal ? '校正完成' : '尚未校正（使用預設值）'}`;
 
-    // ── Ruler Calibration (alternative method) ──
-    // Remove old ruler elements if any
-    if ((this as any)._rulerGroup) { this.calContainer.removeChild((this as any)._rulerGroup); }
-    const rulerGroup = new Container();
-    (this as any)._rulerGroup = rulerGroup;
+    if (this.calMode === 'ruler') {
+      const rulerTitle = new Text({ text: '尺規校正', style: { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeL, fontWeight: '700', fill: Theme.textPrimary } });
+      rulerTitle.anchor.set(0.5, 0); rulerTitle.y = 0; rulerTitle.x = cx;
+      this.calContainer.addChild(rulerTitle);
 
-    // Fixed Y position for ruler so it never gets pushed off screen
-    const rulerY = 70;
-    const rulerTitle = new Text({ text: '替代方式: 尺規校正', style: { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeM, fontWeight: '600', fill: Theme.textPrimary } });
-    rulerTitle.anchor.set(0.5, 0); rulerTitle.y = 0;
-    rulerGroup.addChild(rulerTitle);
+      const rulerDesc = new Text({ text: '請拿出一把實體尺放在螢幕上，與下方的藍色尺規對齊。\n然後在下方直接點擊輸入藍色尺規的實際長度(mm)。', style: { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeM, fill: Theme.textSecondary, align: 'center', lineHeight: 24 } });
+      rulerDesc.anchor.set(0.5, 0); rulerDesc.y = 40; rulerDesc.x = cx;
+      this.calContainer.addChild(rulerDesc);
 
-    const rulerDesc = new Text({ text: '將實體尺放在螢幕藍色尺規旁，\n輸入藍色尺規的實際長度(mm)。', style: { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeXS, fill: Theme.textMuted, align: 'center', lineHeight: 18 } });
-    rulerDesc.anchor.set(0.5, 0); rulerDesc.y = 24;
-    rulerGroup.addChild(rulerDesc);
-
-    // Draw blue ruler bar (fixed 300px to fit side-by-side better)
-    const rulerBarPx = 300;
-    const rulerGfx = new Graphics();
-    rulerGfx.roundRect(-rulerBarPx / 2, 70, rulerBarPx, 24, 4).fill({ color: Theme.accent, alpha: 0.85 }).stroke({ color: Theme.accentHover, width: 2 });
-    // Tick marks every 50px
-    for (let t = 0; t <= rulerBarPx; t += 50) {
-      const tx = -rulerBarPx / 2 + t;
-      const tickH = t % 100 === 0 ? 12 : 7;
-      rulerGfx.moveTo(tx, 70).lineTo(tx, 70 + tickH).stroke({ color: Theme.textPrimary, width: 1 });
-    }
-    rulerGroup.addChild(rulerGfx);
-
-    const curRulerMM = getSetting('rulerLengthInMM');
-    const rulerLabel = new Text({ text: curRulerMM > 0 ? `${curRulerMM} mm` : '(未設定)', style: { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeM, fontWeight: '700', fill: curRulerMM > 0 ? Theme.accent : Theme.textMuted } });
-    rulerLabel.anchor.set(0.5, 0); rulerLabel.y = 110;
-    rulerGroup.addChild(rulerLabel);
-
-    const rulerEditBtn = new Button({ label: ' 輸入長度 (mm)', width: 160, height: 32, fontSize: Theme.fontSizeS, variant: 'secondary', onClick: () => {
-      const input = window.prompt('請輸入藍色尺規的實際長度 (mm):', curRulerMM > 0 ? curRulerMM.toString() : '');
-      if (input !== null) {
-        const val = parseFloat(input);
-        if (!isNaN(val) && val > 0 && val <= 10000) {
-          setSetting('rulerLengthInMM', val);
-          // Also update calBarLengthInMM based on ruler: calBar is proportional
-          const pxPerMM = rulerBarPx / val;
-          const newCalBarMM = CAL_BAR_LENGTH_PX / pxPerMM;
-          setSetting('calBarLengthInMM', newCalBarMM);
-          this.updateCalibrationUI();
-        }
+      const rulerBarPx = 500;
+      const rulerGfx = new Graphics();
+      const rulerY = 120;
+      rulerGfx.roundRect(cx - rulerBarPx / 2, rulerY, rulerBarPx, 30, 6).fill({ color: Theme.accent, alpha: 0.85 }).stroke({ color: Theme.accentHover, width: 2 });
+      for (let t = 0; t <= rulerBarPx; t += 50) {
+        const tx = cx - rulerBarPx / 2 + t;
+        const tickH = t % 100 === 0 ? 15 : 8;
+        rulerGfx.moveTo(tx, rulerY).lineTo(tx, rulerY + tickH).stroke({ color: Theme.textPrimary, width: 1 });
       }
-    }});
-    const editPencil = drawPencil(14, Theme.textSecondary);
-    editPencil.x = 8; editPencil.y = 9;
-    rulerEditBtn.addChild(editPencil);
-    rulerEditBtn.x = -80; rulerEditBtn.y = 138;
-    rulerGroup.addChild(rulerEditBtn);
+      this.calContainer.addChild(rulerGfx);
 
-    rulerGroup.x = rulerCx;
-    rulerGroup.y = rulerY;
-    this.calContainer.addChild(rulerGroup);
+      const inputBox = new Container();
+      inputBox.eventMode = 'static';
+      inputBox.cursor = 'text';
+      inputBox.on('pointerdown', (e) => {
+        e.stopPropagation();
+        if (!this.isRulerInputActive) {
+          this.isRulerInputActive = true;
+          const curRuler = getSetting('rulerLengthInMM');
+          this.rulerInputStr = curRuler > 0 ? curRuler.toString() : '';
+          this.buildCalibrationTab();
+        }
+      });
+      const boxW = 200, boxH = 46;
+      inputBox.x = cx - boxW / 2;
+      inputBox.y = rulerY + 60;
+      
+      const bg = new Graphics();
+      bg.roundRect(0, 0, boxW, boxH, Theme.radiusS).fill({ color: Theme.bgCard });
+      bg.roundRect(0, 0, boxW, boxH, Theme.radiusS).stroke({ color: this.isRulerInputActive ? Theme.accent : Theme.border, width: 2 });
+      inputBox.addChild(bg);
+
+      const displayText = this.isRulerInputActive ? this.rulerInputStr + '|' : (getSetting('rulerLengthInMM') > 0 ? `${getSetting('rulerLengthInMM')} mm` : '點此輸入長度');
+      const txt = new Text({ text: displayText, style: { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeL, fill: this.isRulerInputActive ? Theme.textPrimary : Theme.textSecondary, fontWeight: '700' } });
+      txt.anchor.set(0.5);
+      txt.x = boxW / 2; txt.y = boxH / 2;
+      inputBox.addChild(txt);
+
+      if (this.isRulerInputActive) {
+        const okBtn = new Button({ label: '確認', width: 70, height: 46, fontSize: Theme.fontSizeM, variant: 'primary', onClick: () => {
+          this.isRulerInputActive = false;
+          this.applyRulerInput();
+        }});
+        okBtn.x = boxW + 10;
+        inputBox.addChild(okBtn);
+      } else {
+        const editPencil = drawPencil(18, Theme.textSecondary);
+        editPencil.x = boxW - 30; editPencil.y = boxH / 2 - 9;
+        inputBox.addChild(editPencil);
+      }
+      this.calContainer.addChild(inputBox);
+
+      const infoText = new Text({ text: infoTextStr, style: { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeS, fill: cal ? Theme.success : Theme.warning, align: 'center', lineHeight: 22 } });
+      infoText.anchor.set(0.5, 0); infoText.x = cx; infoText.y = rulerY + 130;
+      this.calContainer.addChild(infoText);
+
+      const switchBtn = new Button({ label: '切換至卡片校正', width: 160, height: 36, fontSize: Theme.fontSizeS, variant: 'ghost', onClick: () => { this.calMode = 'card'; this.buildCalibrationTab(); } });
+      switchBtn.x = cx - 80; switchBtn.y = rulerY + 200;
+      this.calContainer.addChild(switchBtn);
+
+    } else {
+      // CARD CALIBRATION MODE
+      this.calContainer.addChild(this.calInstrText);
+      
+      this.calCardGfx.clear();
+      const wPx = pixelFromMillimeter(CARD_WIDTH_MM);
+      const hPx = pixelFromMillimeter(CARD_HEIGHT_MM);
+
+      const cy = 100 + hPx / 2;
+
+      // shadow
+      this.calCardGfx.roundRect(cx - wPx / 2 + 3, cy - hPx / 2 + 3, wPx, hPx, 8).fill({ color: 0x000000, alpha: 0.3 });
+      // card body
+      this.calCardGfx.roundRect(cx - wPx / 2, cy - hPx / 2, wPx, hPx, 8).fill({ color: Theme.calibrationBox, alpha: 0.85 });
+      this.calCardGfx.roundRect(cx - wPx / 2, cy - hPx / 2, wPx, hPx, 8).stroke({ color: Theme.accentHover, width: 2 });
+      
+      const m = 10;
+      const corners = [[cx - wPx / 2, cy - hPx / 2], [cx + wPx / 2, cy - hPx / 2], [cx - wPx / 2, cy + hPx / 2], [cx + wPx / 2, cy + hPx / 2]];
+      corners.forEach(([x, y]) => {
+        this.calCardGfx.circle(x, y, 3).fill({ color: Theme.textPrimary });
+        this.calCardGfx.moveTo(x - m, y).lineTo(x + m, y).moveTo(x, y - m).lineTo(x, y + m).stroke({ color: Theme.textPrimary, width: 1, alpha: 0.5 });
+      });
+      this.calContainer.addChild(this.calCardGfx);
+
+      const cardBottomY = cy + hPx / 2;
+      
+      this.calLabelText.y = cardBottomY + 15;
+      this.calLabelText.x = cx;
+      this.calContainer.addChild(this.calLabelText);
+
+      this.calBtnContainer.y = cardBottomY + 45;
+      this.calBtnContainer.x = cx - (70 * 4 + 12 * 3) / 2;
+      this.calContainer.addChild(this.calBtnContainer);
+
+      this.btnInstr.y = cardBottomY + 95;
+      this.btnInstr.x = cx;
+      this.calContainer.addChild(this.btnInstr);
+
+      this.calInfoText.text = infoTextStr;
+      this.calInfoText.y = cardBottomY + 125;
+      this.calInfoText.x = cx;
+      this.calContainer.addChild(this.calInfoText);
+
+      this.calResetBtn.y = cardBottomY + 185;
+      this.calResetBtn.x = cx - 70;
+      this.calContainer.addChild(this.calResetBtn);
+
+      const switchBtn = new Button({ label: '切換至尺規校正', width: 160, height: 36, fontSize: Theme.fontSizeS, variant: 'ghost', onClick: () => { this.calMode = 'ruler'; this.buildCalibrationTab(); } });
+      switchBtn.x = cx - 80; switchBtn.y = cardBottomY + 235;
+      this.calContainer.addChild(switchBtn);
+    }
   }
 
   onResize(width: number, height: number): void {
@@ -415,16 +478,23 @@ export class SettingsScene implements Scene {
     this.calContainer.x = cx;
     this.calContainer.y = contentY;
 
-    // Gamma / Contrast / Crowding containers (all same layout)
+    // Contrast / Crowding containers (all same layout)
     const panelScale = Math.min(1, height / 600);
-    for (const c of [this.gammaContainer, this.contrastContainer, this.crowdingContainer]) {
+    for (const c of [this.contrastContainer, this.crowdingContainer]) {
       c.scale.set(panelScale);
       c.x = cx - (cardW / 2) * panelScale;
       c.y = contentY;
     }
+    
+    // Gamma container needs more height room because bgSize is 720
+    const gammaScale = Math.min(1, height / 1000);
+    this.gammaContainer.scale.set(gammaScale);
+    this.gammaContainer.x = cx - (cardW / 2) * gammaScale;
+    this.gammaContainer.y = contentY;
 
     // Refresh active tab
     if (this.activeTab === 'general') this.buildGeneralTab();
+    if (this.activeTab === 'calibration') this.buildCalibrationTab();
     if (this.activeTab === 'gamma') this.buildGammaTab();
     if (this.activeTab === 'contrast') this.buildContrastTab();
     if (this.activeTab === 'crowding') this.buildCrowdingTab();
@@ -436,11 +506,11 @@ export class SettingsScene implements Scene {
     const cardW = Math.min(600, this.cachedW - 40);
     const gammaVal = getSetting('gammaValue');
     const checkGfx = new Graphics();
-    const checkSize = 2;
+    const checkSize = 6;
     
     // Background is 9x larger than the checkerboard in area
     // So edge length is 3x the checkerboard edge length. Both are squares.
-    const bgSize = 240; 
+    const bgSize = 720; 
     const checkW = bgSize / 3;
     const checkH = bgSize / 3;
     
@@ -566,8 +636,6 @@ export class SettingsScene implements Scene {
     distCycleBtn.x = cardW - Theme.paddingL - 100; distCycleBtn.y = 116;
     this.crowdingContainer.addChild(distCycleBtn);
   }
-
-  onExit(): void {}
 
   private makeSettingCard(title: string, desc: string, w: number, h: number): Container {
     const card = new Container();
