@@ -45,3 +45,48 @@ export function easeOutCubic(t: number): number {
 export function easeInOutQuad(t: number): number {
   return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
 }
+
+/** 
+ * Generate scattered non-overlapping positions.
+ * Very simple rejection sampling. 
+ */
+export function generateScatteredPositions(
+  count: number, 
+  bounds: { x: number, y: number, w: number, h: number },
+  minDist: number,
+  maxRetries = 100
+): { x: number, y: number }[] {
+  const positions: { x: number, y: number }[] = [];
+  
+  for (let i = 0; i < count; i++) {
+    let bestPos = null;
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      const px = bounds.x + Math.random() * bounds.w;
+      const py = bounds.y + Math.random() * bounds.h;
+      
+      let overlap = false;
+      for (const existing of positions) {
+        const dx = px - existing.x;
+        const dy = py - existing.y;
+        if (dx * dx + dy * dy < minDist * minDist) {
+          overlap = true;
+          break;
+        }
+      }
+      if (!overlap) {
+        bestPos = { x: px, y: py };
+        break;
+      }
+    }
+    // if failed to find non-overlapping after maxRetries, just push it anyway to avoid infinite loop
+    if (bestPos) {
+      positions.push(bestPos);
+    } else {
+      positions.push({
+        x: bounds.x + Math.random() * bounds.w,
+        y: bounds.y + Math.random() * bounds.h,
+      });
+    }
+  }
+  return positions;
+}

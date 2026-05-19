@@ -21,6 +21,7 @@ export interface AppSettings {
   optionMoveIntervalMs: number;
   targetPhysicalSizeMm: number;
   optionPhysicalSizeMm: number;
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
 
   // ── Audio ──
   soundVolume: number;
@@ -42,6 +43,7 @@ const META: { [K in keyof AppSettings]: SettingMeta<AppSettings[K]> } = {
   optionMoveIntervalMs:   { dflt: 800, min: 200, max: 5000 },
   targetPhysicalSizeMm:   { dflt: 15,  min: 2,   max: 100 },
   optionPhysicalSizeMm:   { dflt: 10,  min: 2,   max: 80 },
+  difficulty:             { dflt: 'beginner' },
   soundVolume:            { dflt: 50,  min: 0,   max: 100 },
   auditoryFeedbackEnabled:{ dflt: true },
 };
@@ -97,4 +99,31 @@ export function getPixelsPerMM(): number {
 /** Millimeters per pixel */
 export function getMMPerPixel(): number {
   return getSetting('calBarLengthInMM') / CAL_BAR_LENGTH_PX;
+}
+
+// ── Training History ──
+export interface TrainingRecord {
+  moduleName: string;
+  timestamp: number;
+  formattedText: string;
+}
+
+export function saveTrainingRecord(moduleName: string, formattedText: string): void {
+  const records = getTodaysRecords();
+  records.push({ moduleName, timestamp: Date.now(), formattedText });
+  
+  // Format Date as YYYY-MM-DD
+  const dateStr = new Date().toISOString().split('T')[0];
+  localStorage.setItem(`${STORAGE_PREFIX}history_${dateStr}`, JSON.stringify(records));
+}
+
+export function getTodaysRecords(): TrainingRecord[] {
+  const dateStr = new Date().toISOString().split('T')[0];
+  const raw = localStorage.getItem(`${STORAGE_PREFIX}history_${dateStr}`);
+  if (!raw) return [];
+  try {
+    return JSON.parse(raw);
+  } catch (e) {
+    return [];
+  }
 }

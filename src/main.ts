@@ -19,8 +19,7 @@ async function bootstrap(): Promise<void> {
   // ── Create PixiJS Application ──
   const app = new Application();
   await app.init({
-    width: CANVAS_WIDTH,
-    height: CANVAS_HEIGHT,
+    resizeTo: window,
     backgroundColor: Theme.bg,
     antialias: true,
     resolution: window.devicePixelRatio || 1,
@@ -49,18 +48,6 @@ async function bootstrap(): Promise<void> {
 
   // ── Start ──
   await sm.goTo('mainMenu');
-
-  // ── Responsive scaling ──
-  function resize(): void {
-    const w = window.innerWidth;
-    const h = window.innerHeight;
-    const scale = Math.min(w / CANVAS_WIDTH, h / CANVAS_HEIGHT);
-    const canvas = app.canvas as HTMLCanvasElement;
-    canvas.style.width = `${CANVAS_WIDTH * scale}px`;
-    canvas.style.height = `${CANVAS_HEIGHT * scale}px`;
-  }
-  window.addEventListener('resize', resize);
-  resize();
 }
 
 bootstrap().catch(console.error);
