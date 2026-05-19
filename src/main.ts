@@ -22,7 +22,7 @@ async function bootstrap(): Promise<void> {
     resizeTo: window,
     backgroundColor: Theme.bg,
     antialias: true,
-    resolution: window.devicePixelRatio || 1,
+    resolution: Math.max(window.devicePixelRatio || 1, 2.5),
     autoDensity: true,
   });
 
