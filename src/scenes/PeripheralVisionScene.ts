@@ -285,6 +285,7 @@ export class PeripheralVisionScene implements Scene {
     }
 
     let positions: {x: number, y: number}[] = [];
+    let assignedRotations: number[] = [];
 
     if (diff === 'beginner') {
       // Grid logic
@@ -319,9 +320,41 @@ export class PeripheralVisionScene implements Scene {
       optContainer.x = pos.x;
       optContainer.y = pos.y;
       
+      let chosenRotation = 0;
       if (diff === 'advanced') {
-        optContainer.rotation = (Math.random() - 0.5) * Math.PI * 0.5; // +/- 45 degrees
+        let bestRotation = 0;
+        let maxScore = -1;
+        
+        // Use best-candidate algorithm to maximize angle difference with nearby cards
+        for (let cand = 0; cand < 12; cand++) {
+          const testRot = (Math.random() - 0.5) * Math.PI; // +/- 90 degrees (Math.PI / 2 * 2 = Math.PI)
+          let score = Math.PI * 10; 
+          
+          for (let j = 0; j < i; j++) {
+            const dx = pos.x - positions[j].x;
+            const dy = pos.y - positions[j].y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            
+            if (dist < 350) {
+              let angleDiff = Math.abs(testRot - assignedRotations[j]);
+              // weight the difference: closer cards demand a larger angle difference
+              const weight = 1 - (dist / 350);
+              // Avoid division by zero
+              const weightedDiff = angleDiff / (weight + 0.01);
+              if (weightedDiff < score) {
+                score = weightedDiff;
+              }
+            }
+          }
+          if (score > maxScore) {
+            maxScore = score;
+            bestRotation = testRot;
+          }
+        }
+        chosenRotation = bestRotation;
       }
+      assignedRotations.push(chosenRotation);
+      optContainer.rotation = chosenRotation;
 
       const optBg = new Graphics();
       const drawState = (state: 'normal' | 'hover' | 'correct' | 'wrong') => {
