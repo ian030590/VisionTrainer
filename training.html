@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>閱讀訓練 - Reading Trainer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <header>
+        <a href="index.html" class="header-title">ReadingTrainer</a>
+        <a href="index.html" class="btn btn-secondary">返回目錄</a>
+    </header>
+
+    <main>
+        <!-- 頂部資訊區 (模擬 FrACT 測試畫面常見的乾淨佈局) -->
+        <div style="display: flex; justify-content: space-between; margin-bottom: 1rem; color: var(--text-secondary);">
+            <span id="info-distance">觀看距離: -- cm</span>
+            <span id="info-ppmm">Pixels/mm: --</span>
+        </div>
+
+        <!-- 訓練互動區 -->
+        <div id="training-container">
+            <div id="training-text">
+                請點擊「開始」進行閱讀訓練
+            </div>
+            
+            <div style="margin-top: 2rem;">
+                <button id="btn-start" class="btn">開始</button>
+                <button id="btn-stop" class="btn btn-secondary" disabled>停止</button>
+            </div>
+        </div>
+    </main>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
