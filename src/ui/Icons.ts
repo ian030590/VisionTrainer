@@ -6,7 +6,7 @@ import { Graphics } from 'pixi.js';
 import { Theme } from './Theme';
 
 /** Arrow pointing left (← back button icon) */
-export function drawArrowLeft(size = 14, color = Theme.textPrimary): Graphics {
+export function drawArrowLeft(size = 14, color: number = Theme.textPrimary): Graphics {
   const g = new Graphics();
   const s = size;
   // Arrowhead + shaft
@@ -17,7 +17,7 @@ export function drawArrowLeft(size = 14, color = Theme.textPrimary): Graphics {
 }
 
 /** Arrow pointing right (→ card navigation icon) */
-export function drawArrowRight(size = 14, color = Theme.accent): Graphics {
+export function drawArrowRight(size = 14, color: number = Theme.accent): Graphics {
   const g = new Graphics();
   const s = size;
   g.moveTo(s * 0.3, s * 0.15).lineTo(s * 0.8, s * 0.5).lineTo(s * 0.3, s * 0.85);
@@ -27,7 +27,7 @@ export function drawArrowRight(size = 14, color = Theme.accent): Graphics {
 }
 
 /** Eye icon (👁️ training/vision) */
-export function drawEye(size = 24, color = Theme.accent): Graphics {
+export function drawEye(size = 24, color: number = Theme.accent): Graphics {
   const g = new Graphics();
   const s = size;
   const cx = s / 2, cy = s / 2;
@@ -46,7 +46,7 @@ export function drawEye(size = 24, color = Theme.accent): Graphics {
 }
 
 /** Dumbbell / training icon (🏋️) */
-export function drawDumbbell(size = 24, color = Theme.accent): Graphics {
+export function drawDumbbell(size = 24, color: number = Theme.accent): Graphics {
   const g = new Graphics();
   const s = size;
   const cy = s / 2;
@@ -66,7 +66,7 @@ export function drawDumbbell(size = 24, color = Theme.accent): Graphics {
 }
 
 /** Gear / settings icon (⚙️) */
-export function drawGear(size = 24, color = Theme.accent): Graphics {
+export function drawGear(size = 24, color: number = Theme.accent): Graphics {
   const g = new Graphics();
   const s = size;
   const cx = s / 2, cy = s / 2;
@@ -98,7 +98,7 @@ export function drawGear(size = 24, color = Theme.accent): Graphics {
 }
 
 /** Pencil / edit icon (✏️) */
-export function drawPencil(size = 14, color = Theme.textPrimary): Graphics {
+export function drawPencil(size = 14, color: number = Theme.textPrimary): Graphics {
   const g = new Graphics();
   const s = size;
   // Pencil body (diagonal)
@@ -114,7 +114,7 @@ export function drawPencil(size = 14, color = Theme.textPrimary): Graphics {
 }
 
 /** Floppy disk / save icon (💾) */
-export function drawSave(size = 18, color = Theme.textPrimary): Graphics {
+export function drawSave(size = 18, color: number = Theme.textPrimary): Graphics {
   const g = new Graphics();
   const s = size;
   const m = s * 0.1;
@@ -128,7 +128,7 @@ export function drawSave(size = 18, color = Theme.textPrimary): Graphics {
 }
 
 /** Checkmark icon (✓) */
-export function drawCheck(size = 12, color = Theme.success): Graphics {
+export function drawCheck(size = 12, color: number = Theme.success): Graphics {
   const g = new Graphics();
   const s = size;
   g.moveTo(s * 0.15, s * 0.5).lineTo(s * 0.4, s * 0.8).lineTo(s * 0.85, s * 0.2);
@@ -137,7 +137,7 @@ export function drawCheck(size = 12, color = Theme.success): Graphics {
 }
 
 /** Cross / X icon (✗) */
-export function drawCross(size = 12, color = Theme.error): Graphics {
+export function drawCross(size = 12, color: number = Theme.error): Graphics {
   const g = new Graphics();
   const s = size;
   g.moveTo(s * 0.2, s * 0.2).lineTo(s * 0.8, s * 0.8);
@@ -147,7 +147,7 @@ export function drawCross(size = 12, color = Theme.error): Graphics {
 }
 
 /** Warning triangle (⚠) */
-export function drawWarning(size = 14, color = Theme.warning): Graphics {
+export function drawWarning(size = 14, color: number = Theme.warning): Graphics {
   const g = new Graphics();
   const s = size;
   // Triangle

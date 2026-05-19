@@ -11,6 +11,7 @@ import { CARD_WIDTH_MM, CARD_HEIGHT_MM } from '../core/Globals';
 import { getSetting, setSetting, isCalibrated, getMMPerPixel } from '../core/Settings';
 import { pixelFromMillimeter } from '../utils/SpatialUtils';
 import { SoundManager } from '../core/SoundManager';
+import { drawArrowLeft, drawGear, drawPencil, drawCheck, drawCross, drawWarning } from '../ui/Icons';
 
 type Tab = 'general' | 'calibration';
 
@@ -48,9 +49,12 @@ export class SettingsScene implements Scene {
     this.sm = sm;
 
     this.backBtn = new Button({
-      label: '← 返回目錄', width: 130, height: 36, fontSize: Theme.fontSizeS, variant: 'ghost',
+      label: '  返回目錄', width: 130, height: 36, fontSize: Theme.fontSizeS, variant: 'ghost',
       onClick: () => this.sm.goTo('mainMenu'),
     });
+    const backArrow = drawArrowLeft(14, Theme.textSecondary);
+    backArrow.x = 8; backArrow.y = 11;
+    this.backBtn.addChild(backArrow);
     
     this.calResetBtn = new Button({
       label: '重設校正值', width: 140, height: 36, fontSize: Theme.fontSizeS, variant: 'danger',
@@ -81,8 +85,13 @@ export class SettingsScene implements Scene {
   }
 
   private initHeader(): void {
-    this.headerTitle.text = '⚙️  設定與校正';
+    this.headerTitle.text = '設定與校正';
     this.headerTitle.style = { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeL, fontWeight: '700', fill: Theme.textPrimary };
+    this.headerTitle.x = Theme.paddingL + 26;
+    const gearIcon = drawGear(20, Theme.accent);
+    gearIcon.x = Theme.paddingL;
+    gearIcon.y = 18;
+    this.container.addChild(gearIcon);
   }
 
   private initCalibrationElements(): void {
@@ -116,7 +125,7 @@ export class SettingsScene implements Scene {
     });
     this.calContainer.addChild(this.calBtnContainer);
 
-    this.btnInstr.text = '← 使用 ± 按鈕調整螢幕上的卡片大小 →';
+    this.btnInstr.text = '使用 ± 按鈕調整螢幕上的卡片大小';
     this.btnInstr.style = { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeS, fill: Theme.textMuted };
     this.btnInstr.anchor.set(0.5);
     this.calContainer.addChild(this.btnInstr);
@@ -179,7 +188,7 @@ export class SettingsScene implements Scene {
     distCard.y = y;
     const distLabel = new Text({ text: `${getSetting('distanceInCM')} cm`, style: { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeL, fontWeight: '700', fill: Theme.accent } });
     const distEditBtn = new Button({
-      label: '✏️ 編輯', width: 90, height: 32, fontSize: Theme.fontSizeS, variant: 'secondary',
+      label: ' 編輯', width: 90, height: 32, fontSize: Theme.fontSizeS, variant: 'secondary',
       onClick: () => {
         const input = window.prompt('請輸入觀看距離 (cm):', getSetting('distanceInCM').toString());
         if (input !== null) {
@@ -194,6 +203,9 @@ export class SettingsScene implements Scene {
       }
     });
     distEditBtn.x = cardW - Theme.paddingL - 90; distEditBtn.y = 24;
+    const distPencil = drawPencil(14, Theme.textSecondary);
+    distPencil.x = 8; distPencil.y = 9;
+    distEditBtn.addChild(distPencil);
     distLabel.x = distEditBtn.x - distLabel.width - 20; distLabel.y = 26;
     distCard.addChild(distLabel, distEditBtn);
     this.generalContainer.addChild(distCard);
@@ -208,7 +220,7 @@ export class SettingsScene implements Scene {
     
     const dirLabel = new Text({ text: displayVal, style: { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeM, fontWeight: '700', fill: dirVal ? Theme.accent : Theme.textMuted } });
     const dirEditBtn = new Button({
-      label: '✏️ 編輯', width: 90, height: 32, fontSize: Theme.fontSizeS, variant: 'secondary',
+      label: ' 編輯', width: 90, height: 32, fontSize: Theme.fontSizeS, variant: 'secondary',
       onClick: () => {
         const input = window.prompt('請輸入成績檔案前綴:', getSetting('downloadDirectory'));
         if (input !== null) {
@@ -218,6 +230,9 @@ export class SettingsScene implements Scene {
       }
     });
     dirEditBtn.x = cardW - Theme.paddingL - 90; dirEditBtn.y = 24;
+    const dirPencil = drawPencil(14, Theme.textSecondary);
+    dirPencil.x = 8; dirPencil.y = 9;
+    dirEditBtn.addChild(dirPencil);
     dirLabel.x = dirEditBtn.x - dirLabel.width - 20; dirLabel.y = 28;
     dirCard.addChild(dirLabel, dirEditBtn);
     this.generalContainer.addChild(dirCard);
@@ -228,10 +243,13 @@ export class SettingsScene implements Scene {
     soundCard.y = y;
     const soundEnabled = getSetting('auditoryFeedbackEnabled');
     const toggleBtn = new Button({
-      label: soundEnabled ? '✓ 已開啟' : '✗ 已關閉', width: 120, height: 32, fontSize: Theme.fontSizeS, variant: soundEnabled ? 'primary' : 'secondary',
+      label: soundEnabled ? ' 已開啟' : ' 已關閉', width: 120, height: 32, fontSize: Theme.fontSizeS, variant: soundEnabled ? 'primary' : 'secondary',
       onClick: () => { setSetting('auditoryFeedbackEnabled', !getSetting('auditoryFeedbackEnabled')); this.buildGeneralTab(); },
     });
     toggleBtn.x = cardW - Theme.paddingL - 120; toggleBtn.y = 24;
+    const toggleIcon = soundEnabled ? drawCheck(14, Theme.success) : drawCross(14, Theme.error);
+    toggleIcon.x = 8; toggleIcon.y = 9;
+    toggleBtn.addChild(toggleIcon);
     soundCard.addChild(toggleBtn);
     this.generalContainer.addChild(soundCard);
   }
@@ -279,7 +297,7 @@ export class SettingsScene implements Scene {
     const mmPerPx = getMMPerPixel();
     this.calInfoText.text = `解析度: ${mmPerPx.toFixed(3)} mm/px  (${(1 / mmPerPx).toFixed(2)} px/mm)`;
     const cal = isCalibrated();
-    this.calStatusText.text = cal ? '✓ 校正完成' : '⚠ 尚未校正（使用預設值）';
+    this.calStatusText.text = cal ? ' 校正完成' : ' 尚未校正（使用預設值）';
     this.calStatusText.style.fill = cal ? Theme.success : Theme.warning;
   }
 

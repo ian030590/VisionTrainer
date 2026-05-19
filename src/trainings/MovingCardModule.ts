@@ -11,7 +11,7 @@ export class MovingCardModule implements TrainingModule {
     id: 'moving-card',
     name: '移動卡片訓練',
     description: '訓練注視中心點時快速辨識移動卡片文字的能力，字母選項會動態移動增加難度。',
-    icon: '👁️',
+    icon: 'eye',
     order: 1,
   };
 

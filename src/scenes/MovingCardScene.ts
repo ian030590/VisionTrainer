@@ -11,6 +11,7 @@ import { getSetting, setSetting, saveTrainingRecord } from '../core/Settings';
 import { SoundManager } from '../core/SoundManager';
 import { shuffleArray, generateRandomLetters, generateScatteredPositions } from '../utils/MathUtils';
 import { pixelFromMillimeter } from '../utils/SpatialUtils';
+import { drawArrowLeft, drawEye, drawSave } from '../ui/Icons';
 
 type GameState = 'idle' | 'playing' | 'gameover';
 
@@ -77,9 +78,12 @@ export class MovingCardScene implements Scene {
     this.goBack = goBack;
     
     this.backBtn = new Button({
-      label: '← 返回清單', width: 130, height: 36, fontSize: Theme.fontSizeS, variant: 'ghost',
+      label: '  返回清單', width: 130, height: 36, fontSize: Theme.fontSizeS, variant: 'ghost',
       onClick: () => { this.stopMoveTimer(); this.goBack(); },
     });
+    const backArrow = drawArrowLeft(14, Theme.textSecondary);
+    backArrow.x = 8; backArrow.y = 11;
+    this.backBtn.addChild(backArrow);
 
     this.idleStartBtn = new Button({
       label: '開始訓練', width: 220, height: 56, fontSize: Theme.fontSizeXL, variant: 'primary',
@@ -152,8 +156,13 @@ export class MovingCardScene implements Scene {
     this.statePlaying.addChild(this.targetText);
     this.statePlaying.addChild(this.optionsLayer);
 
-    this.headerTitle.text = '👁️  移動卡片訓練';
+    this.headerTitle.text = '移動卡片訓練';
     this.headerTitle.style = { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeL, fontWeight: '700', fill: Theme.textPrimary };
+    this.headerTitle.x = Theme.paddingL + 28;
+    const eyeIcon = drawEye(22, Theme.accent);
+    eyeIcon.x = Theme.paddingL;
+    eyeIcon.y = 17;
+    this.container.addChild(eyeIcon);
     
     this.scoreText.style = { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeM, fontWeight: '600', fill: Theme.textPrimary };
     this.roundText.style = { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeM, fill: Theme.textSecondary };
@@ -646,9 +655,12 @@ export class MovingCardScene implements Scene {
 
     // Save Button
     const saveBtn = new Button({
-      label: '💾 下載訓練紀錄', width: 200, height: 48, fontSize: Theme.fontSizeL, variant: 'primary',
+      label: '  下載訓練紀錄', width: 200, height: 48, fontSize: Theme.fontSizeL, variant: 'primary',
       onClick: () => this.downloadRecords(),
     });
+    const saveIcon = drawSave(20, Theme.textPrimary);
+    saveIcon.x = 12; saveIcon.y = 14;
+    saveBtn.addChild(saveIcon);
     saveBtn.x = cx - 210; saveBtn.y = tableY + 20;
     this.stateGameover.addChild(saveBtn);
 
