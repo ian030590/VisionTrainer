@@ -214,3 +214,75 @@ h1, h2, h3 {
     text-align: center;
     margin-bottom: 2rem;
 }
+
+/* Eye Training Specific Styles */
+.game-state {
+    display: none;
+    width: 100%;
+    height: 100%;
+}
+
+.game-state.active {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.eye-training-target {
+    font-size: 3rem; /* Fallback size */
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 2rem;
+    letter-spacing: 0.2rem;
+    user-select: none;
+}
+
+.eye-training-grid {
+    display: grid;
+    /* Grid will be configured by JS based on settings */
+    gap: 10px;
+    width: 100%;
+    max-width: 800px;
+    height: 60vh;
+    border: 2px dashed var(--border-color);
+    border-radius: var(--border-radius);
+    background-color: rgba(255, 255, 255, 0.3);
+    position: relative; /* For absolute positioning of options inside */
+    padding: 20px;
+}
+
+.eye-training-option {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem; /* Fallback size */
+    font-weight: 600;
+    color: var(--text-primary);
+    background-color: var(--bg-card);
+    border: 2px solid var(--border-color);
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.3s ease;
+    /* Will be positioned by JS via top/left based on grid row/col */
+}
+
+.eye-training-option:hover {
+    border-color: var(--accent);
+    transform: scale(1.05);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+.eye-training-option.feedback-correct {
+    background-color: #d4edda;
+    border-color: #28a745;
+    color: #155724;
+}
+
+.eye-training-option.feedback-incorrect {
+    background-color: #f8d7da;
+    border-color: #dc3545;
+    color: #721c24;
+}

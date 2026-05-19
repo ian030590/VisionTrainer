@@ -61,41 +61,21 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // --- 訓練頁面邏輯 (training.html) ---
-    const trainingContainer = document.getElementById("training-container");
-    if (trainingContainer) {
-        const infoDistance = document.getElementById("info-distance");
-        const infoPpmm = document.getElementById("info-ppmm");
-        const btnStart = document.getElementById("btn-start");
-        const btnStop = document.getElementById("btn-stop");
-        const trainingText = document.getElementById("training-text");
-
-        // 讀取設定顯示
+    // --- 訓練資訊共用邏輯 ---
+    const infoDistance = document.getElementById("info-distance");
+    const infoPpmm = document.getElementById("info-ppmm");
+    
+    if (infoDistance || infoPpmm) {
         const savedDistance = localStorage.getItem(STORAGE_KEY_DISTANCE) || "60";
         const savedBoxWidth = localStorage.getItem(STORAGE_KEY_PIXEL_WIDTH) || "250";
         
-        infoDistance.textContent = `觀看距離: ${savedDistance} cm`;
+        if (infoDistance) {
+            infoDistance.textContent = savedDistance;
+        }
         
-        const pxPerMm = (parseFloat(savedBoxWidth) / CARD_WIDTH_MM).toFixed(2);
-        infoPpmm.textContent = `Pixels/mm: ${pxPerMm}`;
-
-        // 簡單的訓練開始/停止按鈕邏輯
-        let trainingActive = false;
-
-        btnStart.addEventListener("click", () => {
-            trainingActive = true;
-            btnStart.disabled = true;
-            btnStop.disabled = false;
-            trainingText.textContent = "訓練進行中...（此處將會顯示實際的訓練內容）";
-            trainingText.style.color = "var(--accent)";
-        });
-
-        btnStop.addEventListener("click", () => {
-            trainingActive = false;
-            btnStart.disabled = false;
-            btnStop.disabled = true;
-            trainingText.textContent = "訓練已停止。請點擊「開始」重新進行。";
-            trainingText.style.color = "var(--text-primary)";
-        });
+        if (infoPpmm) {
+            const pxPerMm = (parseFloat(savedBoxWidth) / CARD_WIDTH_MM).toFixed(2);
+            infoPpmm.textContent = pxPerMm;
+        }
     }
 });

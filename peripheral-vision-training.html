@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>周邊視覺訓練 - Reading Trainer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <header>
+        <a href="index.html" class="header-title">ReadingTrainer</a>
+        <a href="training.html" class="btn btn-secondary">返回清單</a>
+    </header>
+
+    <main style="display: flex; flex-direction: column; height: calc(100vh - 100px); max-width: 1000px;">
+        <!-- Header: Scoreboard -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; color: var(--text-secondary);">
+            <div id="game-stats" style="font-size: 1.2rem; font-weight: 600; color: var(--text-primary);">
+                Score: <span id="score">0</span> | Round: <span id="round">0</span>/<span id="total-rounds">5</span>
+            </div>
+            <div style="font-size: 0.9rem;">
+                觀看距離: <span id="info-distance">--</span> cm | <span id="info-ppmm">--</span> px/mm
+            </div>
+        </div>
+
+        <!-- Main Game Area -->
+        <div id="game-area" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative;">
+            
+            <div id="state-idle" class="game-state active">
+                <button id="btn-start" class="btn" style="font-size: 1.5rem; padding: 1rem 3rem;">開始訓練</button>
+            </div>
+
+            <div id="state-playing" class="game-state">
+                <!-- Center Target -->
+                <div id="target-display" class="eye-training-target">
+                    <!-- Target letters will appear here -->
+                </div>
+                
+                <!-- Options Grid -->
+                <div id="options-grid" class="eye-training-grid">
+                    <!-- Option buttons will be generated here -->
+                </div>
+            </div>
+
+            <div id="state-gameover" class="game-state">
+                <h2 style="font-size: 2rem; margin-bottom: 1rem;">訓練結束!</h2>
+                <p style="font-size: 1.2rem; margin-bottom: 2rem;">您的總分: <span id="final-score" style="color: var(--accent); font-weight: bold;">0</span></p>
+                <button id="btn-restart" class="btn" style="font-size: 1.2rem;">重新開始</button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Include uuid library for ID generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/uuid/8.3.2/uuid.min.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/eye-training.js"></script>
+</body>
+</html>

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
 </head>
+
 <body>
     <header>
         <a href="index.html" class="header-title">ReadingTrainer</a>
@@ -14,25 +16,21 @@
     </header>
 
     <main>
-        <!-- 頂部資訊區 (模擬 FrACT 測試畫面常見的乾淨佈局) -->
-        <div style="display: flex; justify-content: space-between; margin-bottom: 1rem; color: var(--text-secondary);">
-            <span id="info-distance">觀看距離: -- cm</span>
-            <span id="info-ppmm">Pixels/mm: --</span>
+        <div style="text-align: center; margin-bottom: 2rem;">
+            <h1>訓練清單</h1>
+            <p>請選擇您想進行的訓練項目</p>
         </div>
 
-        <!-- 訓練互動區 -->
-        <div id="training-container">
-            <div id="training-text">
-                請點擊「開始」進行閱讀訓練
-            </div>
-            
-            <div style="margin-top: 2rem;">
-                <button id="btn-start" class="btn">開始</button>
-                <button id="btn-stop" class="btn btn-secondary" disabled>停止</button>
-            </div>
+        <div class="menu-grid">
+            <a href="peripheral-vision-training.html" class="menu-card">
+                <h2>周邊視覺訓練 (Peripheral Vision Training)</h2>
+                <p>訓練您在注視中心點時，快速辨識周邊文字的能力。</p>
+            </a>
+            <!-- 未來可以在此處新增更多訓練項目 -->
         </div>
     </main>
 
     <script src="js/app.js"></script>
 </body>
+
 </html>
