@@ -178,7 +178,7 @@ export class SettingsScene implements Scene {
       if (!isActive) tbg.roundRect(0, 0, tabW, tabH, Theme.radiusS).stroke({ color: Theme.border, width: 1 });
       btn.addChild(tbg);
 
-      const txt = new Text({ text: label, style: { fontFamily: Theme.fontFamily, fontSize: 11, fontWeight: isActive ? '700' : '500', fill: isActive ? Theme.bg : Theme.textSecondary } });
+      const txt = new Text({ text: label, style: { fontFamily: Theme.fontFamily, fontSize: 13, fontWeight: isActive ? '700' : '500', fill: isActive ? Theme.bg : Theme.textSecondary } });
       txt.anchor.set(0.5);
       txt.x = tabW / 2; txt.y = tabH / 2;
       btn.addChild(txt);
@@ -303,12 +303,12 @@ export class SettingsScene implements Scene {
     // So buttons are always below the card, no overlapping!
     const cardBottomY = cy + hPx / 2;
     
-    this.calLabelText.y = cardBottomY + 20;
-    this.calBtnContainer.y = cardBottomY + 50;
-    this.btnInstr.y = cardBottomY + 110;
-    this.calInfoText.y = cardBottomY + 150;
-    this.calStatusText.y = cardBottomY + 180;
-    this.calResetBtn.y = cardBottomY + 220;
+    this.calLabelText.y = cardBottomY + 15;
+    this.calBtnContainer.y = cardBottomY + 45;
+    this.btnInstr.y = cardBottomY + 75;
+    this.calInfoText.y = cardBottomY + 105;
+    this.calStatusText.y = cardBottomY + 130;
+    this.calResetBtn.y = cardBottomY + 165;
     
     // Center button container X
     this.calBtnContainer.x = -(70 * 4 + 12 * 3) / 2;
@@ -326,7 +326,7 @@ export class SettingsScene implements Scene {
     const rulerGroup = new Container();
     (this as any)._rulerGroup = rulerGroup;
 
-    const rulerY = cardBottomY + 270;
+    const rulerY = cardBottomY + 215;
     const rulerTitle = new Text({ text: '替代方式: 尺規校正', style: { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeM, fontWeight: '600', fill: Theme.textPrimary } });
     rulerTitle.anchor.set(0.5, 0); rulerTitle.y = 0;
     rulerGroup.addChild(rulerTitle);
@@ -462,8 +462,26 @@ export class SettingsScene implements Scene {
     gammaDesc.x = Theme.paddingL; gammaDesc.y = 32;
     this.gammaContainer.addChild(gammaDesc);
     const gammaLabel = new Text({ text: `Gamma: ${gammaVal.toFixed(2)}`, style: { fontFamily: Theme.fontFamily, fontSize: Theme.fontSizeL, fontWeight: '700', fill: Theme.accent } });
-    gammaLabel.x = Theme.paddingL; gammaLabel.y = 280;
+    gammaLabel.x = Theme.paddingL; gammaLabel.y = 275;
     this.gammaContainer.addChild(gammaLabel);
+
+    // Gamma Slider
+    const gammaSlider = new Slider({
+      width: 200,
+      min: 0.8, max: 4.0,
+      value: gammaVal,
+      onChange: (val) => {
+        setSetting('gammaValue', val);
+        // Throttle updates or just re-render checkGfx dynamically if needed, 
+        // but since we redraw the whole tab, let's just redraw.
+        this.buildGammaTab();
+      }
+    });
+    gammaSlider.x = Theme.paddingL + 130;
+    gammaSlider.y = 282;
+    this.gammaContainer.addChild(gammaSlider);
+
+    // Gamma +/- buttons
     const gmBtns = [{ label: '− 0.1', delta: -0.1 }, { label: '− 0.01', delta: -0.01 }, { label: '+ 0.01', delta: 0.01 }, { label: '+ 0.1', delta: 0.1 }];
     gmBtns.forEach((b, i) => {
       const btn = new Button({ label: b.label, width: 75, height: 32, fontSize: Theme.fontSizeS, variant: 'secondary', onClick: () => {
@@ -471,7 +489,7 @@ export class SettingsScene implements Scene {
         const nv = Math.round((cur + b.delta) * 100) / 100;
         if (nv >= 0.8 && nv <= 4.0) { setSetting('gammaValue', nv); this.buildGammaTab(); }
       }});
-      btn.x = cardW - Theme.paddingL - (4 - i) * 87; btn.y = 278;
+      btn.x = cardW - Theme.paddingL - (4 - i) * 87; btn.y = 275;
       this.gammaContainer.addChild(btn);
     });
   }
