@@ -1,14 +1,13 @@
 /**
  * Simple sound manager for feedback sounds.
- * Inspired by FrACT10 SoundManager.j.
+ * Uses Web Audio API for synthesized beeps.
  */
-import { getSetting } from './Settings';
+import { getSetting } from './settings';
 
 class SoundManagerImpl {
   private ctx: AudioContext | null = null;
   private initialized = false;
 
-  /** Must be called after a user interaction to unlock AudioContext */
   init(): void {
     if (this.initialized) return;
     try {
@@ -27,7 +26,6 @@ class SoundManagerImpl {
     return this.ctx;
   }
 
-  /** Play a short synthesized beep */
   playTone(frequency: number, durationMs: number, type: OscillatorType = 'sine'): void {
     if (!getSetting('auditoryFeedbackEnabled')) return;
     const ctx = this.ensureContext();
@@ -46,23 +44,19 @@ class SoundManagerImpl {
     osc.stop(ctx.currentTime + durationMs / 1000);
   }
 
-  /** Correct answer feedback */
   playCorrect(): void {
     this.playTone(880, 150, 'sine');
   }
 
-  /** Incorrect answer feedback */
   playIncorrect(): void {
     this.playTone(220, 250, 'square');
   }
 
-  /** Run complete feedback */
   playRunEnd(): void {
     const ctx = this.ensureContext();
     if (!ctx || !getSetting('auditoryFeedbackEnabled')) return;
     const vol = getSetting('soundVolume') / 100;
     const now = ctx.currentTime;
-    // Ascending 3-note arpeggio
     [523.25, 659.25, 783.99].forEach((freq, i) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();

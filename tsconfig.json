@@ -7,6 +7,9 @@
     "skipLibCheck": true,
     "strict": true,
 
+    /* JSX */
+    "jsx": "react-jsx",
+
     /* Bundler mode */
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,

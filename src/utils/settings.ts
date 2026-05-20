@@ -1,0 +1,140 @@
+/**
+ * Settings manager with localStorage persistence.
+ * Also includes user (account) management and global constants.
+ */
+
+// ── Global Constants ──
+export const CARD_WIDTH_MM = 85.6;
+export const CARD_HEIGHT_MM = 53.98;
+export const DEFAULT_DISTANCE_CM = 60;
+export const DEFAULT_CAL_BAR_LENGTH_MM = 149;
+export const CAL_BAR_LENGTH_PX = 700;
+export const APP_VERSION = '3.0.0';
+export const STORAGE_PREFIX = 'readingtrainer_';
+
+// ── Settings ──
+export interface AppSettings {
+  distanceInCM: number;
+  calBarLengthInMM: number;
+  rulerLengthInMM: number;
+  gammaValue: number;
+  crowdingType: number;
+  crowdingDistanceType: number;
+  totalRounds: number;
+  optionCount: number;
+  optionMoveIntervalMs: number;
+  targetPhysicalSizeMm: number;
+  optionPhysicalSizeMm: number;
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  soundVolume: number;
+  auditoryFeedbackEnabled: boolean;
+  downloadDirectory: string;
+}
+
+interface SettingMeta<T> {
+  dflt: T;
+  min?: number;
+  max?: number;
+}
+
+const META: { [K in keyof AppSettings]: SettingMeta<AppSettings[K]> } = {
+  distanceInCM:           { dflt: DEFAULT_DISTANCE_CM,       min: 10,   max: 500 },
+  calBarLengthInMM:       { dflt: DEFAULT_CAL_BAR_LENGTH_MM, min: 1,    max: 10000 },
+  rulerLengthInMM:        { dflt: 0,    min: 0,    max: 10000 },
+  gammaValue:             { dflt: 2.0,  min: 0.8,  max: 4.0 },
+  crowdingType:           { dflt: 0,    min: 0,    max: 6 },
+  crowdingDistanceType:   { dflt: 0,    min: 0,    max: 3 },
+  totalRounds:            { dflt: 5,    min: 1,    max: 100 },
+  optionCount:            { dflt: 18,   min: 4,    max: 40 },
+  optionMoveIntervalMs:   { dflt: 800,  min: 200,  max: 5000 },
+  targetPhysicalSizeMm:   { dflt: 15,   min: 2,    max: 100 },
+  optionPhysicalSizeMm:   { dflt: 10,   min: 2,    max: 80 },
+  difficulty:             { dflt: 'beginner' },
+  soundVolume:            { dflt: 50,   min: 0,    max: 100 },
+  auditoryFeedbackEnabled:{ dflt: true },
+  downloadDirectory:      { dflt: '' },
+};
+
+function storageKey(name: string): string {
+  return STORAGE_PREFIX + name;
+}
+
+export function getSetting<K extends keyof AppSettings>(key: K): AppSettings[K] {
+  const raw = localStorage.getItem(storageKey(key));
+  if (raw === null) return META[key].dflt;
+  const meta = META[key];
+  if (typeof meta.dflt === 'boolean') {
+    return (raw === 'true') as AppSettings[K];
+  }
+  if (typeof meta.dflt === 'number') {
+    const num = parseFloat(raw);
+    if (isNaN(num)) return meta.dflt;
+    if (meta.min !== undefined && num < meta.min) return meta.dflt;
+    if (meta.max !== undefined && num > meta.max) return meta.dflt;
+    return num as AppSettings[K];
+  }
+  return raw as unknown as AppSettings[K];
+}
+
+export function setSetting<K extends keyof AppSettings>(key: K, value: AppSettings[K]): void {
+  localStorage.setItem(storageKey(key), String(value));
+}
+
+export function isCalibrated(): boolean {
+  return (
+    getSetting('distanceInCM') !== DEFAULT_DISTANCE_CM ||
+    getSetting('calBarLengthInMM') !== DEFAULT_CAL_BAR_LENGTH_MM
+  );
+}
+
+export function resetAllSettings(): void {
+  for (const key of Object.keys(META) as (keyof AppSettings)[]) {
+    setSetting(key, META[key].dflt);
+  }
+}
+
+export function getPixelsPerMM(): number {
+  return CAL_BAR_LENGTH_PX / getSetting('calBarLengthInMM');
+}
+
+export function getMMPerPixel(): number {
+  return getSetting('calBarLengthInMM') / CAL_BAR_LENGTH_PX;
+}
+
+// ── User Management (simple name-only) ──
+const USERS_KEY = STORAGE_PREFIX + 'users';
+const ACTIVE_USER_KEY = STORAGE_PREFIX + 'active_user';
+
+export function getUsers(): string[] {
+  const raw = localStorage.getItem(USERS_KEY);
+  if (!raw) return [];
+  try { return JSON.parse(raw); } catch { return []; }
+}
+
+export function addUser(name: string): void {
+  const users = getUsers();
+  if (!users.includes(name)) {
+    users.push(name);
+    localStorage.setItem(USERS_KEY, JSON.stringify(users));
+  }
+}
+
+export function removeUser(name: string): void {
+  const users = getUsers().filter(u => u !== name);
+  localStorage.setItem(USERS_KEY, JSON.stringify(users));
+  if (getActiveUser() === name) {
+    setActiveUser(null);
+  }
+}
+
+export function getActiveUser(): string | null {
+  return localStorage.getItem(ACTIVE_USER_KEY) || null;
+}
+
+export function setActiveUser(name: string | null): void {
+  if (name) {
+    localStorage.setItem(ACTIVE_USER_KEY, name);
+  } else {
+    localStorage.removeItem(ACTIVE_USER_KEY);
+  }
+}
