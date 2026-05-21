@@ -53,7 +53,7 @@ src/
 const xxx = new XxxModule();
 xxx.setGoBack(() => sm.goTo('trainingList'));
 TrainingRegistry.register(xxx);
-```
+``` 
 
 ## 目前可用的訓練模組
 
