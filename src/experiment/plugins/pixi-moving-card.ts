@@ -20,6 +20,7 @@ import { pixiColors, typography } from '../../theme';
 import { shuffleArray, generateRandomLetters, generateScatteredPositions } from '../../utils/mathUtils';
 import { pixelFromMillimeter } from '../../utils/spatialUtils';
 import { SoundManager } from '../../utils/soundManager';
+import { pixiAppManager } from '../../utils/pixiPool';
 
 // ── Plugin Info ──
 const info = {
@@ -111,16 +112,12 @@ class PixiMovingCardPlugin implements JsPsychPlugin<Info> {
     let moveTimerId: ReturnType<typeof setInterval> | null = null;
     let trialEnded = false;
 
-    // ── Create PixiJS Application (async, via .then()) ──
-    const app = new Application();
-    app.init({
-      resizeTo: wrapper,
-      backgroundColor: pixiColors.bg,
-      antialias: true,
-      resolution: Math.max(window.devicePixelRatio || 1, 2),
-      autoDensity: true,
-    }).then(() => {
-      wrapper.appendChild(app.canvas as HTMLCanvasElement);
+    // ── Get shared PixiJS Application ──
+    const manager = pixiAppManager;
+
+    const runWithApp = (app: Application) => {
+      manager.clearStage();
+      manager.attachTo(wrapper);
 
       const startTime = performance.now();
 
@@ -500,8 +497,9 @@ class PixiMovingCardPlugin implements JsPsychPlugin<Info> {
         if (moveTimerId) clearInterval(moveTimerId);
         app.renderer.off('resize', handleResize);
 
-        // Destroy PixiJS
-        app.destroy(true, { children: true });
+        // Clear & detach (reuse app for next round)
+        manager.clearStage();
+        manager.detachCanvas();
         display_element.innerHTML = '';
 
         // Tell jsPsych this trial is done
@@ -513,10 +511,17 @@ class PixiMovingCardPlugin implements JsPsychPlugin<Info> {
         });
       }
 
-    }).catch((err) => {
-      console.error('PixiJS init failed:', err);
-      display_element.innerHTML = `<div style="color:red;padding:20px;">PixiJS 初始化失敗: ${err.message}</div>`;
-    });
+    };
+
+    // Use shared app (sync for instant start) or wait for init (async fallback)
+    if (manager.ready) {
+      runWithApp(manager.getApp()!);
+    } else {
+      manager.ensureReady().then(runWithApp).catch((err) => {
+        console.error('PixiJS init failed:', err);
+        display_element.innerHTML = `<div style="color:red;padding:20px;">PixiJS 初始化失敗: ${err.message}</div>`;
+      });
+    }
 
     // Returns void (undefined) — jsPsych waits for finishTrial()
   }

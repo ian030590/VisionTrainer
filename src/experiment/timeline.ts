@@ -10,19 +10,24 @@ import { generateRandomLetters } from '../utils/mathUtils';
  * Build a jsPsych timeline for the given module.
  * Each trial = one round of the training game.
  */
-export function buildTimeline(moduleId: string): object[] {
+export function buildTimeline(
+  moduleId: string,
+  overrides?: { difficulty?: string; totalRounds?: number },
+): object[] {
   switch (moduleId) {
     case 'moving-card':
-      return buildMovingCardTimeline();
+      return buildMovingCardTimeline(overrides);
     default:
       console.warn(`Unknown module: ${moduleId}, falling back to moving-card`);
-      return buildMovingCardTimeline();
+      return buildMovingCardTimeline(overrides);
   }
 }
 
-function buildMovingCardTimeline(): object[] {
-  const totalRounds = getSetting('totalRounds');
-  const difficulty = getSetting('difficulty');
+function buildMovingCardTimeline(
+  overrides?: { difficulty?: string; totalRounds?: number },
+): object[] {
+  const totalRounds = overrides?.totalRounds ?? getSetting('totalRounds');
+  const difficulty = overrides?.difficulty ?? getSetting('difficulty');
   const optionCount = getSetting('optionCount');
   const moveInterval = getSetting('optionMoveIntervalMs');
   const targetSizeMm = getSetting('targetPhysicalSizeMm');

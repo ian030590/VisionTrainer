@@ -57,7 +57,7 @@ TrainingRegistry.register(xxx);
 
 ## 目前可用的訓練模組
 
-### 1. 周邊視覺訓練 (Peripheral Vision Training)
+### 1. 移動卡片訓練 (Moving Card Training)
 
 動態字母配對遊戲，訓練注視中心點時快速辨識周邊文字的能力。
 

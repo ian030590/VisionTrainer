@@ -182,6 +182,17 @@ html, body, #root {
   opacity: 1;
 }
 
+.card-active {
+  border-color: var(--accent) !important;
+  background: var(--bg-card-hover) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.card-active::before {
+  opacity: 1 !important;
+}
+
 .card-title {
   font-size: 20px;
   font-weight: 700;
@@ -393,6 +404,175 @@ html, body, #root {
   .training-grid {
     grid-template-columns: 1fr 1fr;
   }
+}
+
+/* ── Module Config Panel ── */
+.module-config-panel {
+  width: 100%;
+  max-width: 700px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-l);
+  padding: 28px;
+  margin-top: 20px;
+}
+
+.config-section {
+  margin-bottom: 24px;
+}
+
+.config-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+}
+
+.difficulty-selector {
+  display: flex;
+  gap: 10px;
+}
+
+.diff-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 14px 12px;
+  border-radius: var(--radius-m);
+  border: 2px solid var(--border);
+  background: var(--bg-card);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  font-family: var(--font-family);
+}
+
+.diff-btn:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--border-hover);
+}
+
+.diff-btn.active {
+  background: rgba(88, 166, 255, 0.1);
+  border-color: var(--accent);
+}
+
+.diff-btn-label {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.diff-btn.active .diff-btn-label {
+  color: var(--accent);
+}
+
+.diff-btn-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.diff-btn.active .diff-btn-desc {
+  color: var(--text-secondary);
+}
+
+.rounds-selector {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.rounds-btn {
+  width: 52px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-m);
+  border: 2px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-family: var(--font-family);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.rounds-btn:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--accent);
+  color: var(--text-primary);
+}
+
+.rounds-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--bg);
+}
+
+.rounds-custom-input {
+  width: 72px;
+  height: 42px;
+  padding: 0 12px;
+  border-radius: var(--radius-m);
+  border: 2px solid var(--border);
+  background: var(--bg);
+  color: var(--text-primary);
+  font-family: var(--font-family);
+  font-size: 14px;
+  text-align: center;
+  outline: none;
+  transition: border-color var(--transition-fast);
+}
+
+.rounds-custom-input:focus {
+  border-color: var(--accent);
+}
+
+.rounds-custom-input::placeholder {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.rounds-custom-input::-webkit-outer-spin-button,
+.rounds-custom-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.config-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.config-start-btn {
+  position: relative;
+}
+
+.ready-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--success);
+  display: inline-block;
+  margin-left: 4px;
+  animation: pulse 2s infinite;
+}
+
+.config-summary {
+  margin-top: 16px;
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.config-summary strong {
+  color: var(--text-secondary);
 }
 
 /* ── Experiment Container ── */

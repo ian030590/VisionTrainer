@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   getUsers,
@@ -7,8 +7,11 @@ import {
   getActiveUser,
   setActiveUser,
   getSetting,
+  setSetting,
   isCalibrated,
 } from '../utils/settings';
+import { pixiAppManager } from '../utils/pixiPool';
+import { SoundManager } from '../utils/soundManager';
 
 export function HomePage() {
   const navigate = useNavigate();
@@ -16,6 +19,15 @@ export function HomePage() {
   const [activeUser, setActiveUserState] = useState(getActiveUser);
   const [newName, setNewName] = useState('');
   const [showAddUser, setShowAddUser] = useState(false);
+
+  // ── Module expansion state ──
+  const [expandedModule, setExpandedModule] = useState<string | null>(null);
+  const [localDifficulty, setLocalDifficulty] = useState<'beginner' | 'intermediate' | 'advanced'>(
+    () => getSetting('difficulty'),
+  );
+  const [localRounds, setLocalRounds] = useState<number>(() => getSetting('totalRounds'));
+  const [customRoundsInput, setCustomRoundsInput] = useState('');
+  const [prewarmed, setPrewarmed] = useState(() => pixiAppManager.ready);
 
   const refreshUsers = useCallback(() => {
     setUsersState(getUsers());
@@ -44,22 +56,65 @@ export function HomePage() {
     }
   };
 
-  const handleStartTraining = (moduleId: string) => {
+  // ── Warm up PixiJS when module panel expands ──
+  useEffect(() => {
+    if (!expandedModule) return;
+    if (pixiAppManager.ready) {
+      setPrewarmed(true);
+      return;
+    }
+    setPrewarmed(false);
+    let cancelled = false;
+    pixiAppManager.warmUp().then(() => {
+      if (!cancelled) setPrewarmed(true);
+    });
+    return () => { cancelled = true; };
+  }, [expandedModule]);
+
+  // ── Persist settings when changed ──
+  useEffect(() => {
+    setSetting('difficulty', localDifficulty);
+  }, [localDifficulty]);
+
+  useEffect(() => {
+    setSetting('totalRounds', localRounds);
+  }, [localRounds]);
+
+  // ── Handlers ──
+  const handleCardClick = (moduleId: string) => {
     if (!activeUser) {
       alert('請先選擇或新增一位使用者');
       return;
     }
-    navigate(`/experiment?module=${moduleId}`);
+    setExpandedModule(expandedModule === moduleId ? null : moduleId);
+  };
+
+  const handleStartTraining = () => {
+    if (!expandedModule || !activeUser) return;
+    SoundManager.init();
+    navigate(`/experiment?module=${expandedModule}&difficulty=${localDifficulty}&rounds=${localRounds}`);
+  };
+
+  const handleRoundsPreset = (rounds: number) => {
+    setLocalRounds(rounds);
+    setCustomRoundsInput('');
+  };
+
+  const handleCustomRoundsChange = (val: string) => {
+    setCustomRoundsInput(val);
+    const num = parseInt(val, 10);
+    if (!isNaN(num) && num >= 1 && num <= 100) {
+      setLocalRounds(num);
+    }
   };
 
   const calibrated = isCalibrated();
-  const difficulty = getSetting('difficulty');
-  const totalRounds = getSetting('totalRounds');
-  const diffLabel: Record<string, string> = {
-    beginner: '初級 (網格)',
-    intermediate: '中級 (散落)',
-    advanced: '高級 (旋轉)',
-  };
+  const roundsPresets = [3, 5, 10, 15];
+  const diffOptions: { key: 'beginner' | 'intermediate' | 'advanced'; label: string; desc: string }[] = [
+    { key: 'beginner', label: '初級', desc: '網格排列' },
+    { key: 'intermediate', label: '中級', desc: '散落排列' },
+    { key: 'advanced', label: '高級', desc: '旋轉散落' },
+  ];
 
   return (
     <div className="page-content">
@@ -106,20 +161,25 @@ export function HomePage() {
         </div>
       )}
 
-      {/* ── Status Bar ── */}
-      <div style={{
-        display: 'flex',
-        gap: 24,
-        marginBottom: 28,
-        fontSize: 13,
-        color: 'var(--text-secondary)',
-      }}>
-        <span style={{ color: calibrated ? 'var(--success)' : 'var(--warning)' }}>
-          {calibrated ? '✓ 已校正螢幕' : '⚠ 尚未校正螢幕'}
-        </span>
-        <span>難度: {diffLabel[difficulty] || difficulty}</span>
-        <span>回合數: {totalRounds}</span>
-      </div>
+      {/* ── Calibration Notice ── */}
+      {!calibrated && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          marginBottom: 24,
+          padding: '10px 16px',
+          background: 'rgba(210, 153, 34, 0.1)',
+          border: '1px solid var(--warning)',
+          borderRadius: 'var(--radius-m)',
+          fontSize: 13,
+          color: 'var(--warning)',
+          maxWidth: 700,
+          width: '100%',
+        }}>
+          ⚠ 尚未校正螢幕 — 前往設定頁校正以確保準確度
+        </div>
+      )}
 
       {/* ── Section Title ── */}
       <h1 className="section-title fade-in-up">訓練清單</h1>
@@ -128,8 +188,8 @@ export function HomePage() {
       {/* ── Training Cards ── */}
       <div className="training-grid">
         <div
-          className="card fade-in-up"
-          onClick={() => handleStartTraining('moving-card')}
+          className={`card fade-in-up ${expandedModule === 'moving-card' ? 'card-active' : ''}`}
+          onClick={() => handleCardClick('moving-card')}
         >
           <div className="card-icon">
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -150,9 +210,20 @@ export function HomePage() {
             color: 'var(--accent)',
             fontWeight: 600,
           }}>
-            開始訓練
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path d="M5 12h14M12 5l7 7-7 7" />
+            {expandedModule === 'moving-card' ? '收合設定' : '選擇此模組'}
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              style={{
+                transform: expandedModule === 'moving-card' ? 'rotate(180deg)' : 'rotate(0deg)',
+                transition: 'transform 0.3s ease',
+              }}
+            >
+              <path d="M6 9l6 6 6-6" />
             </svg>
           </div>
         </div>
@@ -174,6 +245,81 @@ export function HomePage() {
           <div className="card-desc">即將推出更多訓練模組…</div>
         </div>
       </div>
+
+      {/* ── Module Config Panel ── */}
+      {expandedModule === 'moving-card' && (
+        <div className="module-config-panel fade-in-up">
+          {/* Difficulty */}
+          <div className="config-section">
+            <div className="config-label">難度設定</div>
+            <div className="difficulty-selector">
+              {diffOptions.map((opt) => (
+                <button
+                  key={opt.key}
+                  className={`diff-btn ${localDifficulty === opt.key ? 'active' : ''}`}
+                  onClick={(e) => { e.stopPropagation(); setLocalDifficulty(opt.key); }}
+                >
+                  <span className="diff-btn-label">{opt.label}</span>
+                  <span className="diff-btn-desc">{opt.desc}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Rounds */}
+          <div className="config-section">
+            <div className="config-label">回合數</div>
+            <div className="rounds-selector">
+              {roundsPresets.map((r) => (
+                <button
+                  key={r}
+                  className={`rounds-btn ${localRounds === r && !customRoundsInput ? 'active' : ''}`}
+                  onClick={(e) => { e.stopPropagation(); handleRoundsPreset(r); }}
+                >
+                  {r}
+                </button>
+              ))}
+              <input
+                className="rounds-custom-input"
+                type="number"
+                min="1"
+                max="100"
+                placeholder="自訂"
+                value={customRoundsInput}
+                onClick={(e) => e.stopPropagation()}
+                onChange={(e) => handleCustomRoundsChange(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="config-actions">
+            <button
+              className="btn btn-primary btn-lg config-start-btn"
+              onClick={(e) => { e.stopPropagation(); handleStartTraining(); }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <polygon points="5,3 19,12 5,21" />
+              </svg>
+              開始訓練
+              {prewarmed && <span className="ready-dot" />}
+            </button>
+            <button
+              className="btn btn-ghost btn-lg"
+              onClick={(e) => { e.stopPropagation(); setExpandedModule(null); }}
+            >
+              取消
+            </button>
+          </div>
+
+          {/* Current settings summary */}
+          <div className="config-summary">
+            使用者: <strong>{activeUser}</strong> ·{' '}
+            難度: <strong>{diffOptions.find((d) => d.key === localDifficulty)?.label}</strong> ·{' '}
+            回合: <strong>{localRounds}</strong>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

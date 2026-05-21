@@ -5,12 +5,11 @@ import type { JsPsych } from 'jspsych';
 import PixiMovingCardPlugin from '../experiment/plugins/pixi-moving-card';
 import { buildTimeline } from '../experiment/timeline';
 import { getActiveUser, getSetting } from '../utils/settings';
-import { SoundManager } from '../utils/soundManager';
 
 // Ensure the plugin class is referenced so bundler doesn't tree-shake it
 void PixiMovingCardPlugin;
 
-type Phase = 'instructions' | 'running' | 'results';
+type Phase = 'running' | 'results';
 
 interface TrialData {
   trial_index: number;
@@ -24,15 +23,15 @@ export function ExperimentPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const moduleId = searchParams.get('module') || 'moving-card';
+  const difficulty = searchParams.get('difficulty') || getSetting('difficulty');
+  const totalRounds = parseInt(searchParams.get('rounds') || '', 10) || getSetting('totalRounds');
 
-  const [phase, setPhase] = useState<Phase>('instructions');
+  const [phase, setPhase] = useState<Phase>('running');
   const [results, setResults] = useState<TrialData[]>([]);
   const jsPsychRef = useRef<JsPsych | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const userName = getActiveUser() || '未知使用者';
-  const difficulty = getSetting('difficulty');
-  const totalRounds = getSetting('totalRounds');
 
   const diffLabel: Record<string, string> = {
     beginner: '初級 (網格)',
@@ -40,7 +39,7 @@ export function ExperimentPage() {
     advanced: '高級 (旋轉)',
   };
 
-  // ── Launch jsPsych AFTER container is mounted ──
+  // ── Launch jsPsych immediately (no instructions phase) ──
   useEffect(() => {
     if (phase !== 'running') return;
     if (!containerRef.current) return;
@@ -60,7 +59,7 @@ export function ExperimentPage() {
 
     jsPsychRef.current = jsPsych;
 
-    const timeline = buildTimeline(moduleId);
+    const timeline = buildTimeline(moduleId, { difficulty, totalRounds });
     jsPsych.run(timeline as any);
 
     // Cleanup on unmount
@@ -69,12 +68,7 @@ export function ExperimentPage() {
         jsPsychRef.current = null;
       }
     };
-  }, [phase, moduleId]);
-
-  const startExperiment = useCallback(() => {
-    SoundManager.init();
-    setPhase('running');
-  }, []);
+  }, [phase, moduleId, difficulty, totalRounds]);
 
   const downloadCSV = useCallback(() => {
     if (results.length === 0) return;
@@ -118,48 +112,6 @@ export function ExperimentPage() {
   }, [results, userName, moduleId, difficulty]);
 
   const goHome = () => navigate('/');
-
-  // ── Instructions Phase ──
-  if (phase === 'instructions') {
-    return (
-      <div className="experiment-container">
-        <div className="experiment-instructions">
-          <div style={{ fontSize: 48, marginBottom: 16, color: 'var(--accent)' }}>
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-              <circle cx="12" cy="12" r="3" />
-            </svg>
-          </div>
-          <h1>移動卡片訓練</h1>
-          <p>
-            在中央出現目標字母後，快速在周圍找到相同的字母配對並點擊。<br />
-            選項會動態移動以增加難度。
-          </p>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: '8px 32px',
-            fontSize: 14,
-            color: 'var(--text-secondary)',
-            marginBottom: 32,
-            textAlign: 'left',
-          }}>
-            <span>使用者</span><span style={{ color: 'var(--accent)', fontWeight: 600 }}>{userName}</span>
-            <span>難度</span><span style={{ color: 'var(--accent)', fontWeight: 600 }}>{diffLabel[difficulty]}</span>
-            <span>回合數</span><span style={{ color: 'var(--accent)', fontWeight: 600 }}>{totalRounds}</span>
-          </div>
-          <div style={{ display: 'flex', gap: 16 }}>
-            <button className="btn btn-primary btn-lg" onClick={startExperiment}>
-              ▶ 開始訓練
-            </button>
-            <button className="btn btn-ghost btn-lg" onClick={goHome}>
-              ← 返回
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   // ── Running Phase ──
   if (phase === 'running') {
