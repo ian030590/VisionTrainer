@@ -792,3 +792,348 @@ html, body, #root {
   color: var(--text-muted);
   font-size: 16px;
 }
+
+/* ── Assessment Page ── */
+.assessment-disclaimer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 24px;
+  padding: 12px 20px;
+  background: rgba(210, 153, 34, 0.1);
+  border: 1px solid var(--warning);
+  border-radius: var(--radius-m);
+  font-size: 13px;
+  color: var(--warning);
+  max-width: 700px;
+  width: 100%;
+  line-height: 1.6;
+}
+
+.assessment-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+  width: 100%;
+  max-width: 700px;
+}
+
+@media (min-width: 640px) {
+  .assessment-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (min-width: 900px) {
+  .assessment-grid {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+}
+
+.card-meta {
+  display: flex;
+  gap: 6px;
+  margin-top: 12px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.card-expand-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* ── Acuity Test – Intro ── */
+.acuity-intro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 32px;
+  text-align: center;
+  animation: fadeIn 0.5s ease;
+}
+
+.acuity-intro h1 {
+  font-size: 36px;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+.acuity-intro p {
+  color: var(--text-secondary);
+  font-size: 16px;
+  max-width: 520px;
+  margin-bottom: 24px;
+  line-height: 1.8;
+}
+
+.acuity-intro-keys {
+  margin-bottom: 32px;
+}
+
+.acuity-intro-hint {
+  margin-top: 16px;
+  font-size: 12px;
+  color: var(--text-muted) !important;
+}
+
+/* Key hint grids */
+.key-hints-grid-8 {
+  display: grid;
+  grid-template-columns: repeat(3, 52px);
+  grid-template-rows: repeat(3, 52px);
+  gap: 6px;
+}
+
+.key-hints-grid-4 {
+  display: grid;
+  grid-template-columns: repeat(3, 52px);
+  grid-template-rows: repeat(3, 52px);
+  gap: 6px;
+}
+
+.key-hints-letters {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 400px;
+}
+
+.key-hint {
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-m);
+  border: 2px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.key-hint-empty {
+  border-color: transparent;
+  background: transparent;
+}
+
+/* ── Touch Controls ── */
+.acuity-touch-controls {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+  z-index: 100;
+}
+
+.touch-btn-ring {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 200px;
+  height: 200px;
+  pointer-events: auto;
+}
+
+.touch-btn-cross {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 180px;
+  height: 180px;
+  pointer-events: auto;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 4px;
+}
+
+.touch-btn-letters {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  pointer-events: auto;
+}
+
+.direction-btn {
+  position: absolute;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  background: rgba(22, 27, 34, 0.85);
+  color: var(--accent);
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: translate(-50%, -50%);
+  transition: all var(--transition-fast);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  pointer-events: auto;
+}
+
+.direction-btn:hover {
+  background: rgba(88, 166, 255, 0.2);
+  transform: translate(-50%, -50%) scale(1.1);
+}
+
+.direction-btn:active {
+  transform: translate(-50%, -50%) scale(0.95);
+}
+
+/* Cross layout overrides */
+.touch-btn-cross .direction-btn {
+  position: relative;
+  transform: none;
+  border-radius: var(--radius-m);
+}
+
+.touch-btn-cross .direction-btn:hover {
+  transform: scale(1.05);
+}
+
+.touch-btn-cross .direction-btn:active {
+  transform: scale(0.95);
+}
+
+.dir-up { grid-column: 2; grid-row: 1; }
+.dir-left { grid-column: 1; grid-row: 2; }
+.dir-right { grid-column: 3; grid-row: 2; }
+.dir-down { grid-column: 2; grid-row: 3; }
+
+.letter-btn {
+  position: relative;
+  transform: none;
+  border-radius: var(--radius-m);
+  font-size: 16px;
+  width: 44px;
+  height: 44px;
+}
+
+.letter-btn:hover {
+  transform: scale(1.05);
+}
+
+.letter-btn:active {
+  transform: scale(0.95);
+}
+
+/* Abort button */
+.acuity-abort-btn {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  background: rgba(22, 27, 34, 0.8);
+  color: var(--text-muted);
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  transition: all var(--transition-fast);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.acuity-abort-btn:hover {
+  border-color: var(--error);
+  color: var(--error);
+  background: rgba(248, 81, 73, 0.1);
+}
+
+/* ── Acuity Results ── */
+.acuity-results {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100%;
+  padding: 32px;
+  text-align: center;
+  animation: fadeIn 0.5s ease;
+}
+
+.acuity-results h1 {
+  font-size: 32px;
+  font-weight: 700;
+  margin-bottom: 24px;
+}
+
+.acuity-result-cards {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.acuity-result-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-l);
+  padding: 20px 28px;
+  min-width: 140px;
+  transition: all var(--transition-fast);
+}
+
+.acuity-result-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.acuity-result-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+}
+
+.acuity-result-value {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.acuity-result-meta {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 24px;
+  font-size: 14px;
+  color: var(--text-secondary);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.acuity-disclaimer-footer {
+  margin-top: 32px;
+  font-size: 12px;
+  color: var(--text-muted);
+  max-width: 500px;
+  line-height: 1.6;
+}
+

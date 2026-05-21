@@ -3,12 +3,15 @@ import { Navbar } from './components/Navbar';
 import { HomePage } from './pages/HomePage';
 import { SettingsPage } from './pages/SettingsPage';
 import { ExperimentPage } from './pages/ExperimentPage';
+import { AssessmentPage } from './pages/AssessmentPage';
+import { AcuityTestPage } from './pages/AcuityTestPage';
 
 export function App() {
   return (
     <Routes>
-      {/* Experiment page is full-screen, no navbar */}
+      {/* Full-screen pages, no navbar */}
       <Route path="/experiment" element={<ExperimentPage />} />
+      <Route path="/acuity-test" element={<AcuityTestPage />} />
 
       {/* Normal pages with navbar */}
       <Route
@@ -18,6 +21,7 @@ export function App() {
             <Navbar />
             <Routes>
               <Route path="/" element={<HomePage />} />
+              <Route path="/assessment" element={<AssessmentPage />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

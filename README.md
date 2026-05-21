@@ -64,6 +64,26 @@ TrainingRegistry.register(xxx);
 - **校正機制**：文字大小根據螢幕校正值（塑膠卡片法）動態計算
 - **參考資料**：FrACT10 CardController、styts/eye-training
 
+### 2. 視力評估 (Visual Acuity Assessment)
+
+類似 FrACT10 的視力測驗模組，使用 BestPEST 自適應閾值算法自動調整視標大小以測定視力閾值。
+
+**支援的測驗類型：**
+
+| 測驗 | 選項數 | 預設試驗數 | 說明 |
+|------|--------|-----------|------|
+| 蘭氏環 (Landolt C) | 8 | 18 | 辨別環形缺口方向，國際標準視力檢測法 |
+| 翻轉 E (Tumbling E) | 4 | 24 | 辨別 E 字母開口方向 |
+| Sloan 字母 | 10 | 18 | 辨別 CDHKNORSVZ 字母 |
+| 圖形視標 | 4 | 24 | 辨別簡易圖形（房子、圓形、正方形、星星） |
+| 條紋視力 (PL) | 2 | 36 | Preferential Looking 條紋方向判斷 |
+
+**結果格式：** LogMAR、十進制視力 (decVA)、Snellen fraction、ETDRS Letter Score
+
+**核心演算法：** BestPEST (Maximum-Likelihood Adaptive Threshold Estimation)，移植自 FrACT10 的 `ThresholderPest.j`。
+
+> ⚠️ **免責聲明：** 本測驗參考 FrACT 測驗模式以及演算法，為程式練習所用。若要了解自己視力，請尋求專業醫療協助。
+
 ## 開發
 
 ```bash

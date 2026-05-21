@@ -23,6 +23,12 @@ export function Navbar() {
           訓練清單
         </NavLink>
         <NavLink
+          to="/assessment"
+          className={({ isActive }) => `navbar-link ${isActive ? 'active' : ''}`}
+        >
+          視力評估
+        </NavLink>
+        <NavLink
           to="/settings"
           className={({ isActive }) => `navbar-link ${isActive ? 'active' : ''}`}
         >
