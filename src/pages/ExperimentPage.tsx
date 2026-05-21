@@ -40,26 +40,20 @@ export function ExperimentPage() {
     advanced: '高級 (旋轉)',
   };
 
-  // Cleanup on unmount
+  // ── Launch jsPsych AFTER container is mounted ──
   useEffect(() => {
-    return () => {
-      jsPsychRef.current = null;
-    };
-  }, []);
-
-  const startExperiment = useCallback(async () => {
+    if (phase !== 'running') return;
     if (!containerRef.current) return;
-    SoundManager.init();
-    setPhase('running');
+    if (jsPsychRef.current) return; // already initialized
 
-    // Wait for DOM to update
-    await new Promise((r) => setTimeout(r, 50));
+    const container = containerRef.current;
 
     const jsPsych = initJsPsych({
-      display_element: containerRef.current,
+      display_element: container,
       on_finish: () => {
         const data = jsPsych.data.get().values() as TrialData[];
         setResults(data);
+        jsPsychRef.current = null;
         setPhase('results');
       },
     });
@@ -67,8 +61,20 @@ export function ExperimentPage() {
     jsPsychRef.current = jsPsych;
 
     const timeline = buildTimeline(moduleId);
-    await jsPsych.run(timeline as any);
-  }, [moduleId]);
+    jsPsych.run(timeline as any);
+
+    // Cleanup on unmount
+    return () => {
+      if (jsPsychRef.current) {
+        jsPsychRef.current = null;
+      }
+    };
+  }, [phase, moduleId]);
+
+  const startExperiment = useCallback(() => {
+    SoundManager.init();
+    setPhase('running');
+  }, []);
 
   const downloadCSV = useCallback(() => {
     if (results.length === 0) return;
