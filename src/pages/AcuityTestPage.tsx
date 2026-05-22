@@ -47,6 +47,30 @@ interface TrialRecord {
   logMAR: number;
 }
 
+function prepareAcuityCanvas(canvas: HTMLCanvasElement) {
+  const width = Math.max(1, window.innerWidth);
+  const height = Math.max(1, window.innerHeight);
+  const dpr = Math.max(1, window.devicePixelRatio || 1);
+  const backingWidth = Math.round(width * dpr);
+  const backingHeight = Math.round(height * dpr);
+
+  if (canvas.width !== backingWidth || canvas.height !== backingHeight) {
+    canvas.width = backingWidth;
+    canvas.height = backingHeight;
+  }
+
+  canvas.style.width = `${width}px`;
+  canvas.style.height = `${height}px`;
+
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return null;
+
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.imageSmoothingEnabled = false;
+
+  return { ctx, width, height };
+}
+
 export function AcuityTestPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -111,8 +135,8 @@ export function AcuityTestPage() {
     setPhase('isi');
     const canvas = canvasRef.current;
     if (canvas) {
-      const ctx = canvas.getContext('2d');
-      if (ctx) clearCanvas(ctx, canvas.width, canvas.height);
+      const prepared = prepareAcuityCanvas(canvas);
+      if (prepared) clearCanvas(prepared.ctx, prepared.width, prepared.height);
     }
 
     // Show stimulus after ISI delay
@@ -125,15 +149,14 @@ export function AcuityTestPage() {
   const drawStimulus = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    const prepared = prepareAcuityCanvas(canvas);
+    if (!prepared) return;
 
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    clearCanvas(ctx, canvas.width, canvas.height);
+    const { ctx, width, height } = prepared;
+    clearCanvas(ctx, width, height);
 
-    const cx = canvas.width / 2;
-    const cy = canvas.height / 2;
+    const cx = width / 2;
+    const cy = height / 2;
     const strokePx = currentStrokePxRef.current;
     const alt = currentAlternativeRef.current;
 
@@ -154,16 +177,16 @@ export function AcuityTestPage() {
         const pixPerDeg = pixelFromDegree(1);
         // spatial frequency based on stroke size
         const cpd = 30 / Math.pow(10, logMARFromStrokePixels(strokePx));
-        const diameter = Math.min(canvas.width, canvas.height) * 0.6;
+        const diameter = Math.min(width, height) * 0.6;
         const orient: GratingOrientation = alt === 0 ? 'left' : 'right';
         // Draw grating on one side, uniform on other
-        const offset = (orient === 'left' ? -1 : 1) * canvas.width * 0.2;
+        const offset = (orient === 'left' ? -1 : 1) * width * 0.2;
         drawGrating(ctx, cx + offset, cy, diameter, cpd, orient, pixPerDeg);
         // Draw uniform circle on other side
         const otherOffset = -offset;
         ctx.save();
         ctx.translate(cx + otherOffset, cy);
-        ctx.fillStyle = '#484F58';
+        ctx.fillStyle = '#FFFFFF';
         ctx.beginPath();
         ctx.arc(0, 0, diameter / 2, 0, Math.PI * 2);
         ctx.fill();
@@ -296,9 +319,9 @@ export function AcuityTestPage() {
     const handleResize = () => {
       const canvas = canvasRef.current;
       if (!canvas) return;
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-      strokeBoundsRef.current = getStrokeBounds(canvas.width, canvas.height);
+      const prepared = prepareAcuityCanvas(canvas);
+      if (!prepared) return;
+      strokeBoundsRef.current = getStrokeBounds(prepared.width, prepared.height);
       if (phaseRef.current === 'stimulus') {
         drawStimulus();
       }
@@ -334,10 +357,10 @@ export function AcuityTestPage() {
   // ── Running Phase (ISI + Stimulus) ──
   if (phase === 'isi' || phase === 'stimulus') {
     return (
-      <div className="experiment-container">
+      <div className="experiment-container acuity-test-container">
         <canvas
           ref={canvasRef}
-          style={{ display: 'block', width: '100%', height: '100%' }}
+          style={{ display: 'block', width: '100%', height: '100%', background: '#FFFFFF' }}
         />
         {/* Touch controls */}
         <div className="acuity-touch-controls">

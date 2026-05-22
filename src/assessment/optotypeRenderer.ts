@@ -29,8 +29,8 @@ export type GratingOrientation = 'left' | 'right';
 
 // ── Color constants ──
 
-const FORE = '#F0F6FC'; // white-ish foreground
-const BACK = '#0D1117'; // dark background
+const FORE = '#000000';
+const BACK = '#FFFFFF';
 
 // ── Helper: fill a polygon defined in a -5…+5 coordinate system ──
 
