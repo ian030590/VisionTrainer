@@ -29,6 +29,12 @@ export interface AppSettings {
   soundVolume: number;
   auditoryFeedbackEnabled: boolean;
   downloadDirectory: string;
+  oculomotorMode: 'pursuit' | 'reaction-jumps' | 'multi-object' | 'lilac-chaser';
+  oculomotorPattern: 'randomWalk' | 'circle' | 'figureEight' | 'horizontalSweep' | 'verticalSweep' | 'bounce' | 'diagonal' | 'spiralBloom' | 'zigZag';
+  oculomotorDurationSec: number;
+  oculomotorSpeedDegPerSec: number;
+  oculomotorTargetSizeMm: number;
+  oculomotorDistractorCount: number;
 }
 
 interface SettingMeta<T> {
@@ -53,6 +59,12 @@ const META: { [K in keyof AppSettings]: SettingMeta<AppSettings[K]> } = {
   soundVolume:            { dflt: 50,   min: 0,    max: 100 },
   auditoryFeedbackEnabled:{ dflt: true },
   downloadDirectory:      { dflt: '' },
+  oculomotorMode:         { dflt: 'pursuit' },
+  oculomotorPattern:      { dflt: 'randomWalk' },
+  oculomotorDurationSec:  { dflt: 60,   min: 15,   max: 300 },
+  oculomotorSpeedDegPerSec: { dflt: 18, min: 2,    max: 80 },
+  oculomotorTargetSizeMm: { dflt: 10,   min: 2,    max: 50 },
+  oculomotorDistractorCount: { dflt: 5, min: 0,    max: 12 },
 };
 
 function storageKey(name: string): string {

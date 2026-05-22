@@ -12,6 +12,11 @@ import {
 } from '../utils/settings';
 import { pixiAppManager } from '../utils/pixiPool';
 import { SoundManager } from '../utils/soundManager';
+import {
+  oculomotorModes,
+  oculomotorPatterns,
+} from '../oculomotor/presets';
+import type { OculomotorMode, OculomotorPattern } from '../oculomotor/types';
 
 export function HomePage() {
   const navigate = useNavigate();
@@ -27,6 +32,24 @@ export function HomePage() {
   );
   const [localRounds, setLocalRounds] = useState<number>(() => getSetting('totalRounds'));
   const [customRoundsInput, setCustomRoundsInput] = useState('');
+  const [oculomotorMode, setOculomotorMode] = useState<OculomotorMode>(
+    () => getSetting('oculomotorMode'),
+  );
+  const [oculomotorPattern, setOculomotorPattern] = useState<OculomotorPattern>(
+    () => getSetting('oculomotorPattern'),
+  );
+  const [oculomotorDurationSec, setOculomotorDurationSec] = useState(
+    () => getSetting('oculomotorDurationSec'),
+  );
+  const [oculomotorSpeedDegPerSec, setOculomotorSpeedDegPerSec] = useState(
+    () => getSetting('oculomotorSpeedDegPerSec'),
+  );
+  const [oculomotorTargetSizeMm, setOculomotorTargetSizeMm] = useState(
+    () => getSetting('oculomotorTargetSizeMm'),
+  );
+  const [oculomotorDistractorCount, setOculomotorDistractorCount] = useState(
+    () => getSetting('oculomotorDistractorCount'),
+  );
   const [prewarmed, setPrewarmed] = useState(() => pixiAppManager.ready);
 
   const refreshUsers = useCallback(() => {
@@ -80,6 +103,30 @@ export function HomePage() {
     setSetting('totalRounds', localRounds);
   }, [localRounds]);
 
+  useEffect(() => {
+    setSetting('oculomotorMode', oculomotorMode);
+  }, [oculomotorMode]);
+
+  useEffect(() => {
+    setSetting('oculomotorPattern', oculomotorPattern);
+  }, [oculomotorPattern]);
+
+  useEffect(() => {
+    setSetting('oculomotorDurationSec', oculomotorDurationSec);
+  }, [oculomotorDurationSec]);
+
+  useEffect(() => {
+    setSetting('oculomotorSpeedDegPerSec', oculomotorSpeedDegPerSec);
+  }, [oculomotorSpeedDegPerSec]);
+
+  useEffect(() => {
+    setSetting('oculomotorTargetSizeMm', oculomotorTargetSizeMm);
+  }, [oculomotorTargetSizeMm]);
+
+  useEffect(() => {
+    setSetting('oculomotorDistractorCount', oculomotorDistractorCount);
+  }, [oculomotorDistractorCount]);
+
   // ── Handlers ──
   const handleCardClick = (moduleId: string) => {
     if (!activeUser) {
@@ -92,7 +139,22 @@ export function HomePage() {
   const handleStartTraining = () => {
     if (!expandedModule || !activeUser) return;
     SoundManager.init();
-    navigate(`/experiment?module=${expandedModule}&difficulty=${localDifficulty}&rounds=${localRounds}`);
+    const params = new URLSearchParams({
+      module: expandedModule,
+      difficulty: localDifficulty,
+      rounds: String(localRounds),
+    });
+
+    if (expandedModule === 'oculomotor-training') {
+      params.set('mode', oculomotorMode);
+      params.set('pattern', oculomotorPattern);
+      params.set('duration', String(oculomotorDurationSec));
+      params.set('speed', String(oculomotorSpeedDegPerSec));
+      params.set('size', String(oculomotorTargetSizeMm));
+      params.set('distractors', String(oculomotorDistractorCount));
+    }
+
+    navigate(`/experiment?${params.toString()}`);
   };
 
   const handleRoundsPreset = (rounds: number) => {
@@ -110,6 +172,7 @@ export function HomePage() {
 
   const calibrated = isCalibrated();
   const roundsPresets = [3, 5, 10, 15];
+  const durationPresets = [30, 60, 90, 120];
   const diffOptions: { key: 'beginner' | 'intermediate' | 'advanced'; label: string; desc: string }[] = [
     { key: 'beginner', label: '初級', desc: '網格排列' },
     { key: 'intermediate', label: '中級', desc: '散落排列' },
@@ -246,21 +309,52 @@ export function HomePage() {
           </div>
         </div>
 
-        {/* Placeholder for future modules */}
         <div
-          className="card"
-          style={{ opacity: 0.4, cursor: 'default', borderStyle: 'dashed' }}
-          onClick={() => {}}
+          className={`card fade-in-up ${expandedModule === 'oculomotor-training' ? 'card-active' : ''}`}
+          onClick={() => handleCardClick('oculomotor-training')}
         >
-          <div className="card-icon" style={{ color: 'var(--text-muted)' }}>
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="12" cy="12" r="10" />
-              <line x1="12" y1="8" x2="12" y2="16" />
-              <line x1="8" y1="12" x2="16" y2="12" />
+          <div className="card-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="2.5" />
+              <path d="M12 3a9 9 0 0 1 9 9" />
+              <path d="M21 12a9 9 0 0 1-9 9" />
+              <path d="M12 21a9 9 0 0 1-9-9" />
+              <path d="M3 12a9 9 0 0 1 9-9" />
+              <path d="M12 7v2" />
+              <path d="M17 12h-2" />
+              <path d="M12 17v-2" />
+              <path d="M7 12h2" />
             </svg>
           </div>
-          <div className="card-title" style={{ color: 'var(--text-muted)' }}>更多模組</div>
-          <div className="card-desc">即將推出更多訓練模組…</div>
+          <div className="card-title">眼動訓練 Oculomotor Training</div>
+          <div className="card-desc">
+            重製 FoveaFlow 的追視、跳視、多目標追蹤與 Lilac Chaser 周邊固視訓練。
+          </div>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            marginTop: 16,
+            fontSize: 13,
+            color: 'var(--accent)',
+            fontWeight: 600,
+          }}>
+            {expandedModule === 'oculomotor-training' ? '收合設定' : '選擇此模組'}
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              style={{
+                transform: expandedModule === 'oculomotor-training' ? 'rotate(180deg)' : 'rotate(0deg)',
+                transition: 'transform 0.3s ease',
+              }}
+            >
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+          </div>
         </div>
       </div>
 
@@ -335,6 +429,163 @@ export function HomePage() {
             使用者: <strong>{activeUser}</strong> ·{' '}
             難度: <strong>{diffOptions.find((d) => d.key === localDifficulty)?.label}</strong> ·{' '}
             回合: <strong>{localRounds}</strong>
+          </div>
+        </div>
+      )}
+
+      {expandedModule === 'oculomotor-training' && (
+        <div className="module-config-panel fade-in-up">
+          <div className="config-section">
+            <div className="config-label">訓練模式</div>
+            <div className="difficulty-selector">
+              {oculomotorModes.map((mode) => (
+                <button
+                  key={mode.id}
+                  className={`diff-btn ${oculomotorMode === mode.id ? 'active' : ''}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setOculomotorMode(mode.id);
+                  }}
+                >
+                  <span className="diff-btn-label">{mode.label}</span>
+                  <span className="diff-btn-desc">{mode.desc}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {oculomotorMode !== 'lilac-chaser' && (
+            <div className="config-section">
+              <div className="config-label">移動路徑</div>
+              <select
+                className="input"
+                value={oculomotorPattern}
+                onClick={(e) => e.stopPropagation()}
+                onChange={(e) => setOculomotorPattern(e.target.value as OculomotorPattern)}
+              >
+                {oculomotorPatterns.map((pattern) => (
+                  <option key={pattern.id} value={pattern.id}>{pattern.label}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <div className="config-section">
+            <div className="config-label">時長（秒）</div>
+            <div className="rounds-selector">
+              {durationPresets.map((duration) => (
+                <button
+                  key={duration}
+                  className={`rounds-btn ${oculomotorDurationSec === duration ? 'active' : ''}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setOculomotorDurationSec(duration);
+                  }}
+                >
+                  {duration}
+                </button>
+              ))}
+              <input
+                className="rounds-custom-input"
+                type="number"
+                min="15"
+                max="300"
+                value={oculomotorDurationSec}
+                onClick={(e) => e.stopPropagation()}
+                onChange={(e) => {
+                  const value = parseInt(e.target.value, 10);
+                  if (Number.isFinite(value)) {
+                    setOculomotorDurationSec(Math.max(15, Math.min(300, value)));
+                  }
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="config-section">
+            <div className="config-label">速度與目標大小</div>
+            <div className="difficulty-selector">
+              <label className="diff-btn" style={{ cursor: 'default', alignItems: 'stretch' }}>
+                <span className="diff-btn-desc">速度 deg/s</span>
+                <input
+                  className="rounds-custom-input"
+                  type="number"
+                  min="2"
+                  max="80"
+                  value={oculomotorSpeedDegPerSec}
+                  onClick={(e) => e.stopPropagation()}
+                  onChange={(e) => {
+                    const value = parseFloat(e.target.value);
+                    if (Number.isFinite(value)) {
+                      setOculomotorSpeedDegPerSec(Math.max(2, Math.min(80, value)));
+                    }
+                  }}
+                  style={{ width: '100%' }}
+                />
+              </label>
+              <label className="diff-btn" style={{ cursor: 'default', alignItems: 'stretch' }}>
+                <span className="diff-btn-desc">大小 mm</span>
+                <input
+                  className="rounds-custom-input"
+                  type="number"
+                  min="2"
+                  max="50"
+                  value={oculomotorTargetSizeMm}
+                  onClick={(e) => e.stopPropagation()}
+                  onChange={(e) => {
+                    const value = parseFloat(e.target.value);
+                    if (Number.isFinite(value)) {
+                      setOculomotorTargetSizeMm(Math.max(2, Math.min(50, value)));
+                    }
+                  }}
+                  style={{ width: '100%' }}
+                />
+              </label>
+              <label className="diff-btn" style={{ cursor: 'default', alignItems: 'stretch' }}>
+                <span className="diff-btn-desc">干擾數</span>
+                <input
+                  className="rounds-custom-input"
+                  type="number"
+                  min="0"
+                  max="12"
+                  value={oculomotorDistractorCount}
+                  disabled={oculomotorMode !== 'multi-object'}
+                  onClick={(e) => e.stopPropagation()}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value, 10);
+                    if (Number.isFinite(value)) {
+                      setOculomotorDistractorCount(Math.max(0, Math.min(12, value)));
+                    }
+                  }}
+                  style={{ width: '100%', opacity: oculomotorMode === 'multi-object' ? 1 : 0.5 }}
+                />
+              </label>
+            </div>
+          </div>
+
+          <div className="config-actions">
+            <button
+              className="btn btn-primary btn-lg config-start-btn"
+              onClick={(e) => { e.stopPropagation(); handleStartTraining(); }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <polygon points="5,3 19,12 5,21" />
+              </svg>
+              開始訓練
+              {prewarmed && <span className="ready-dot" />}
+            </button>
+            <button
+              className="btn btn-ghost btn-lg"
+              onClick={(e) => { e.stopPropagation(); setExpandedModule(null); }}
+            >
+              取消
+            </button>
+          </div>
+
+          <div className="config-summary">
+            使用者: <strong>{activeUser}</strong> ·{' '}
+            模式: <strong>{oculomotorModes.find((mode) => mode.id === oculomotorMode)?.label}</strong> ·{' '}
+            時長: <strong>{oculomotorDurationSec}s</strong>
           </div>
         </div>
       )}

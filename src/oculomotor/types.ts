@@ -1,0 +1,40 @@
+export type OculomotorMode =
+  | 'pursuit'
+  | 'reaction-jumps'
+  | 'multi-object'
+  | 'lilac-chaser';
+
+export type OculomotorPattern =
+  | 'randomWalk'
+  | 'circle'
+  | 'figureEight'
+  | 'horizontalSweep'
+  | 'verticalSweep'
+  | 'bounce'
+  | 'diagonal'
+  | 'spiralBloom'
+  | 'zigZag';
+
+export interface Arena {
+  width: number;
+  height: number;
+}
+
+export interface TargetFrame {
+  x: number;
+  y: number;
+  radiusPx: number;
+  color: number;
+  alpha: number;
+  role: 'target' | 'distractor';
+}
+
+export interface PatternParams {
+  radiusPx: number;
+  speedPxPerSec: number;
+  travelPx: number;
+  targetCount: number;
+  distractorCount: number;
+  colorA: number;
+  colorB: number;
+}

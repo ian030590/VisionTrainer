@@ -3,11 +3,19 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { initJsPsych } from 'jspsych';
 import type { JsPsych } from 'jspsych';
 import PixiMovingCardPlugin from '../experiment/plugins/pixi-moving-card';
+import PixiOculomotorTrainingPlugin from '../experiment/plugins/pixi-oculomotor-training';
 import { buildTimeline } from '../experiment/timeline';
 import { getActiveUser, getSetting } from '../utils/settings';
+import {
+  getOculomotorModeLabel,
+  getOculomotorPatternLabel,
+  isOculomotorMode,
+  isOculomotorPattern,
+} from '../oculomotor/presets';
 
 // Ensure the plugin class is referenced so bundler doesn't tree-shake it
 void PixiMovingCardPlugin;
+void PixiOculomotorTrainingPlugin;
 
 type Phase = 'running' | 'results';
 
@@ -17,6 +25,11 @@ interface TrialData {
   correct: boolean;
   target: string;
   response: string;
+  mode?: string;
+  pattern?: string;
+  acquired_targets?: number;
+  average_fps?: number;
+  duration_ms?: number;
 }
 
 export function ExperimentPage() {
@@ -25,6 +38,19 @@ export function ExperimentPage() {
   const moduleId = searchParams.get('module') || 'moving-card';
   const difficulty = searchParams.get('difficulty') || getSetting('difficulty');
   const totalRounds = parseInt(searchParams.get('rounds') || '', 10) || getSetting('totalRounds');
+  const requestedMode = searchParams.get('mode') || getSetting('oculomotorMode');
+  const requestedPattern = searchParams.get('pattern') || getSetting('oculomotorPattern');
+  const oculomotorMode = isOculomotorMode(requestedMode) ? requestedMode : getSetting('oculomotorMode');
+  const oculomotorPattern = isOculomotorPattern(requestedPattern)
+    ? requestedPattern
+    : getSetting('oculomotorPattern');
+  const oculomotorDurationSec = parseInt(searchParams.get('duration') || '', 10)
+    || getSetting('oculomotorDurationSec');
+  const oculomotorSpeedDegPerSec = parseFloat(searchParams.get('speed') || '')
+    || getSetting('oculomotorSpeedDegPerSec');
+  const oculomotorTargetSizeMm = parseFloat(searchParams.get('size') || '')
+    || getSetting('oculomotorTargetSizeMm');
+  const oculomotorDistractorCount = parseInt(searchParams.get('distractors') || '', 10);
 
   const [phase, setPhase] = useState<Phase>('running');
   const [results, setResults] = useState<TrialData[]>([]);
@@ -59,7 +85,20 @@ export function ExperimentPage() {
 
     jsPsychRef.current = jsPsych;
 
-    const timeline = buildTimeline(moduleId, { difficulty, totalRounds });
+    const timeline = buildTimeline(moduleId, {
+      difficulty,
+      totalRounds,
+      oculomotor: {
+        mode: oculomotorMode,
+        pattern: oculomotorPattern,
+        durationSec: oculomotorDurationSec,
+        speedDegPerSec: oculomotorSpeedDegPerSec,
+        targetSizeMm: oculomotorTargetSizeMm,
+        distractorCount: Number.isFinite(oculomotorDistractorCount)
+          ? oculomotorDistractorCount
+          : getSetting('oculomotorDistractorCount'),
+      },
+    });
     jsPsych.run(timeline as any);
 
     // Cleanup on unmount
@@ -68,7 +107,18 @@ export function ExperimentPage() {
         jsPsychRef.current = null;
       }
     };
-  }, [phase, moduleId, difficulty, totalRounds]);
+  }, [
+    phase,
+    moduleId,
+    difficulty,
+    totalRounds,
+    oculomotorMode,
+    oculomotorPattern,
+    oculomotorDurationSec,
+    oculomotorSpeedDegPerSec,
+    oculomotorTargetSizeMm,
+    oculomotorDistractorCount,
+  ]);
 
   const downloadCSV = useCallback(() => {
     if (results.length === 0) return;
@@ -77,18 +127,32 @@ export function ExperimentPage() {
     const dateStr = new Date().toISOString().split('T')[0];
     const timeStr = new Date().toLocaleTimeString('zh-TW', { hour12: false }).replace(/:/g, '');
 
-    const headers = ['使用者', '日期', '時間', '模組', '難度', '回合', '題目', '作答', '正確', '反應時間(ms)'];
+    const isOculomotor = moduleId === 'oculomotor-training';
+    const headers = isOculomotor
+      ? ['使用者', '日期', '時間', '模組', '模式', '路徑', '時長(ms)', '反應點擊', '平均FPS', '狀態']
+      : ['使用者', '日期', '時間', '模組', '難度', '回合', '題目', '作答', '正確', '反應時間(ms)'];
     const rows: (string | number)[][] = results.map((r, i) => [
       userName,
       dateStr,
       timeStr,
       moduleId,
-      difficulty,
-      i + 1,
-      r.target,
-      r.response,
-      r.correct ? '✓' : '✗',
-      r.rt,
+      ...(isOculomotor
+        ? [
+            getOculomotorModeLabel(r.mode || oculomotorMode),
+            getOculomotorPatternLabel(r.pattern || oculomotorPattern),
+            r.duration_ms ?? r.rt,
+            r.acquired_targets ?? 0,
+            r.average_fps ?? '',
+            r.response,
+          ]
+        : [
+            difficulty,
+            i + 1,
+            r.target,
+            r.response,
+            r.correct ? '✓' : '✗',
+            r.rt,
+          ]),
     ]);
 
     const avgRt = Math.round(results.reduce((sum, r) => sum + r.rt, 0) / results.length);
@@ -109,7 +173,7 @@ export function ExperimentPage() {
     a.download = `${prefix ? prefix + '_' : ''}${userName}_${moduleId}_${dateStr}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-  }, [results, userName, moduleId, difficulty]);
+  }, [results, userName, moduleId, difficulty, oculomotorMode, oculomotorPattern]);
 
   const goHome = () => navigate('/');
 
@@ -133,50 +197,77 @@ export function ExperimentPage() {
       ? sortedRts[Math.floor(sortedRts.length / 2)]
       : Math.round((sortedRts[Math.floor(sortedRts.length / 2) - 1] + sortedRts[Math.floor(sortedRts.length / 2)]) / 2))
     : 0;
+  const isOculomotor = moduleId === 'oculomotor-training';
+  const oculomotorResult = results[0];
 
   return (
     <div className="experiment-container" style={{ overflowY: 'auto' }}>
       <div className="experiment-results">
         <h1 style={{ fontSize: 32 }}>訓練結束！</h1>
-        <div className="results-score">{correctCount}/{results.length}</div>
-        <div style={{
-          display: 'flex',
-          gap: 32,
-          marginBottom: 16,
-          fontSize: 14,
-          color: 'var(--text-secondary)',
-        }}>
-          <span>平均 RT: <b style={{ color: 'var(--accent)' }}>{avgRt} ms</b></span>
-          <span>中位數 RT: <b style={{ color: 'var(--accent)' }}>{medianRt} ms</b></span>
-          <span>使用者: <b>{userName}</b></span>
-        </div>
+        {isOculomotor ? (
+          <>
+            <div className="results-score">
+              {Math.round((oculomotorResult?.duration_ms ?? 0) / 1000)}s
+            </div>
+            <div style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              justifyContent: 'center',
+              gap: 24,
+              marginBottom: 16,
+              fontSize: 14,
+              color: 'var(--text-secondary)',
+            }}>
+              <span>模式: <b style={{ color: 'var(--accent)' }}>{getOculomotorModeLabel(oculomotorResult?.mode || oculomotorMode)}</b></span>
+              <span>路徑: <b style={{ color: 'var(--accent)' }}>{getOculomotorPatternLabel(oculomotorResult?.pattern || oculomotorPattern)}</b></span>
+              <span>反應點擊: <b style={{ color: 'var(--accent)' }}>{oculomotorResult?.acquired_targets ?? 0}</b></span>
+              <span>平均 FPS: <b style={{ color: 'var(--accent)' }}>{oculomotorResult?.average_fps ?? '-'}</b></span>
+              <span>使用者: <b>{userName}</b></span>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="results-score">{correctCount}/{results.length}</div>
+            <div style={{
+              display: 'flex',
+              gap: 32,
+              marginBottom: 16,
+              fontSize: 14,
+              color: 'var(--text-secondary)',
+            }}>
+              <span>平均 RT: <b style={{ color: 'var(--accent)' }}>{avgRt} ms</b></span>
+              <span>中位數 RT: <b style={{ color: 'var(--accent)' }}>{medianRt} ms</b></span>
+              <span>使用者: <b>{userName}</b></span>
+            </div>
 
-        <table className="results-table">
-          <thead>
-            <tr>
-              <th>回合</th>
-              <th>題目</th>
-              <th>作答</th>
-              <th>正確</th>
-              <th>反應時間 (ms)</th>
-            </tr>
-          </thead>
-          <tbody>
-            {results.map((r, i) => (
-              <tr key={i}>
-                <td>{i + 1}</td>
-                <td style={{ fontWeight: 600, color: 'var(--accent)' }}>{r.target}</td>
-                <td>{r.response}</td>
-                <td style={{ color: r.correct ? 'var(--success)' : 'var(--error)' }}>
-                  {r.correct ? '✓' : '✗'}
-                </td>
-                <td className={r.rt < avgRt ? 'rt-fast' : r.rt > avgRt * 1.5 ? 'rt-slow' : ''}>
-                  {r.rt}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+            <table className="results-table">
+              <thead>
+                <tr>
+                  <th>回合</th>
+                  <th>題目</th>
+                  <th>作答</th>
+                  <th>正確</th>
+                  <th>反應時間 (ms)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {results.map((r, i) => (
+                  <tr key={i}>
+                    <td>{i + 1}</td>
+                    <td style={{ fontWeight: 600, color: 'var(--accent)' }}>{r.target}</td>
+                    <td>{r.response}</td>
+                    <td style={{ color: r.correct ? 'var(--success)' : 'var(--error)' }}>
+                      {r.correct ? '✓' : '✗'}
+                    </td>
+                    <td className={r.rt < avgRt ? 'rt-fast' : r.rt > avgRt * 1.5 ? 'rt-slow' : ''}>
+                      {r.rt}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </>
+        )}
 
         <div className="results-actions">
           <button className="btn btn-primary btn-lg" onClick={downloadCSV}>
