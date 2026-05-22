@@ -360,232 +360,236 @@ export function HomePage() {
 
       {/* ── Module Config Panel ── */}
       {expandedModule === 'moving-card' && (
-        <div className="module-config-panel fade-in-up">
-          {/* Difficulty */}
-          <div className="config-section">
-            <div className="config-label">難度設定</div>
-            <div className="difficulty-selector">
-              {diffOptions.map((opt) => (
-                <button
-                  key={opt.key}
-                  className={`diff-btn ${localDifficulty === opt.key ? 'active' : ''}`}
-                  onClick={(e) => { e.stopPropagation(); setLocalDifficulty(opt.key); }}
-                >
-                  <span className="diff-btn-label">{opt.label}</span>
-                  <span className="diff-btn-desc">{opt.desc}</span>
-                </button>
-              ))}
+        <div className="config-modal-overlay fade-in" onClick={() => setExpandedModule(null)}>
+          <div className="module-config-panel config-modal-panel" onClick={(e) => e.stopPropagation()}>
+            {/* Difficulty */}
+            <div className="config-section">
+              <div className="config-label">難度設定</div>
+              <div className="difficulty-selector">
+                {diffOptions.map((opt) => (
+                  <button
+                    key={opt.key}
+                    className={`diff-btn ${localDifficulty === opt.key ? 'active' : ''}`}
+                    onClick={(e) => { e.stopPropagation(); setLocalDifficulty(opt.key); }}
+                  >
+                    <span className="diff-btn-label">{opt.label}</span>
+                    <span className="diff-btn-desc">{opt.desc}</span>
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
 
-          {/* Rounds */}
-          <div className="config-section">
-            <div className="config-label">回合數</div>
-            <div className="rounds-selector">
-              {roundsPresets.map((r) => (
-                <button
-                  key={r}
-                  className={`rounds-btn ${localRounds === r && !customRoundsInput ? 'active' : ''}`}
-                  onClick={(e) => { e.stopPropagation(); handleRoundsPreset(r); }}
-                >
-                  {r}
-                </button>
-              ))}
-              <input
-                className="rounds-custom-input"
-                type="number"
-                min="1"
-                max="100"
-                placeholder="自訂"
-                value={customRoundsInput}
-                onClick={(e) => e.stopPropagation()}
-                onChange={(e) => handleCustomRoundsChange(e.target.value)}
-              />
+            {/* Rounds */}
+            <div className="config-section">
+              <div className="config-label">回合數</div>
+              <div className="rounds-selector">
+                {roundsPresets.map((r) => (
+                  <button
+                    key={r}
+                    className={`rounds-btn ${localRounds === r && !customRoundsInput ? 'active' : ''}`}
+                    onClick={(e) => { e.stopPropagation(); handleRoundsPreset(r); }}
+                  >
+                    {r}
+                  </button>
+                ))}
+                <input
+                  className="rounds-custom-input"
+                  type="number"
+                  min="1"
+                  max="100"
+                  placeholder="自訂"
+                  value={customRoundsInput}
+                  onClick={(e) => e.stopPropagation()}
+                  onChange={(e) => handleCustomRoundsChange(e.target.value)}
+                />
+              </div>
             </div>
-          </div>
 
-          {/* Actions */}
-          <div className="config-actions">
-            <button
-              className="btn btn-primary btn-lg config-start-btn"
-              onClick={(e) => { e.stopPropagation(); handleStartTraining(); }}
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                <polygon points="5,3 19,12 5,21" />
-              </svg>
-              開始訓練
-              {prewarmed && <span className="ready-dot" />}
-            </button>
-            <button
-              className="btn btn-ghost btn-lg"
-              onClick={(e) => { e.stopPropagation(); setExpandedModule(null); }}
-            >
-              取消
-            </button>
-          </div>
+            {/* Actions */}
+            <div className="config-actions">
+              <button
+                className="btn btn-primary btn-lg config-start-btn"
+                onClick={(e) => { e.stopPropagation(); handleStartTraining(); }}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <polygon points="5,3 19,12 5,21" />
+                </svg>
+                開始訓練
+                {prewarmed && <span className="ready-dot" />}
+              </button>
+              <button
+                className="btn btn-ghost btn-lg"
+                onClick={(e) => { e.stopPropagation(); setExpandedModule(null); }}
+              >
+                取消
+              </button>
+            </div>
 
-          {/* Current settings summary */}
-          <div className="config-summary">
-            使用者: <strong>{activeUser}</strong> ·{' '}
-            難度: <strong>{diffOptions.find((d) => d.key === localDifficulty)?.label}</strong> ·{' '}
-            回合: <strong>{localRounds}</strong>
+            {/* Current settings summary */}
+            <div className="config-summary">
+              使用者: <strong>{activeUser}</strong> ·{' '}
+              難度: <strong>{diffOptions.find((d) => d.key === localDifficulty)?.label}</strong> ·{' '}
+              回合: <strong>{localRounds}</strong>
+            </div>
           </div>
         </div>
       )}
 
       {expandedModule === 'oculomotor-training' && (
-        <div className="module-config-panel fade-in-up">
-          <div className="config-section">
-            <div className="config-label">訓練模式</div>
-            <div className="difficulty-selector">
-              {oculomotorModes.map((mode) => (
-                <button
-                  key={mode.id}
-                  className={`diff-btn ${oculomotorMode === mode.id ? 'active' : ''}`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setOculomotorMode(mode.id);
-                  }}
-                >
-                  <span className="diff-btn-label">{mode.label}</span>
-                  <span className="diff-btn-desc">{mode.desc}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {oculomotorMode !== 'lilac-chaser' && (
+        <div className="config-modal-overlay fade-in" onClick={() => setExpandedModule(null)}>
+          <div className="module-config-panel config-modal-panel" onClick={(e) => e.stopPropagation()}>
             <div className="config-section">
-              <div className="config-label">移動路徑</div>
-              <select
-                className="input"
-                value={oculomotorPattern}
-                onClick={(e) => e.stopPropagation()}
-                onChange={(e) => setOculomotorPattern(e.target.value as OculomotorPattern)}
-              >
-                {oculomotorPatterns.map((pattern) => (
-                  <option key={pattern.id} value={pattern.id}>{pattern.label}</option>
+              <div className="config-label">訓練模式</div>
+              <div className="difficulty-selector">
+                {oculomotorModes.map((mode) => (
+                  <button
+                    key={mode.id}
+                    className={`diff-btn ${oculomotorMode === mode.id ? 'active' : ''}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setOculomotorMode(mode.id);
+                    }}
+                  >
+                    <span className="diff-btn-label">{mode.label}</span>
+                    <span className="diff-btn-desc">{mode.desc}</span>
+                  </button>
                 ))}
-              </select>
+              </div>
             </div>
-          )}
 
-          <div className="config-section">
-            <div className="config-label">時長（秒）</div>
-            <div className="rounds-selector">
-              {durationPresets.map((duration) => (
-                <button
-                  key={duration}
-                  className={`rounds-btn ${oculomotorDurationSec === duration ? 'active' : ''}`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setOculomotorDurationSec(duration);
-                  }}
+            {oculomotorMode !== 'lilac-chaser' && (
+              <div className="config-section">
+                <div className="config-label">移動路徑</div>
+                <select
+                  className="input"
+                  value={oculomotorPattern}
+                  onClick={(e) => e.stopPropagation()}
+                  onChange={(e) => setOculomotorPattern(e.target.value as OculomotorPattern)}
                 >
-                  {duration}
-                </button>
-              ))}
-              <input
-                className="rounds-custom-input"
-                type="number"
-                min="15"
-                max="300"
-                value={oculomotorDurationSec}
-                onClick={(e) => e.stopPropagation()}
-                onChange={(e) => {
-                  const value = parseInt(e.target.value, 10);
-                  if (Number.isFinite(value)) {
-                    setOculomotorDurationSec(Math.max(15, Math.min(300, value)));
-                  }
-                }}
-              />
-            </div>
-          </div>
+                  {oculomotorPatterns.map((pattern) => (
+                    <option key={pattern.id} value={pattern.id}>{pattern.label}</option>
+                  ))}
+                </select>
+              </div>
+            )}
 
-          <div className="config-section">
-            <div className="config-label">速度與目標大小</div>
-            <div className="difficulty-selector">
-              <label className="diff-btn" style={{ cursor: 'default', alignItems: 'stretch' }}>
-                <span className="diff-btn-desc">速度 deg/s</span>
+            <div className="config-section">
+              <div className="config-label">時長（秒）</div>
+              <div className="rounds-selector">
+                {durationPresets.map((duration) => (
+                  <button
+                    key={duration}
+                    className={`rounds-btn ${oculomotorDurationSec === duration ? 'active' : ''}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setOculomotorDurationSec(duration);
+                    }}
+                  >
+                    {duration}
+                  </button>
+                ))}
                 <input
                   className="rounds-custom-input"
                   type="number"
-                  min="2"
-                  max="80"
-                  value={oculomotorSpeedDegPerSec}
-                  onClick={(e) => e.stopPropagation()}
-                  onChange={(e) => {
-                    const value = parseFloat(e.target.value);
-                    if (Number.isFinite(value)) {
-                      setOculomotorSpeedDegPerSec(Math.max(2, Math.min(80, value)));
-                    }
-                  }}
-                  style={{ width: '100%' }}
-                />
-              </label>
-              <label className="diff-btn" style={{ cursor: 'default', alignItems: 'stretch' }}>
-                <span className="diff-btn-desc">大小 mm</span>
-                <input
-                  className="rounds-custom-input"
-                  type="number"
-                  min="2"
-                  max="50"
-                  value={oculomotorTargetSizeMm}
-                  onClick={(e) => e.stopPropagation()}
-                  onChange={(e) => {
-                    const value = parseFloat(e.target.value);
-                    if (Number.isFinite(value)) {
-                      setOculomotorTargetSizeMm(Math.max(2, Math.min(50, value)));
-                    }
-                  }}
-                  style={{ width: '100%' }}
-                />
-              </label>
-              <label className="diff-btn" style={{ cursor: 'default', alignItems: 'stretch' }}>
-                <span className="diff-btn-desc">干擾數</span>
-                <input
-                  className="rounds-custom-input"
-                  type="number"
-                  min="0"
-                  max="12"
-                  value={oculomotorDistractorCount}
-                  disabled={oculomotorMode !== 'multi-object'}
+                  min="15"
+                  max="300"
+                  value={oculomotorDurationSec}
                   onClick={(e) => e.stopPropagation()}
                   onChange={(e) => {
                     const value = parseInt(e.target.value, 10);
                     if (Number.isFinite(value)) {
-                      setOculomotorDistractorCount(Math.max(0, Math.min(12, value)));
+                      setOculomotorDurationSec(Math.max(15, Math.min(300, value)));
                     }
                   }}
-                  style={{ width: '100%', opacity: oculomotorMode === 'multi-object' ? 1 : 0.5 }}
                 />
-              </label>
+              </div>
             </div>
-          </div>
 
-          <div className="config-actions">
-            <button
-              className="btn btn-primary btn-lg config-start-btn"
-              onClick={(e) => { e.stopPropagation(); handleStartTraining(); }}
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                <polygon points="5,3 19,12 5,21" />
-              </svg>
-              開始訓練
-              {prewarmed && <span className="ready-dot" />}
-            </button>
-            <button
-              className="btn btn-ghost btn-lg"
-              onClick={(e) => { e.stopPropagation(); setExpandedModule(null); }}
-            >
-              取消
-            </button>
-          </div>
+            <div className="config-section">
+              <div className="config-label">速度與目標大小</div>
+              <div className="difficulty-selector">
+                <label className="diff-btn" style={{ cursor: 'default', alignItems: 'stretch' }}>
+                  <span className="diff-btn-desc">速度 deg/s</span>
+                  <input
+                    className="rounds-custom-input"
+                    type="number"
+                    min="2"
+                    max="80"
+                    value={oculomotorSpeedDegPerSec}
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={(e) => {
+                      const value = parseFloat(e.target.value);
+                      if (Number.isFinite(value)) {
+                        setOculomotorSpeedDegPerSec(Math.max(2, Math.min(80, value)));
+                      }
+                    }}
+                    style={{ width: '100%' }}
+                  />
+                </label>
+                <label className="diff-btn" style={{ cursor: 'default', alignItems: 'stretch' }}>
+                  <span className="diff-btn-desc">大小 mm</span>
+                  <input
+                    className="rounds-custom-input"
+                    type="number"
+                    min="2"
+                    max="50"
+                    value={oculomotorTargetSizeMm}
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={(e) => {
+                      const value = parseFloat(e.target.value);
+                      if (Number.isFinite(value)) {
+                        setOculomotorTargetSizeMm(Math.max(2, Math.min(50, value)));
+                      }
+                    }}
+                    style={{ width: '100%' }}
+                  />
+                </label>
+                <label className="diff-btn" style={{ cursor: 'default', alignItems: 'stretch' }}>
+                  <span className="diff-btn-desc">干擾數</span>
+                  <input
+                    className="rounds-custom-input"
+                    type="number"
+                    min="0"
+                    max="12"
+                    value={oculomotorDistractorCount}
+                    disabled={oculomotorMode !== 'multi-object'}
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value, 10);
+                      if (Number.isFinite(value)) {
+                        setOculomotorDistractorCount(Math.max(0, Math.min(12, value)));
+                      }
+                    }}
+                    style={{ width: '100%', opacity: oculomotorMode === 'multi-object' ? 1 : 0.5 }}
+                  />
+                </label>
+              </div>
+            </div>
 
-          <div className="config-summary">
-            使用者: <strong>{activeUser}</strong> ·{' '}
-            模式: <strong>{oculomotorModes.find((mode) => mode.id === oculomotorMode)?.label}</strong> ·{' '}
-            時長: <strong>{oculomotorDurationSec}s</strong>
+            <div className="config-actions">
+              <button
+                className="btn btn-primary btn-lg config-start-btn"
+                onClick={(e) => { e.stopPropagation(); handleStartTraining(); }}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <polygon points="5,3 19,12 5,21" />
+                </svg>
+                開始訓練
+                {prewarmed && <span className="ready-dot" />}
+              </button>
+              <button
+                className="btn btn-ghost btn-lg"
+                onClick={(e) => { e.stopPropagation(); setExpandedModule(null); }}
+              >
+                取消
+              </button>
+            </div>
+
+            <div className="config-summary">
+              使用者: <strong>{activeUser}</strong> ·{' '}
+              模式: <strong>{oculomotorModes.find((mode) => mode.id === oculomotorMode)?.label}</strong> ·{' '}
+              時長: <strong>{oculomotorDurationSec}s</strong>
+            </div>
           </div>
         </div>
       )}

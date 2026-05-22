@@ -184,55 +184,57 @@ export function AssessmentPage() {
 
       {/* Config Panel */}
       {expandedTest && expandedCard && (
-        <div className="module-config-panel fade-in-up">
-          <div className="config-section">
-            <div className="config-label">試驗次數</div>
-            <div className="rounds-selector">
-              {trialsPresets.map((r) => (
-                <button
-                  key={r}
-                  className={`rounds-btn ${localTrials === r && !customTrialsInput ? 'active' : ''}`}
-                  onClick={(e) => { e.stopPropagation(); handleTrialsPreset(r); }}
-                >
-                  {r}
-                </button>
-              ))}
-              <input
-                className="rounds-custom-input"
-                type="number"
-                min="1"
-                max="100"
-                placeholder="自訂"
-                value={customTrialsInput}
-                onClick={(e) => e.stopPropagation()}
-                onChange={(e) => handleCustomTrials(e.target.value)}
-              />
+        <div className="config-modal-overlay fade-in" onClick={() => setExpandedTest(null)}>
+          <div className="module-config-panel config-modal-panel" onClick={(e) => e.stopPropagation()}>
+            <div className="config-section">
+              <div className="config-label">試驗次數</div>
+              <div className="rounds-selector">
+                {trialsPresets.map((r) => (
+                  <button
+                    key={r}
+                    className={`rounds-btn ${localTrials === r && !customTrialsInput ? 'active' : ''}`}
+                    onClick={(e) => { e.stopPropagation(); handleTrialsPreset(r); }}
+                  >
+                    {r}
+                  </button>
+                ))}
+                <input
+                  className="rounds-custom-input"
+                  type="number"
+                  min="1"
+                  max="100"
+                  placeholder="自訂"
+                  value={customTrialsInput}
+                  onClick={(e) => e.stopPropagation()}
+                  onChange={(e) => handleCustomTrials(e.target.value)}
+                />
+              </div>
             </div>
-          </div>
 
-          <div className="config-actions">
-            <button
-              className="btn btn-primary btn-lg config-start-btn"
-              onClick={(e) => { e.stopPropagation(); handleStartTest(); }}
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                <polygon points="5,3 19,12 5,21" />
-              </svg>
-              開始測驗
-            </button>
-            <button
-              className="btn btn-ghost btn-lg"
-              onClick={(e) => { e.stopPropagation(); setExpandedTest(null); }}
-            >
-              取消
-            </button>
-          </div>
+            <div className="config-actions">
+              <button
+                className="btn btn-primary btn-lg config-start-btn"
+                onClick={(e) => { e.stopPropagation(); handleStartTest(); }}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <polygon points="5,3 19,12 5,21" />
+                </svg>
+                開始測驗
+              </button>
+              <button
+                className="btn btn-ghost btn-lg"
+                onClick={(e) => { e.stopPropagation(); setExpandedTest(null); }}
+              >
+                取消
+              </button>
+            </div>
 
-          <div className="config-summary">
-            使用者: <strong>{activeUser}</strong> ·{' '}
-            測驗: <strong>{expandedCard.title}</strong> ·{' '}
-            試驗數: <strong>{localTrials}</strong> ·{' '}
-            觀看距離: <strong>{distanceCM} cm</strong>
+            <div className="config-summary">
+              使用者: <strong>{activeUser}</strong> ·{' '}
+              測驗: <strong>{expandedCard.title}</strong> ·{' '}
+              試驗數: <strong>{localTrials}</strong> ·{' '}
+              觀看距離: <strong>{distanceCM} cm</strong>
+            </div>
           </div>
         </div>
       )}
