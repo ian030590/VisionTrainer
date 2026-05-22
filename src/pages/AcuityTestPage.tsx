@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { BestPEST } from '../assessment/bestPest';
 import {
@@ -215,7 +215,11 @@ export function AcuityTestPage() {
 
     // Audio feedback
     if (getSetting('auditoryFeedbackEnabled')) {
-      SoundManager.play(correct ? 'correct' : 'incorrect');
+      if (correct) {
+        SoundManager.playCorrect();
+      } else {
+        SoundManager.playIncorrect();
+      }
     }
 
     // Next trial
@@ -499,7 +503,7 @@ function getTestInstruction(t: TestType): string {
   }
 }
 
-function getKeyHints(t: TestType): JSX.Element {
+function getKeyHints(t: TestType): React.ReactNode {
   switch (t) {
     case 'landolt':
       return (
@@ -539,7 +543,7 @@ function getKeyHints(t: TestType): JSX.Element {
   }
 }
 
-function renderTouchButtons(testType: TestType, onResponse: (idx: number) => void): JSX.Element {
+function renderTouchButtons(testType: TestType, onResponse: (idx: number) => void): React.ReactNode {
   switch (testType) {
     case 'landolt':
       return (
