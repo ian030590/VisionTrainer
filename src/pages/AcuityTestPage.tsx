@@ -39,6 +39,8 @@ import { SoundManager } from '../utils/soundManager';
 type Phase = 'intro' | 'isi' | 'stimulus' | 'results';
 
 const ACUITY_OVERLAY_FONT_SIZE = 12;
+const MID_LUMINANCE = 0.5;
+const GRATING_APERTURE_FILL = '#FFFFFF';
 
 interface TrialRecord {
   trial: number;
@@ -71,6 +73,46 @@ function prepareAcuityCanvas(canvas: HTMLCanvasElement) {
   ctx.imageSmoothingEnabled = false;
 
   return { ctx, width, height };
+}
+
+function getGammaCorrectedMidGray(): string {
+  const gamma = getSetting('gammaValue');
+  const corrected = Math.pow(MID_LUMINANCE, 1 / gamma);
+  const channel = Math.round(Math.min(1, Math.max(0, corrected)) * 255);
+  return `rgb(${channel}, ${channel}, ${channel})`;
+}
+
+function getAcuityBackground(testType: TestType): string {
+  return testType === 'gratings' ? getGammaCorrectedMidGray() : GRATING_APERTURE_FILL;
+}
+
+function drawGratingAperture(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  diameter: number,
+) {
+  ctx.save();
+  ctx.fillStyle = GRATING_APERTURE_FILL;
+  ctx.beginPath();
+  ctx.arc(cx, cy, diameter / 2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawGratingApertureRing(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  diameter: number,
+) {
+  ctx.save();
+  ctx.strokeStyle = GRATING_APERTURE_FILL;
+  ctx.lineWidth = Math.max(4, diameter * 0.035);
+  ctx.beginPath();
+  ctx.arc(cx, cy, diameter / 2 - ctx.lineWidth / 2, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
 }
 
 export function AcuityTestPage() {
@@ -138,7 +180,12 @@ export function AcuityTestPage() {
     const canvas = canvasRef.current;
     if (canvas) {
       const prepared = prepareAcuityCanvas(canvas);
-      if (prepared) clearCanvas(prepared.ctx, prepared.width, prepared.height);
+      if (prepared) clearCanvas(
+        prepared.ctx,
+        prepared.width,
+        prepared.height,
+        getAcuityBackground(testType),
+      );
     }
 
     // Show stimulus after ISI delay
@@ -155,7 +202,7 @@ export function AcuityTestPage() {
     if (!prepared) return;
 
     const { ctx, width, height } = prepared;
-    clearCanvas(ctx, width, height);
+    clearCanvas(ctx, width, height, getAcuityBackground(testType));
 
     const cx = width / 2;
     const cy = height / 2;
@@ -179,20 +226,20 @@ export function AcuityTestPage() {
         const pixPerDeg = pixelFromDegree(1);
         // spatial frequency based on stroke size
         const cpd = 30 / Math.pow(10, logMARFromStrokePixels(strokePx));
-        const diameter = Math.min(width, height) * 0.6;
+        const diameter = Math.min(height * 0.58, width * 0.34);
         const orient: GratingOrientation = alt === 0 ? 'left' : 'right';
-        // Draw grating on one side, uniform on other
-        const offset = (orient === 'left' ? -1 : 1) * width * 0.2;
-        drawGrating(ctx, cx + offset, cy, diameter, cpd, orient, pixPerDeg);
-        // Draw uniform circle on other side
-        const otherOffset = -offset;
-        ctx.save();
-        ctx.translate(cx + otherOffset, cy);
-        ctx.fillStyle = '#FFFFFF';
-        ctx.beginPath();
-        ctx.arc(0, 0, diameter / 2, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
+        const margin = 24;
+        const maxOffset = Math.max(0, width / 2 - diameter / 2 - margin);
+        const baseOffset = Math.min(width * 0.24, maxOffset);
+        const leftX = cx - baseOffset;
+        const rightX = cx + baseOffset;
+        const gratingX = orient === 'left' ? leftX : rightX;
+
+        drawGratingAperture(ctx, leftX, cy, diameter);
+        drawGratingAperture(ctx, rightX, cy, diameter);
+        drawGrating(ctx, gratingX, cy, diameter, cpd, orient, pixPerDeg);
+        drawGratingApertureRing(ctx, leftX, cy, diameter);
+        drawGratingApertureRing(ctx, rightX, cy, diameter);
         break;
       }
     }
@@ -360,7 +407,12 @@ export function AcuityTestPage() {
       <div className="experiment-container acuity-test-container">
         <canvas
           ref={canvasRef}
-          style={{ display: 'block', width: '100%', height: '100%', background: '#FFFFFF' }}
+          style={{
+            display: 'block',
+            width: '100%',
+            height: '100%',
+            background: getAcuityBackground(testType),
+          }}
         />
         {/* Touch controls */}
         <div className="acuity-touch-controls">

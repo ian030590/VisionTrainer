@@ -392,8 +392,9 @@ export function clearCanvas(
   ctx: CanvasRenderingContext2D,
   width: number,
   height: number,
+  backgroundColor = BACK,
 ) {
-  ctx.fillStyle = BACK;
+  ctx.fillStyle = backgroundColor;
   ctx.fillRect(0, 0, width, height);
 }
 
