@@ -201,9 +201,8 @@ export function AcuityTestPage() {
 
     ctx.fillStyle = '#9CA3AF';
     ctx.font = `${ACUITY_OVERLAY_FONT_SIZE}px Inter, sans-serif`;
-    ctx.fillText(`Snellen ${snellen}`, 12, 20);
-    ctx.fillText(`${trialRef.current}/${totalTrials}`, 12, 38);
-  }, [testType, totalTrials]);
+    ctx.fillText(snellen, 12, 20);
+  }, [testType]);
 
   // ── Handle response ──
   const handleResponse = useCallback((responseIdx: number) => {
