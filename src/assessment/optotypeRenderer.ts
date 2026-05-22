@@ -27,6 +27,11 @@ export type PictureIndex = 0 | 1 | 2 | 3;
 /** Grating orientation for preferential looking */
 export type GratingOrientation = 'left' | 'right';
 
+export interface GratingRenderOptions {
+  lightColor?: string;
+  darkColor?: string;
+}
+
 // ── Color constants ──
 
 const FORE = '#000000';
@@ -354,6 +359,7 @@ export function drawGrating(
   spatialFreqCPD: number,
   orientation: GratingOrientation,
   _pixPerDeg: number, // pixels per degree at current distance
+  options: GratingRenderOptions = {},
 ) {
   ctx.save();
   ctx.translate(cx, cy);
@@ -374,10 +380,10 @@ export function drawGrating(
   const xOffset = orientation === 'left' ? -r * 1.5 : r * 1.5;
 
   // Draw vertical stripes
-  ctx.fillStyle = BACK;
+  ctx.fillStyle = options.lightColor ?? BACK;
   ctx.fillRect(-r, -r, r * 2, r * 2);
 
-  ctx.fillStyle = FORE;
+  ctx.fillStyle = options.darkColor ?? FORE;
   const startX = -r + (xOffset % cycleWidthPx);
   for (let x = startX - cycleWidthPx; x < r; x += cycleWidthPx) {
     ctx.fillRect(x, -r, barWidth, r * 2);

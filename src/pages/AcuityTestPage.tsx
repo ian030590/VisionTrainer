@@ -40,7 +40,7 @@ type Phase = 'intro' | 'isi' | 'stimulus' | 'results';
 
 const ACUITY_OVERLAY_FONT_SIZE = 12;
 const MID_LUMINANCE = 0.5;
-const GRATING_APERTURE_FILL = '#FFFFFF';
+const DEFAULT_ACUITY_BACKGROUND = '#FFFFFF';
 
 interface TrialRecord {
   trial: number;
@@ -75,29 +75,31 @@ function prepareAcuityCanvas(canvas: HTMLCanvasElement) {
   return { ctx, width, height };
 }
 
-function getGammaCorrectedMidGray(): string {
+function getGammaCorrectedMidGrayChannel(): number {
   const gamma = getSetting('gammaValue');
   const corrected = Math.pow(MID_LUMINANCE, 1 / gamma);
-  const channel = Math.round(Math.min(1, Math.max(0, corrected)) * 255);
+  return Math.round(Math.min(1, Math.max(0, corrected)) * 255);
+}
+
+function getGammaCorrectedMidGray(): string {
+  const channel = getGammaCorrectedMidGrayChannel();
   return `rgb(${channel}, ${channel}, ${channel})`;
 }
 
 function getAcuityBackground(testType: TestType): string {
-  return testType === 'gratings' ? getGammaCorrectedMidGray() : GRATING_APERTURE_FILL;
+  return testType === 'gratings' ? getGammaCorrectedMidGray() : DEFAULT_ACUITY_BACKGROUND;
 }
 
-function drawGratingAperture(
-  ctx: CanvasRenderingContext2D,
-  cx: number,
-  cy: number,
-  diameter: number,
-) {
-  ctx.save();
-  ctx.fillStyle = GRATING_APERTURE_FILL;
-  ctx.beginPath();
-  ctx.arc(cx, cy, diameter / 2, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.restore();
+function getBalancedGratingColors() {
+  const gray = getGammaCorrectedMidGrayChannel();
+  const amplitude = Math.min(gray, 255 - gray);
+  const light = gray + amplitude;
+  const dark = gray - amplitude;
+
+  return {
+    lightColor: `rgb(${light}, ${light}, ${light})`,
+    darkColor: `rgb(${dark}, ${dark}, ${dark})`,
+  };
 }
 
 function drawGratingApertureRing(
@@ -107,8 +109,8 @@ function drawGratingApertureRing(
   diameter: number,
 ) {
   ctx.save();
-  ctx.strokeStyle = GRATING_APERTURE_FILL;
-  ctx.lineWidth = Math.max(4, diameter * 0.035);
+  ctx.strokeStyle = DEFAULT_ACUITY_BACKGROUND;
+  ctx.lineWidth = Math.max(1.5, diameter * 0.012);
   ctx.beginPath();
   ctx.arc(cx, cy, diameter / 2 - ctx.lineWidth / 2, 0, Math.PI * 2);
   ctx.stroke();
@@ -234,10 +236,9 @@ export function AcuityTestPage() {
         const leftX = cx - baseOffset;
         const rightX = cx + baseOffset;
         const gratingX = orient === 'left' ? leftX : rightX;
+        const gratingColors = getBalancedGratingColors();
 
-        drawGratingAperture(ctx, leftX, cy, diameter);
-        drawGratingAperture(ctx, rightX, cy, diameter);
-        drawGrating(ctx, gratingX, cy, diameter, cpd, orient, pixPerDeg);
+        drawGrating(ctx, gratingX, cy, diameter, cpd, orient, pixPerDeg, gratingColors);
         drawGratingApertureRing(ctx, leftX, cy, diameter);
         drawGratingApertureRing(ctx, rightX, cy, diameter);
         break;
