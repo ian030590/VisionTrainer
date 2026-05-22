@@ -340,7 +340,7 @@ class PixiMovingCardPlugin implements JsPsychPlugin<Info> {
           }
 
           if (isCircle) {
-            optBg.circle(oW / 2, oH / 2, oW / 2)
+            optBg.roundRect(0, 0, oW, oH, oW / 2)
               .fill({ color: bgColor })
               .stroke({ color: borderClr, width: borderWidth });
           } else {
