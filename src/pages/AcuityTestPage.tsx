@@ -38,6 +38,8 @@ import { SoundManager } from '../utils/soundManager';
 
 type Phase = 'intro' | 'isi' | 'stimulus' | 'results';
 
+const ACUITY_OVERLAY_FONT_SIZE = 12;
+
 interface TrialRecord {
   trial: number;
   presented: number;
@@ -195,13 +197,12 @@ export function AcuityTestPage() {
       }
     }
 
-    // Draw trial info
-    ctx.fillStyle = '#484F58';
-    ctx.font = '12px Inter, sans-serif';
-    ctx.fillText(
-      `${trialRef.current}/${totalTrials}`,
-      12, 20,
-    );
+    const snellen = formatSnellenFraction(decVAFromStrokePixels(strokePx));
+
+    ctx.fillStyle = '#9CA3AF';
+    ctx.font = `${ACUITY_OVERLAY_FONT_SIZE}px Inter, sans-serif`;
+    ctx.fillText(`Snellen ${snellen}`, 12, 20);
+    ctx.fillText(`${trialRef.current}/${totalTrials}`, 12, 38);
   }, [testType, totalTrials]);
 
   // ── Handle response ──

@@ -938,28 +938,32 @@ html, body, #root {
   right: 0;
   pointer-events: none;
   z-index: 100;
+  --acuity-overlay-font-size: 12px;
+  --acuity-overlay-color: rgba(75, 85, 99, 0.58);
+  --acuity-overlay-border: rgba(75, 85, 99, 0.28);
+  --acuity-overlay-bg: rgba(255, 255, 255, 0.18);
 }
 
 .touch-btn-ring {
   position: fixed;
-  bottom: 20px;
-  right: 20px;
-  width: 200px;
-  height: 200px;
+  bottom: 14px;
+  right: 14px;
+  width: 108px;
+  height: 108px;
   pointer-events: auto;
 }
 
 .touch-btn-cross {
   position: fixed;
-  bottom: 20px;
-  right: 20px;
-  width: 180px;
-  height: 180px;
+  bottom: 14px;
+  right: 14px;
+  width: 92px;
+  height: 92px;
   pointer-events: auto;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   grid-template-rows: repeat(3, 1fr);
-  gap: 4px;
+  gap: 2px;
 }
 
 .touch-btn-letters {
@@ -974,14 +978,14 @@ html, body, #root {
 
 .direction-btn {
   position: absolute;
-  width: 48px;
-  height: 48px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
-  border: 2px solid var(--accent);
-  background: rgba(22, 27, 34, 0.85);
-  color: var(--accent);
-  font-size: 18px;
-  font-weight: 700;
+  border: 1px solid var(--acuity-overlay-border);
+  background: var(--acuity-overlay-bg);
+  color: var(--acuity-overlay-color);
+  font-size: var(--acuity-overlay-font-size);
+  font-weight: 600;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -994,7 +998,9 @@ html, body, #root {
 }
 
 .direction-btn:hover {
-  background: rgba(88, 166, 255, 0.2);
+  border-color: rgba(75, 85, 99, 0.42);
+  background: rgba(255, 255, 255, 0.28);
+  color: rgba(75, 85, 99, 0.72);
   transform: translate(-50%, -50%) scale(1.1);
 }
 
@@ -1026,9 +1032,9 @@ html, body, #root {
   position: relative;
   transform: none;
   border-radius: var(--radius-m);
-  font-size: 16px;
-  width: 44px;
-  height: 44px;
+  font-size: var(--acuity-overlay-font-size);
+  width: 24px;
+  height: 24px;
 }
 
 .letter-btn:hover {
@@ -1042,15 +1048,15 @@ html, body, #root {
 /* Abort button */
 .acuity-abort-btn {
   position: fixed;
-  top: 16px;
-  right: 16px;
-  width: 40px;
-  height: 40px;
+  top: 14px;
+  right: 14px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
-  border: 2px solid var(--border);
-  background: rgba(22, 27, 34, 0.8);
-  color: var(--text-muted);
-  font-size: 18px;
+  border: 1px solid rgba(75, 85, 99, 0.28);
+  background: rgba(255, 255, 255, 0.18);
+  color: rgba(75, 85, 99, 0.58);
+  font-size: 12px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -1062,9 +1068,9 @@ html, body, #root {
 }
 
 .acuity-abort-btn:hover {
-  border-color: var(--error);
-  color: var(--error);
-  background: rgba(248, 81, 73, 0.1);
+  border-color: rgba(75, 85, 99, 0.42);
+  color: rgba(75, 85, 99, 0.72);
+  background: rgba(255, 255, 255, 0.28);
 }
 
 /* ── Acuity Results ── */
