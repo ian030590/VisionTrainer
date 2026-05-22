@@ -15,6 +15,14 @@ export type OculomotorPattern =
   | 'spiralBloom'
   | 'zigZag';
 
+export type OculomotorTargetShape =
+  | 'circle'
+  | 'star'
+  | 'square'
+  | 'cross'
+  | 'triangle'
+  | 'custom';
+
 export interface Arena {
   width: number;
   height: number;

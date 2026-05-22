@@ -12,6 +12,7 @@ import {
   isOculomotorMode,
   isOculomotorPattern,
 } from '../oculomotor/presets';
+import type { OculomotorTargetShape } from '../oculomotor/types';
 
 // Ensure the plugin class is referenced so bundler doesn't tree-shake it
 void PixiMovingCardPlugin;
@@ -51,6 +52,13 @@ export function ExperimentPage() {
   const oculomotorTargetSizeMm = parseFloat(searchParams.get('size') || '')
     || getSetting('oculomotorTargetSizeMm');
   const oculomotorDistractorCount = parseInt(searchParams.get('distractors') || '', 10);
+  const requestedTargetShape = searchParams.get('shape') || getSetting('oculomotorTargetShape');
+  const oculomotorTargetShape = isOculomotorTargetShape(requestedTargetShape)
+    ? requestedTargetShape
+    : getSetting('oculomotorTargetShape');
+  const oculomotorTargetColor = searchParams.get('targetColor') || getSetting('oculomotorTargetColor');
+  const oculomotorBackgroundColor = searchParams.get('backgroundColor') || getSetting('oculomotorBackgroundColor');
+  const oculomotorCustomTargetImage = getSetting('oculomotorCustomTargetImage');
 
   const [phase, setPhase] = useState<Phase>('running');
   const [results, setResults] = useState<TrialData[]>([]);
@@ -97,6 +105,10 @@ export function ExperimentPage() {
         distractorCount: Number.isFinite(oculomotorDistractorCount)
           ? oculomotorDistractorCount
           : getSetting('oculomotorDistractorCount'),
+        targetColor: oculomotorTargetColor,
+        backgroundColor: oculomotorBackgroundColor,
+        targetShape: oculomotorTargetShape,
+        customTargetImage: oculomotorCustomTargetImage,
       },
     });
     jsPsych.run(timeline as any);
@@ -118,6 +130,10 @@ export function ExperimentPage() {
     oculomotorSpeedDegPerSec,
     oculomotorTargetSizeMm,
     oculomotorDistractorCount,
+    oculomotorTargetColor,
+    oculomotorBackgroundColor,
+    oculomotorTargetShape,
+    oculomotorCustomTargetImage,
   ]);
 
   const downloadCSV = useCallback(() => {
@@ -280,4 +296,8 @@ export function ExperimentPage() {
       </div>
     </div>
   );
+}
+
+function isOculomotorTargetShape(value: string): value is OculomotorTargetShape {
+  return ['circle', 'star', 'square', 'cross', 'triangle', 'custom'].includes(value);
 }

@@ -16,7 +16,7 @@ import {
   oculomotorModes,
   oculomotorPatterns,
 } from '../oculomotor/presets';
-import type { OculomotorMode, OculomotorPattern } from '../oculomotor/types';
+import type { OculomotorMode, OculomotorPattern, OculomotorTargetShape } from '../oculomotor/types';
 
 export function HomePage() {
   const navigate = useNavigate();
@@ -49,6 +49,18 @@ export function HomePage() {
   );
   const [oculomotorDistractorCount, setOculomotorDistractorCount] = useState(
     () => getSetting('oculomotorDistractorCount'),
+  );
+  const [oculomotorTargetColor, setOculomotorTargetColor] = useState(
+    () => getSetting('oculomotorTargetColor'),
+  );
+  const [oculomotorBackgroundColor, setOculomotorBackgroundColor] = useState(
+    () => getSetting('oculomotorBackgroundColor'),
+  );
+  const [oculomotorTargetShape, setOculomotorTargetShape] = useState<OculomotorTargetShape>(
+    () => getSetting('oculomotorTargetShape'),
+  );
+  const [oculomotorCustomTargetImage, setOculomotorCustomTargetImage] = useState(
+    () => getSetting('oculomotorCustomTargetImage'),
   );
   const [prewarmed, setPrewarmed] = useState(() => pixiAppManager.ready);
 
@@ -127,6 +139,22 @@ export function HomePage() {
     setSetting('oculomotorDistractorCount', oculomotorDistractorCount);
   }, [oculomotorDistractorCount]);
 
+  useEffect(() => {
+    setSetting('oculomotorTargetColor', oculomotorTargetColor);
+  }, [oculomotorTargetColor]);
+
+  useEffect(() => {
+    setSetting('oculomotorBackgroundColor', oculomotorBackgroundColor);
+  }, [oculomotorBackgroundColor]);
+
+  useEffect(() => {
+    setSetting('oculomotorTargetShape', oculomotorTargetShape);
+  }, [oculomotorTargetShape]);
+
+  useEffect(() => {
+    setSetting('oculomotorCustomTargetImage', oculomotorCustomTargetImage);
+  }, [oculomotorCustomTargetImage]);
+
   // ── Handlers ──
   const handleCardClick = (moduleId: string) => {
     if (!activeUser) {
@@ -152,6 +180,9 @@ export function HomePage() {
       params.set('speed', String(oculomotorSpeedDegPerSec));
       params.set('size', String(oculomotorTargetSizeMm));
       params.set('distractors', String(oculomotorDistractorCount));
+      params.set('targetColor', oculomotorTargetColor);
+      params.set('backgroundColor', oculomotorBackgroundColor);
+      params.set('shape', oculomotorTargetShape);
     }
 
     navigate(`/experiment?${params.toString()}`);
@@ -170,9 +201,33 @@ export function HomePage() {
     }
   };
 
+  const handleCustomTargetImageChange = (file: File | undefined) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      alert('請選擇圖片檔案');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setOculomotorCustomTargetImage(reader.result);
+        setOculomotorTargetShape('custom');
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   const calibrated = isCalibrated();
   const roundsPresets = [3, 5, 10, 15];
   const durationPresets = [30, 60, 90, 120];
+  const targetShapeOptions: { key: OculomotorTargetShape; label: string }[] = [
+    { key: 'circle', label: '圓形' },
+    { key: 'star', label: '星形' },
+    { key: 'square', label: '方形' },
+    { key: 'cross', label: '十字' },
+    { key: 'triangle', label: '三角形' },
+    { key: 'custom', label: '自訂' },
+  ];
   const diffOptions: { key: 'beginner' | 'intermediate' | 'advanced'; label: string; desc: string }[] = [
     { key: 'beginner', label: '初級', desc: '網格排列' },
     { key: 'intermediate', label: '中級', desc: '散落排列' },
@@ -564,6 +619,73 @@ export function HomePage() {
                   />
                 </label>
               </div>
+            </div>
+
+            <div className="config-section">
+              <div className="config-label">顏色</div>
+              <div className="color-settings-row">
+                <label className="color-field">
+                  <span>目標顏色</span>
+                  <input
+                    type="color"
+                    value={oculomotorTargetColor}
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={(e) => setOculomotorTargetColor(e.target.value)}
+                  />
+                </label>
+                <label className="color-field">
+                  <span>背景顏色</span>
+                  <input
+                    type="color"
+                    value={oculomotorBackgroundColor}
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={(e) => setOculomotorBackgroundColor(e.target.value)}
+                  />
+                </label>
+              </div>
+            </div>
+
+            <div className="config-section">
+              <div className="config-label">目標物形狀</div>
+              <div className="shape-selector">
+                {targetShapeOptions.map((shape) => (
+                  <button
+                    key={shape.key}
+                    className={`shape-btn ${oculomotorTargetShape === shape.key ? 'active' : ''}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setOculomotorTargetShape(shape.key);
+                    }}
+                  >
+                    {shape.label}
+                  </button>
+                ))}
+              </div>
+              {oculomotorTargetShape === 'custom' && (
+                <div className="custom-image-field">
+                  <input
+                    className="input"
+                    type="file"
+                    accept="image/*"
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={(e) => handleCustomTargetImageChange(e.target.files?.[0])}
+                  />
+                  {oculomotorCustomTargetImage && (
+                    <div className="custom-image-preview">
+                      <img src={oculomotorCustomTargetImage} alt="自訂目標預覽" />
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOculomotorCustomTargetImage('');
+                        }}
+                      >
+                        移除圖片
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="config-actions">

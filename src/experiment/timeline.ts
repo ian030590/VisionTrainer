@@ -7,7 +7,7 @@ import PixiOculomotorTrainingPlugin from './plugins/pixi-oculomotor-training';
 import { getSetting } from '../utils/settings';
 import { generateRandomLetters } from '../utils/mathUtils';
 import { pixelFromDegree, pixelFromMillimeter } from '../utils/spatialUtils';
-import type { OculomotorMode, OculomotorPattern } from '../oculomotor/types';
+import type { OculomotorMode, OculomotorPattern, OculomotorTargetShape } from '../oculomotor/types';
 
 /**
  * Build a jsPsych timeline for the given module.
@@ -25,6 +25,10 @@ export function buildTimeline(
       speedDegPerSec?: number;
       targetSizeMm?: number;
       distractorCount?: number;
+      targetColor?: string;
+      backgroundColor?: string;
+      targetShape?: OculomotorTargetShape;
+      customTargetImage?: string;
     };
   },
 ): object[] {
@@ -77,6 +81,10 @@ function buildOculomotorTimeline(
       speedDegPerSec?: number;
       targetSizeMm?: number;
       distractorCount?: number;
+      targetColor?: string;
+      backgroundColor?: string;
+      targetShape?: OculomotorTargetShape;
+      customTargetImage?: string;
     };
   },
 ): object[] {
@@ -86,6 +94,10 @@ function buildOculomotorTimeline(
   const speedDegPerSec = overrides?.oculomotor?.speedDegPerSec ?? getSetting('oculomotorSpeedDegPerSec');
   const targetSizeMm = overrides?.oculomotor?.targetSizeMm ?? getSetting('oculomotorTargetSizeMm');
   const distractorCount = overrides?.oculomotor?.distractorCount ?? getSetting('oculomotorDistractorCount');
+  const targetColor = overrides?.oculomotor?.targetColor ?? getSetting('oculomotorTargetColor');
+  const backgroundColor = overrides?.oculomotor?.backgroundColor ?? getSetting('oculomotorBackgroundColor');
+  const targetShape = overrides?.oculomotor?.targetShape ?? getSetting('oculomotorTargetShape');
+  const customTargetImage = overrides?.oculomotor?.customTargetImage ?? getSetting('oculomotorCustomTargetImage');
 
   return [
     {
@@ -96,6 +108,10 @@ function buildOculomotorTimeline(
       speed_px_per_sec: pixelFromDegree(speedDegPerSec),
       target_radius_px: Math.max(6, pixelFromMillimeter(targetSizeMm) / 2),
       distractor_count: distractorCount,
+      target_color: targetColor,
+      background_color: backgroundColor,
+      target_shape: targetShape,
+      custom_target_image: customTargetImage,
       round_number: 1,
       total_rounds: 1,
     },

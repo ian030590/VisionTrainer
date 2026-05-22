@@ -35,6 +35,10 @@ export interface AppSettings {
   oculomotorSpeedDegPerSec: number;
   oculomotorTargetSizeMm: number;
   oculomotorDistractorCount: number;
+  oculomotorTargetColor: string;
+  oculomotorBackgroundColor: string;
+  oculomotorTargetShape: 'circle' | 'star' | 'square' | 'cross' | 'triangle' | 'custom';
+  oculomotorCustomTargetImage: string;
 }
 
 interface SettingMeta<T> {
@@ -65,6 +69,10 @@ const META: { [K in keyof AppSettings]: SettingMeta<AppSettings[K]> } = {
   oculomotorSpeedDegPerSec: { dflt: 18, min: 2,    max: 80 },
   oculomotorTargetSizeMm: { dflt: 10,   min: 2,    max: 50 },
   oculomotorDistractorCount: { dflt: 5, min: 0,    max: 12 },
+  oculomotorTargetColor:   { dflt: '#3FB950' },
+  oculomotorBackgroundColor: { dflt: '#0D1117' },
+  oculomotorTargetShape:   { dflt: 'circle' },
+  oculomotorCustomTargetImage: { dflt: '' },
 };
 
 function storageKey(name: string): string {
