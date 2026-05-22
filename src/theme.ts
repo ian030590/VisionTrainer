@@ -1,5 +1,5 @@
 /**
- * Design tokens for the ReadingTrainer UI.
+ * Design tokens for the VisualTrainer UI.
  * Dual-format: CSS strings for React, hex numbers for PixiJS.
  */
 

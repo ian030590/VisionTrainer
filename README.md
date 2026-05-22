@@ -1,6 +1,6 @@
-# Reading Trainer
+# Visual Trainer
 
-Reading Trainer 是一個基於 **TypeScript + PixiJS** 建構的視覺與閱讀能力訓練 Web 應用程式。UI/UX 設計參考了 [FrACT10](https://michaelbach.de/fract/) 的科學化測試介面，使用 Canvas 渲染確保精確的視覺刺激呈現。
+Visual Trainer 是一個基於 **TypeScript + PixiJS** 建構的視覺能力訓練 Web 應用程式。UI/UX 設計參考了 [FrACT10](https://michaelbach.de/fract/) 的科學化測試介面，使用 Canvas 渲染確保精確的視覺刺激呈現。
 
 ## 技術棧
 
