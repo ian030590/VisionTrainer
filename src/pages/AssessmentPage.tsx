@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getActiveUser, getSetting } from '../utils/settings';
 import type { TestType } from '../assessment/optotypeRenderer';
@@ -10,7 +10,7 @@ interface TestCard {
   id: TestType;
   title: string;
   desc: string;
-  icon: string;
+  icon: ReactNode;
   nAlt: number;
   defaultTrials: number;
 }
@@ -20,7 +20,11 @@ const TEST_CARDS: TestCard[] = [
     id: 'landolt',
     title: '蘭氏環 (Landolt C)',
     desc: '辨別環形缺口方向，8 方向選擇。為國際標準視力檢測法之一。',
-    icon: '◔',
+    icon: (
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M17.65 17.65A8 8 0 1 1 17.65 6.35" />
+      </svg>
+    ),
     nAlt: 8,
     defaultTrials: 18,
   },
@@ -28,7 +32,11 @@ const TEST_CARDS: TestCard[] = [
     id: 'tumblingE',
     title: '翻轉 E (Tumbling E)',
     desc: '辨別 E 字母的開口方向，適合不熟悉拉丁字母者。4 方向選擇。',
-    icon: 'Ш',
+    icon: (
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M8 5h9 M8 12h7 M8 19h9 M8 5v14" />
+      </svg>
+    ),
     nAlt: 4,
     defaultTrials: 24,
   },
@@ -36,7 +44,13 @@ const TEST_CARDS: TestCard[] = [
     id: 'letters',
     title: 'Sloan 字母',
     desc: '辨別 10 個 Sloan 字母（C D H K N O R S V Z），國際視力表常用字母集。',
-    icon: 'E',
+    icon: (
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="4 7 4 4 20 4 20 7" />
+        <line x1="9" x2="15" y1="20" y2="20" />
+        <line x1="12" x2="12" y1="4" y2="20" />
+      </svg>
+    ),
     nAlt: 10,
     defaultTrials: 18,
   },
@@ -44,7 +58,12 @@ const TEST_CARDS: TestCard[] = [
     id: 'pictures',
     title: '圖形視標',
     desc: '辨別簡易圖形（房子、圓形、正方形、星星），適合幼兒或無法辨識字母者。',
-    icon: '★',
+    icon: (
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+        <polyline points="9 22 9 12 15 12 15 22" />
+      </svg>
+    ),
     nAlt: 4,
     defaultTrials: 24,
   },
@@ -52,7 +71,14 @@ const TEST_CARDS: TestCard[] = [
     id: 'gratings',
     title: '條紋視力 (PL)',
     desc: 'Preferential Looking 條紋視力檢查，判斷條紋出現在左側或右側。適合嬰幼兒。',
-    icon: '▤',
+    icon: (
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="9" />
+        <line x1="8" y1="4.5" x2="8" y2="19.5" />
+        <line x1="12" y1="3" x2="12" y2="21" />
+        <line x1="16" y1="4.5" x2="16" y2="19.5" />
+      </svg>
+    ),
     nAlt: 2,
     defaultTrials: 36,
   },

@@ -81,11 +81,7 @@ export function AcuityTestPage() {
     setTrialRecords([]);
 
     // Get canvas dimensions for stroke bounds
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    strokeBoundsRef.current = getStrokeBounds(canvas.width, canvas.height);
+    strokeBoundsRef.current = getStrokeBounds(window.innerWidth, window.innerHeight);
 
     setPhase('isi');
     runNextTrial();
@@ -241,29 +237,26 @@ export function AcuityTestPage() {
 
       switch (testType) {
         case 'landolt':
-          // Numpad: 6=right(0), 9=UR(1), 8=up(2), 7=UL(3), 4=left(4), 1=DL(5), 2=down(6), 3=DR(7)
+          // Numpad ONLY for Landolt C
           const landoltKeyMap: Record<string, number> = {
-            '6': 0, ArrowRight: 0,
-            '9': 1,
-            '8': 2, ArrowUp: 2,
-            '7': 3,
-            '4': 4, ArrowLeft: 4,
-            '1': 5,
-            '2': 6, ArrowDown: 6,
-            '3': 7,
+            '6': 0, '9': 1, '8': 2, '7': 3, '4': 4, '1': 5, '2': 6, '3': 7,
           };
           responseIdx = landoltKeyMap[e.key] ?? -1;
           break;
 
         case 'tumblingE':
-        case 'pictures':
-          const fourKeyMap: Record<string, number> = {
-            ArrowRight: 0, '6': 0,
-            ArrowUp: 1, '8': 1,
-            ArrowLeft: 2, '4': 2,
-            ArrowDown: 3, '2': 3,
+          // Arrow keys ONLY for Tumbling E
+          const tumblingEKeyMap: Record<string, number> = {
+            ArrowRight: 0, ArrowUp: 1, ArrowLeft: 2, ArrowDown: 3,
           };
-          responseIdx = fourKeyMap[e.key] ?? -1;
+          responseIdx = tumblingEKeyMap[e.key] ?? -1;
+          break;
+
+        case 'pictures':
+          const picturesKeyMap: Record<string, number> = {
+            ArrowRight: 0, '6': 0, ArrowUp: 1, '8': 1, ArrowLeft: 2, '4': 2, ArrowDown: 3, '2': 3,
+          };
+          responseIdx = picturesKeyMap[e.key] ?? -1;
           break;
 
         case 'letters':
@@ -491,7 +484,7 @@ function getTestTitle(t: TestType): string {
 function getTestInstruction(t: TestType): string {
   switch (t) {
     case 'landolt':
-      return '每次畫面中央會出現一個環形（蘭氏環），請辨別環形缺口的方向，使用數字鍵盤或方向鍵回答。';
+      return '每次畫面中央會出現一個環形（蘭氏環），請辨別環形缺口的方向，使用數字鍵盤回答。';
     case 'tumblingE':
       return '每次畫面中央會出現一個 E 字母，請辨別 E 的開口方向，使用方向鍵回答。';
     case 'letters':
