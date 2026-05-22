@@ -501,7 +501,7 @@ function getKeyHints(t: TestType): React.ReactNode {
     case 'landolt':
       return (
         <div className="key-hints-grid-8">
-          {([2, 1, 0, 3, -1, 7, 4, 5, 6] as number[]).map((dir, i) => (
+          {([3, 2, 1, 4, -1, 0, 5, 6, 7] as number[]).map((dir, i) => (
             <div key={i} className={`key-hint ${dir === -1 ? 'key-hint-empty' : ''}`}>
               {dir >= 0 ? LANDOLT_DIRECTION_LABELS[dir as LandoltDirection] : ''}
             </div>
@@ -542,7 +542,7 @@ function renderTouchButtons(testType: TestType, onResponse: (idx: number) => voi
       return (
         <div className="touch-btn-ring">
           {([0, 1, 2, 3, 4, 5, 6, 7] as LandoltDirection[]).map((dir) => {
-            const angle = (dir / 8) * 2 * Math.PI - Math.PI / 2;
+            const angle = -(dir / 8) * 2 * Math.PI;
             const r = 38; // % from center
             const left = 50 + Math.cos(angle) * r;
             const top = 50 + Math.sin(angle) * r;
