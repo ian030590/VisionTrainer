@@ -1,5 +1,5 @@
 /**
- * Design tokens for the VisualTrainer UI.
+ * Design tokens for the Vision Trainer UI.
  * Dual-format: CSS strings for React, hex numbers for PixiJS.
  */
 

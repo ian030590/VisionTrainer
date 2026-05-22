@@ -10,7 +10,7 @@ export const DEFAULT_DISTANCE_CM = 60;
 export const DEFAULT_CAL_BAR_LENGTH_MM = 149;
 export const CAL_BAR_LENGTH_PX = 700;
 export const APP_VERSION = '3.0.0';
-export const STORAGE_PREFIX = 'visualtrainer_';
+export const STORAGE_PREFIX = 'vision_trainer_';
 
 // ── Settings ──
 export interface AppSettings {
