@@ -64,6 +64,21 @@ TrainingRegistry.register(xxx);
 - **校正機制**：文字大小根據螢幕校正值（塑膠卡片法）動態計算
 - **參考資料**：FrACT10 CardController、styts/eye-training
 
+### 眼動訓練 (Oculomotor Training)
+
+以 PixiJS 重製 FoveaFlow 風格的連續式眼動訓練，在全螢幕 Canvas 中呈現可調整速度、目標大小、訓練時間與干擾數量的視覺刺激。
+
+支援模式：
+
+| 模式 | 訓練重點 |
+|------|----------|
+| 追視 (Smooth Pursuit) | 跟隨連續移動目標，練習平滑眼球追蹤 |
+| 跳視 (Reaction Jumps) | 目標在不同位置間跳轉，練習快速定位與重新聚焦 |
+| 多目標追蹤 (Multi-object Tracking) | 在干擾目標中維持對主要目標的注意 |
+| 周邊固視 (Lilac Chaser) | 固視中心點，同時察覺周邊刺激變化 |
+
+可選路徑包含隨機路徑、圓形、8 字形、水平/垂直掃視、反彈、斜向、螺旋與折線。此模組屬於視覺訓練與互動實驗用途，不作為醫療診斷、治療或視力矯正建議。
+
 ## 評估模組
 
 ### 視力評估 (Visual Acuity Assessment)
@@ -85,6 +100,12 @@ TrainingRegistry.register(xxx);
 **核心演算法：** BestPEST (Maximum-Likelihood Adaptive Threshold Estimation)，移植自 FrACT10 的 `ThresholderPest.j`。
 
 > ⚠️ **免責聲明：** 本測驗參考 FrACT 測驗模式以及演算法，為程式練習所用。若要了解自己視力，請尋求專業醫療協助。
+
+## Credits
+
+- **FoveaFlow**：眼動訓練模組參考 [Jesper-N/foveaflow](https://github.com/Jesper-N/foveaflow) 的訓練模式與互動概念。FoveaFlow 由 Jesper Nielsen 開發，採 MIT License。
+- **FrACT10**：視力評估與移動卡片訓練的介面/演算法參考來源。
+- **styts/eye-training**：移動卡片訓練概念參考來源。
 
 ## 開發
 
