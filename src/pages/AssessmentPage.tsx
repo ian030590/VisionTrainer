@@ -1,4 +1,5 @@
-import { useState, ReactNode } from 'react';
+import { useState } from 'react';
+import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getActiveUser, getSetting } from '../utils/settings';
 import type { TestType } from '../assessment/optotypeRenderer';
