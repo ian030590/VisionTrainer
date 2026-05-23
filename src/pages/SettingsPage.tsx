@@ -318,8 +318,8 @@ function WebGazerCalibrationTab({ refresh }: { refresh: () => void }) {
           {
             type: WebGazerInitCameraPlugin,
             instructions: `
-              <p style="color:#c9d1d9;">請讓臉部位於攝影機畫面中央，並保持頭部穩定。</p>
-              <p style="color:#c9d1d9;">按鈕可用時，點擊繼續進行 calibration。</p>
+              <p style="color:var(--text-primary);">請讓臉部位於攝影機畫面中央，並保持頭部穩定。</p>
+              <p style="color:var(--text-primary);">按鈕可用時，點擊繼續進行 calibration。</p>
             `,
             button_text: '開始校正',
           },
