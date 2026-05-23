@@ -878,14 +878,6 @@ html, body, #root {
   padding: 16px;
 }
 
-.webgazer-calibration-stage {
-  min-height: 360px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-}
-
 .webgazer-calibration-actions {
   display: flex;
   justify-content: center;
@@ -900,11 +892,92 @@ html, body, #root {
   color: var(--text-secondary);
   font-size: 13px;
   line-height: 1.6;
+  text-align: center;
 }
 
 .webgazer-calibration-message.error,
 .webgazer-pl-message.error {
   color: var(--error);
+}
+
+/* Full-screen overlay for WebGazer calibration */
+.webgazer-fullscreen-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 10000;
+  background: var(--bg, #0d1117);
+}
+
+.webgazer-fullscreen-stage {
+  width: 100%;
+  height: 100%;
+}
+
+.webgazer-fullscreen-stage .jspsych-display-element {
+  width: 100% !important;
+  height: 100% !important;
+  background: var(--bg, #0d1117) !important;
+}
+
+.webgazer-fullscreen-stage .jspsych-content-wrapper {
+  width: 100%;
+  height: 100%;
+  padding: 0 !important;
+}
+
+.webgazer-fullscreen-stage .jspsych-content {
+  max-width: none !important;
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.webgazer-fullscreen-stage .jspsych-btn {
+  background: var(--accent, #58a6ff);
+  color: #fff;
+  border: none;
+  padding: 10px 28px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.webgazer-fullscreen-stage .jspsych-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.webgazer-fullscreen-stage .jspsych-btn:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.webgazer-cancel-btn {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 10001;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+  color: var(--text-secondary, #8b949e);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.webgazer-cancel-btn:hover {
+  background: rgba(255, 85, 85, 0.2);
+  border-color: rgba(255, 85, 85, 0.4);
+  color: var(--error, #f85149);
 }
 
 /* ── Calibration ── */

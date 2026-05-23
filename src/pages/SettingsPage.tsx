@@ -245,58 +245,116 @@ function CardCalibration({ refresh }: { refresh: () => void }) {
 /* ── WebGazer Calibration Tab ── */
 function WebGazerCalibrationTab({ refresh }: { refresh: () => void }) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const jsPsychRef = useRef<any>(null);
   const [status, setStatus] = useState<'idle' | 'running' | 'done' | 'error'>('idle');
   const [message, setMessage] = useState('');
   const calibratedAt = getSetting('webGazerCalibrationAt');
 
+  // Cleanup jsPsych on unmount
+  React.useEffect(() => {
+    return () => {
+      if (jsPsychRef.current) {
+        try {
+          jsPsychRef.current.endExperiment?.();
+        } catch {
+          // Ignore cleanup errors
+        }
+        jsPsychRef.current = null;
+      }
+    };
+  }, []);
+
+  // ESC key to cancel calibration
+  React.useEffect(() => {
+    if (status !== 'running') return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        cancelCalibration();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [status]);
+
   const runCalibration = () => {
-    const container = containerRef.current;
-    if (!container) return;
+    // Check if webgazer.js is loaded
+    if (!(window as any).webgazer) {
+      setStatus('error');
+      setMessage('webgazer.js 未載入。請確認 public/webgazer.js 存在且 index.html 正確引用。');
+      return;
+    }
 
     setStatus('running');
     setMessage('正在啟動攝影機，請允許瀏覽器使用 Webcam。');
-    container.innerHTML = '';
 
-    try {
-      const jsPsych = initJsPsych({
-        display_element: container,
-        extensions: [
-          { type: WebGazerExtension },
-        ] as any,
-        on_finish: () => {
-          setSetting('webGazerCalibrationAt', new Date().toISOString());
-          setStatus('done');
-          setMessage('WebGazer calibration 已完成。');
-          refresh();
-        },
-      });
+    // Wait for the overlay to render, then init jsPsych inside it
+    requestAnimationFrame(() => {
+      const container = containerRef.current;
+      if (!container) {
+        setStatus('error');
+        setMessage('無法取得校正容器元素。');
+        return;
+      }
+      container.innerHTML = '';
 
-      jsPsych.run([
-        {
-          type: WebGazerInitCameraPlugin,
-          instructions: `
-            <p>請讓臉部位於攝影機畫面中央，並保持頭部穩定。</p>
-            <p>按鈕可用時，點擊繼續進行 calibration。</p>
-          `,
-          button_text: '開始校正',
-        },
-        {
-          type: WebGazerCalibratePlugin,
-          calibration_points: [
-            [10, 10], [50, 10], [90, 10],
-            [10, 50], [50, 50], [90, 50],
-            [10, 90], [50, 90], [90, 90],
-          ],
-          calibration_mode: 'click',
-          repetitions_per_point: 2,
-          randomize_calibration_order: true,
-          point_size: 24,
-        },
-      ] as any);
-    } catch (error) {
-      setStatus('error');
-      setMessage(error instanceof Error ? error.message : 'WebGazer calibration 啟動失敗。');
+      try {
+        const jsPsych = initJsPsych({
+          display_element: container,
+          extensions: [
+            { type: WebGazerExtension },
+          ] as any,
+          on_finish: () => {
+            setSetting('webGazerCalibrationAt', new Date().toISOString());
+            jsPsychRef.current = null;
+            setStatus('done');
+            setMessage('WebGazer calibration 已完成。');
+            refresh();
+          },
+        });
+
+        jsPsychRef.current = jsPsych;
+
+        jsPsych.run([
+          {
+            type: WebGazerInitCameraPlugin,
+            instructions: `
+              <p style="color:#c9d1d9;">請讓臉部位於攝影機畫面中央，並保持頭部穩定。</p>
+              <p style="color:#c9d1d9;">按鈕可用時，點擊繼續進行 calibration。</p>
+            `,
+            button_text: '開始校正',
+          },
+          {
+            type: WebGazerCalibratePlugin,
+            calibration_points: [
+              [10, 10], [50, 10], [90, 10],
+              [10, 50], [50, 50], [90, 50],
+              [10, 90], [50, 90], [90, 90],
+            ],
+            calibration_mode: 'click',
+            repetitions_per_point: 2,
+            randomize_calibration_order: true,
+            point_size: 24,
+          },
+        ] as any);
+      } catch (error) {
+        jsPsychRef.current = null;
+        setStatus('error');
+        setMessage(error instanceof Error ? error.message : 'WebGazer calibration 啟動失敗。');
+      }
+    });
+  };
+
+  const cancelCalibration = () => {
+    if (jsPsychRef.current) {
+      try {
+        jsPsychRef.current.endExperiment?.();
+      } catch {
+        // Ignore cleanup errors
+      }
+      jsPsychRef.current = null;
     }
+    setStatus('idle');
+    setMessage('');
   };
 
   const clearCalibrationStatus = () => {
@@ -324,7 +382,6 @@ function WebGazerCalibrationTab({ refresh }: { refresh: () => void }) {
       </div>
 
       <div className="webgazer-calibration-panel">
-        <div ref={containerRef} className="webgazer-calibration-stage" />
         {status !== 'running' && (
           <div className="webgazer-calibration-actions">
             <button className="btn btn-primary btn-sm" onClick={runCalibration}>
@@ -343,6 +400,20 @@ function WebGazerCalibrationTab({ refresh }: { refresh: () => void }) {
           </p>
         )}
       </div>
+
+      {/* Full-screen overlay for calibration */}
+      {status === 'running' && (
+        <div className="webgazer-fullscreen-overlay">
+          <div ref={containerRef} className="webgazer-fullscreen-stage" />
+          <button
+            className="webgazer-cancel-btn"
+            onClick={cancelCalibration}
+            title="取消校正"
+          >
+            ✕ 取消校正 (ESC)
+          </button>
+        </div>
+      )}
     </div>
   );
 }
