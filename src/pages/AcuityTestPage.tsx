@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import WebGazerExtension from '@jspsych/extension-webgazer';
 import { BestPEST } from '../assessment/bestPest';
 import {
   getStrokeBounds,
@@ -49,6 +50,23 @@ interface TrialRecord {
   correct: boolean;
   strokePx: number;
   logMAR: number;
+  responseMode?: 'keyboard' | 'webgazer';
+  gazeLeftSamples?: number;
+  gazeRightSamples?: number;
+  gazeTotalSamples?: number;
+}
+
+interface GazeRegion {
+  x: number;
+  y: number;
+  radius: number;
+}
+
+interface GazeDecisionMeta {
+  mode: 'keyboard' | 'webgazer';
+  leftSamples?: number;
+  rightSamples?: number;
+  totalSamples?: number;
 }
 
 function prepareAcuityCanvas(canvas: HTMLCanvasElement) {
@@ -122,9 +140,15 @@ export function AcuityTestPage() {
   const [searchParams] = useSearchParams();
   const testType = (searchParams.get('type') || 'landolt') as TestType;
   const totalTrials = parseInt(searchParams.get('trials') || '18', 10);
+  const requestedResponseMode = searchParams.get('responseMode') || getSetting('preferentialLookingInputMode');
+  const responseMode: 'keyboard' | 'webgazer' =
+    requestedResponseMode === 'webgazer' ? 'webgazer' : 'keyboard';
+  const isWebGazerPL = testType === 'gratings' && responseMode === 'webgazer';
 
   const [phase, setPhase] = useState<Phase>('intro');
   const [trialRecords, setTrialRecords] = useState<TrialRecord[]>([]);
+  const [webGazerStatus, setWebGazerStatus] = useState<'idle' | 'starting' | 'ready' | 'error'>('idle');
+  const [webGazerMessage, setWebGazerMessage] = useState('');
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const pestRef = useRef<BestPEST | null>(null);
@@ -134,6 +158,8 @@ export function AcuityTestPage() {
   const currentStrokePxRef = useRef(10);
   const recordsRef = useRef<TrialRecord[]>([]);
   const phaseRef = useRef<Phase>('intro');
+  const gratingRegionsRef = useRef<{ left: GazeRegion; right: GazeRegion } | null>(null);
+  const gazeExtensionRef = useRef<any>(null);
 
   const userName = getActiveUser() || '未知使用者';
   const nAlternatives = getAlternativeCount(testType);
@@ -141,21 +167,68 @@ export function AcuityTestPage() {
   // Keep phaseRef in sync
   useEffect(() => { phaseRef.current = phase; }, [phase]);
 
+  const ensureWebGazerReady = useCallback(async () => {
+    if (!isWebGazerPL) return;
+
+    if (!(window as any).webgazer) {
+      throw new Error('webgazer.js 尚未載入，請重新整理頁面後再試。');
+    }
+
+    if (!gazeExtensionRef.current) {
+      const extension = new (WebGazerExtension as any)({});
+      await extension.initialize({});
+      gazeExtensionRef.current = extension;
+    }
+
+    const extension = gazeExtensionRef.current;
+    if (!extension) {
+      throw new Error('WebGazer extension 初始化失敗。');
+    }
+
+    if (!extension.isInitialized()) {
+      await extension.start();
+    }
+
+    extension.hideVideo();
+    extension.hidePredictions();
+    extension.resume();
+  }, [isWebGazerPL]);
+
   // ── Initialize and manage the test ──
   const startTest = useCallback(() => {
-    SoundManager.init();
-    const nAlt = getAlternativeCount(testType);
-    pestRef.current = new BestPEST(nAlt);
-    trialRef.current = 0;
-    recordsRef.current = [];
-    setTrialRecords([]);
+    const begin = () => {
+      SoundManager.init();
+      const nAlt = getAlternativeCount(testType);
+      pestRef.current = new BestPEST(nAlt);
+      trialRef.current = 0;
+      recordsRef.current = [];
+      setTrialRecords([]);
+      setWebGazerMessage('');
 
-    // Get canvas dimensions for stroke bounds
-    strokeBoundsRef.current = getStrokeBounds(window.innerWidth, window.innerHeight);
+      // Get canvas dimensions for stroke bounds
+      strokeBoundsRef.current = getStrokeBounds(window.innerWidth, window.innerHeight);
 
-    setPhase('isi');
-    runNextTrial();
-  }, [testType]);
+      setPhase('isi');
+      runNextTrial();
+    };
+
+    if (!isWebGazerPL) {
+      begin();
+      return;
+    }
+
+    setWebGazerStatus('starting');
+    setWebGazerMessage('正在啟動 Webcam + WebGazer，請允許瀏覽器使用攝影機。');
+    ensureWebGazerReady()
+      .then(() => {
+        setWebGazerStatus('ready');
+        begin();
+      })
+      .catch((error) => {
+        setWebGazerStatus('error');
+        setWebGazerMessage(error instanceof Error ? error.message : 'WebGazer 啟動失敗。');
+      });
+  }, [ensureWebGazerReady, isWebGazerPL, testType]);
 
   const runNextTrial = useCallback(() => {
     const pest = pestRef.current;
@@ -210,6 +283,7 @@ export function AcuityTestPage() {
     const cy = height / 2;
     const strokePx = currentStrokePxRef.current;
     const alt = currentAlternativeRef.current;
+    gratingRegionsRef.current = null;
 
     switch (testType) {
       case 'landolt':
@@ -241,6 +315,10 @@ export function AcuityTestPage() {
         drawGrating(ctx, gratingX, cy, diameter, cpd, orient, pixPerDeg, gratingColors);
         drawGratingApertureRing(ctx, leftX, cy, diameter);
         drawGratingApertureRing(ctx, rightX, cy, diameter);
+        gratingRegionsRef.current = {
+          left: { x: leftX, y: cy, radius: diameter / 2 },
+          right: { x: rightX, y: cy, radius: diameter / 2 },
+        };
         break;
       }
     }
@@ -253,7 +331,7 @@ export function AcuityTestPage() {
   }, [testType]);
 
   // ── Handle response ──
-  const handleResponse = useCallback((responseIdx: number) => {
+  const handleResponse = useCallback((responseIdx: number, meta: GazeDecisionMeta = { mode: 'keyboard' }) => {
     if (phaseRef.current !== 'stimulus') return;
 
     const pest = pestRef.current;
@@ -273,6 +351,10 @@ export function AcuityTestPage() {
       correct,
       strokePx,
       logMAR,
+      responseMode: meta.mode,
+      gazeLeftSamples: meta.leftSamples,
+      gazeRightSamples: meta.rightSamples,
+      gazeTotalSamples: meta.totalSamples,
     };
     recordsRef.current.push(record);
 
@@ -293,6 +375,88 @@ export function AcuityTestPage() {
     runNextTrial();
   }, [runNextTrial]);
 
+  useEffect(() => {
+    if (!isWebGazerPL || phase !== 'stimulus') return;
+
+    const extension = gazeExtensionRef.current;
+    const regions = gratingRegionsRef.current;
+    if (!extension || !regions) return;
+
+    let cancelled = false;
+    let timerId: number | undefined;
+    const startedAt = performance.now();
+    const samples = { left: 0, right: 0, total: 0 };
+
+    const classifyPrediction = (prediction: { x?: number; y?: number } | null | undefined) => {
+      if (
+        !prediction ||
+        !Number.isFinite(prediction.x) ||
+        !Number.isFinite(prediction.y)
+      ) {
+        return null;
+      }
+
+      const { x, y } = prediction as { x: number; y: number };
+      const leftDistance = Math.hypot(x - regions.left.x, y - regions.left.y);
+      const rightDistance = Math.hypot(x - regions.right.x, y - regions.right.y);
+      const radius = Math.max(regions.left.radius, regions.right.radius) * 1.25;
+
+      if (leftDistance <= radius || rightDistance <= radius) {
+        return leftDistance <= rightDistance ? 0 : 1;
+      }
+
+      return x < window.innerWidth / 2 ? 0 : 1;
+    };
+
+    const finishFromSamples = () => {
+      const responseIdx = samples.right > samples.left ? 1 : 0;
+      handleResponse(responseIdx, {
+        mode: 'webgazer',
+        leftSamples: samples.left,
+        rightSamples: samples.right,
+        totalSamples: samples.total,
+      });
+    };
+
+    const tick = () => {
+      if (cancelled || phaseRef.current !== 'stimulus') return;
+
+      extension.getCurrentPrediction()
+        .then((prediction: { x?: number; y?: number } | null) => {
+          if (cancelled || phaseRef.current !== 'stimulus') return;
+
+          const side = classifyPrediction(prediction);
+          if (side === 0) {
+            samples.left += 1;
+            samples.total += 1;
+          } else if (side === 1) {
+            samples.right += 1;
+            samples.total += 1;
+          }
+
+          const elapsed = performance.now() - startedAt;
+          const margin = Math.abs(samples.left - samples.right);
+          if ((elapsed >= 700 && samples.total >= 8 && margin >= 3) || elapsed >= 1600) {
+            finishFromSamples();
+            return;
+          }
+
+          timerId = window.setTimeout(tick, 90);
+        })
+        .catch(() => {
+          if (cancelled || phaseRef.current !== 'stimulus') return;
+          timerId = window.setTimeout(tick, 120);
+        });
+    };
+
+    timerId = window.setTimeout(tick, 350);
+
+    return () => {
+      cancelled = true;
+      if (timerId !== undefined) window.clearTimeout(timerId);
+    };
+  }, [phase, isWebGazerPL, handleResponse]);
+
   // ── Keyboard handler ──
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -303,6 +467,13 @@ export function AcuityTestPage() {
         return;
       }
       if (phaseRef.current !== 'stimulus') return;
+
+      if (e.key === 'Escape') {
+        navigate('/assessment');
+        return;
+      }
+
+      if (isWebGazerPL) return;
 
       let responseIdx = -1;
 
@@ -347,12 +518,6 @@ export function AcuityTestPage() {
           break;
       }
 
-      // Escape to abort
-      if (e.key === 'Escape') {
-        navigate('/assessment');
-        return;
-      }
-
       if (responseIdx >= 0) {
         handleResponse(responseIdx);
       }
@@ -360,7 +525,7 @@ export function AcuityTestPage() {
 
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [testType, startTest, handleResponse, navigate]);
+  }, [testType, startTest, handleResponse, navigate, isWebGazerPL]);
 
   // ── Resize handler ──
   useEffect(() => {
@@ -378,6 +543,15 @@ export function AcuityTestPage() {
     return () => window.removeEventListener('resize', handleResize);
   }, [drawStimulus]);
 
+  useEffect(() => () => {
+    try {
+      gazeExtensionRef.current?.pause?.();
+      gazeExtensionRef.current?.hidePredictions?.();
+    } catch {
+      // WebGazer cleanup should not block navigation.
+    }
+  }, []);
+
   // ── Intro Phase ──
   if (phase === 'intro') {
     return (
@@ -385,15 +559,31 @@ export function AcuityTestPage() {
         <div className="acuity-intro">
           <h1>{getTestTitle(testType)}</h1>
           <p>{getTestInstruction(testType)}</p>
-          <div className="acuity-intro-keys">
-            {getKeyHints(testType)}
-          </div>
-          <button className="btn btn-primary btn-lg" onClick={startTest}>
+          {isWebGazerPL ? (
+            <div className="webgazer-pl-intro">
+              <strong>判斷方式: Webcam + WebGazer</strong>
+              <span>開始後請讓受試者自然看向有條紋刺激的一側，系統會自動取樣判斷。</span>
+            </div>
+          ) : (
+            <div className="acuity-intro-keys">
+              {getKeyHints(testType)}
+            </div>
+          )}
+          <button
+            className="btn btn-primary btn-lg"
+            onClick={startTest}
+            disabled={webGazerStatus === 'starting'}
+          >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
               <polygon points="5,3 19,12 5,21" />
             </svg>
-            開始測驗
+            {webGazerStatus === 'starting' ? '啟動 WebGazer...' : '開始測驗'}
           </button>
+          {webGazerMessage && (
+            <p className={`webgazer-pl-message ${webGazerStatus === 'error' ? 'error' : ''}`}>
+              {webGazerMessage}
+            </p>
+          )}
           <p className="acuity-intro-hint">
             按空白鍵或 Enter 也可開始 · 按 Esc 隨時退出
           </p>
@@ -415,10 +605,14 @@ export function AcuityTestPage() {
             background: getAcuityBackground(testType),
           }}
         />
-        {/* Touch controls */}
-        <div className="acuity-touch-controls">
-          {renderTouchButtons(testType, handleResponse)}
-        </div>
+        {isWebGazerPL && phase === 'stimulus' && (
+          <div className="webgazer-pl-badge">WebGazer sampling</div>
+        )}
+        {!isWebGazerPL && (
+          <div className="acuity-touch-controls">
+            {renderTouchButtons(testType, handleResponse)}
+          </div>
+        )}
         {/* Abort button */}
         <button
           className="acuity-abort-btn"
@@ -445,11 +639,30 @@ export function AcuityTestPage() {
     const timeStr = new Date().toLocaleTimeString('zh-TW', { hour12: false }).replace(/:/g, '');
     const prefix = getSetting('downloadDirectory');
 
-    const headers = ['使用者', '日期', '時間', '測驗', '試驗', '呈現', '回應', '正確', 'LogMAR', 'StrokePx'];
+    const headers = [
+      '使用者',
+      '日期',
+      '時間',
+      '測驗',
+      '試驗',
+      '呈現',
+      '回應',
+      '正確',
+      'LogMAR',
+      'StrokePx',
+      'ResponseMode',
+      'GazeLeftSamples',
+      'GazeRightSamples',
+      'GazeTotalSamples',
+    ];
     const rows = records.map((r) => [
       userName, dateStr, timeStr, testType, r.trial,
       r.presented, r.responded, r.correct ? '✓' : '✗',
       r.logMAR.toFixed(3), r.strokePx.toFixed(2),
+      r.responseMode ?? 'keyboard',
+      r.gazeLeftSamples ?? '',
+      r.gazeRightSamples ?? '',
+      r.gazeTotalSamples ?? '',
     ]);
     rows.push([]);
     rows.push(['最終結果']);
@@ -497,6 +710,9 @@ export function AcuityTestPage() {
           <span>測驗: <b>{getTestTitle(testType)}</b></span>
           <span>正確率: <b style={{ color: 'var(--accent)' }}>{correctCount}/{records.length}</b></span>
           <span>使用者: <b>{userName}</b></span>
+          {testType === 'gratings' && (
+            <span>PL 判斷: <b>{responseMode === 'webgazer' ? 'Webcam + WebGazer' : '鍵盤操作'}</b></span>
+          )}
         </div>
 
         {/* Trial history */}

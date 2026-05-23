@@ -1,4 +1,8 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
+import { initJsPsych } from 'jspsych';
+import WebGazerExtension from '@jspsych/extension-webgazer';
+import WebGazerInitCameraPlugin from '@jspsych/plugin-webgazer-init-camera';
+import WebGazerCalibratePlugin from '@jspsych/plugin-webgazer-calibrate';
 import {
   getSetting,
   setSetting,
@@ -10,7 +14,7 @@ import {
 } from '../utils/settings';
 import { pixelFromMillimeter } from '../utils/spatialUtils';
 
-type Tab = 'general' | 'calibration' | 'gamma' | 'crowding';
+type Tab = 'general' | 'calibration' | 'webgazer' | 'gamma' | 'crowding';
 
 export function SettingsPage() {
   const [activeTab, setActiveTab] = useState<Tab>('general');
@@ -20,6 +24,7 @@ export function SettingsPage() {
   const tabs: { label: string; tab: Tab }[] = [
     { label: '一般設定', tab: 'general' },
     { label: '螢幕校正', tab: 'calibration' },
+    { label: 'WebGazer Calibration', tab: 'webgazer' },
     { label: 'Gamma', tab: 'gamma' },
     { label: 'Crowding', tab: 'crowding' },
   ];
@@ -46,6 +51,7 @@ export function SettingsPage() {
         {/* Tab Content */}
         {activeTab === 'general' && <GeneralTab refresh={refresh} />}
         {activeTab === 'calibration' && <CalibrationTab refresh={refresh} />}
+        {activeTab === 'webgazer' && <WebGazerCalibrationTab refresh={refresh} />}
         {activeTab === 'gamma' && <GammaTab refresh={refresh} />}
         {activeTab === 'crowding' && <CrowdingTab refresh={refresh} />}
       </div>
@@ -232,6 +238,111 @@ function CardCalibration({ refresh }: { refresh: () => void }) {
       >
         重設校正值
       </button>
+    </div>
+  );
+}
+
+/* ── WebGazer Calibration Tab ── */
+function WebGazerCalibrationTab({ refresh }: { refresh: () => void }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [status, setStatus] = useState<'idle' | 'running' | 'done' | 'error'>('idle');
+  const [message, setMessage] = useState('');
+  const calibratedAt = getSetting('webGazerCalibrationAt');
+
+  const runCalibration = () => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    setStatus('running');
+    setMessage('正在啟動攝影機，請允許瀏覽器使用 Webcam。');
+    container.innerHTML = '';
+
+    try {
+      const jsPsych = initJsPsych({
+        display_element: container,
+        extensions: [
+          { type: WebGazerExtension },
+        ] as any,
+        on_finish: () => {
+          setSetting('webGazerCalibrationAt', new Date().toISOString());
+          setStatus('done');
+          setMessage('WebGazer calibration 已完成。');
+          refresh();
+        },
+      });
+
+      jsPsych.run([
+        {
+          type: WebGazerInitCameraPlugin,
+          instructions: `
+            <p>請讓臉部位於攝影機畫面中央，並保持頭部穩定。</p>
+            <p>按鈕可用時，點擊繼續進行 calibration。</p>
+          `,
+          button_text: '開始校正',
+        },
+        {
+          type: WebGazerCalibratePlugin,
+          calibration_points: [
+            [10, 10], [50, 10], [90, 10],
+            [10, 50], [50, 50], [90, 50],
+            [10, 90], [50, 90], [90, 90],
+          ],
+          calibration_mode: 'click',
+          repetitions_per_point: 2,
+          randomize_calibration_order: true,
+          point_size: 24,
+        },
+      ] as any);
+    } catch (error) {
+      setStatus('error');
+      setMessage(error instanceof Error ? error.message : 'WebGazer calibration 啟動失敗。');
+    }
+  };
+
+  const clearCalibrationStatus = () => {
+    try {
+      (window as any).webgazer?.clearData?.();
+    } catch {
+      // Clearing the saved status should still work if WebGazer is not active.
+    }
+    setSetting('webGazerCalibrationAt', '');
+    setStatus('idle');
+    setMessage('');
+    refresh();
+  };
+
+  return (
+    <div className="fade-in">
+      <div className="setting-row">
+        <div className="setting-info">
+          <h3>WebGazer Calibration</h3>
+          <p>使用 jsPsych WebGazer extension 和 Webcam 建立 PL 測驗的 gaze 判斷基準。</p>
+        </div>
+        <span className="setting-value" style={{ fontSize: 14 }}>
+          {calibratedAt ? new Date(calibratedAt).toLocaleString('zh-TW') : '尚未校正'}
+        </span>
+      </div>
+
+      <div className="webgazer-calibration-panel">
+        <div ref={containerRef} className="webgazer-calibration-stage" />
+        {status !== 'running' && (
+          <div className="webgazer-calibration-actions">
+            <button className="btn btn-primary btn-sm" onClick={runCalibration}>
+              {calibratedAt ? '重新校正' : '開始 WebGazer Calibration'}
+            </button>
+            {calibratedAt && (
+              <button className="btn btn-ghost btn-sm" onClick={clearCalibrationStatus}>
+                清除校正狀態
+              </button>
+            )}
+          </div>
+        )}
+        {message && (
+          <p className={`webgazer-calibration-message ${status === 'error' ? 'error' : ''}`}>
+            {message}
+          </p>
+        )}
+      </div>
     </div>
   );
 }

@@ -39,6 +39,8 @@ export interface AppSettings {
   oculomotorBackgroundColor: string;
   oculomotorTargetShape: 'circle' | 'star' | 'square' | 'cross' | 'triangle' | 'custom';
   oculomotorCustomTargetImage: string;
+  preferentialLookingInputMode: 'keyboard' | 'webgazer';
+  webGazerCalibrationAt: string;
 }
 
 interface SettingMeta<T> {
@@ -73,6 +75,8 @@ const META: { [K in keyof AppSettings]: SettingMeta<AppSettings[K]> } = {
   oculomotorBackgroundColor: { dflt: '#0D1117' },
   oculomotorTargetShape:   { dflt: 'circle' },
   oculomotorCustomTargetImage: { dflt: '' },
+  preferentialLookingInputMode: { dflt: 'keyboard' },
+  webGazerCalibrationAt: { dflt: '' },
 };
 
 function storageKey(name: string): string {

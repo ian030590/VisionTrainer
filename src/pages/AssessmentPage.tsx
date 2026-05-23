@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getActiveUser, getSetting } from '../utils/settings';
+import { getActiveUser, getSetting, setSetting } from '../utils/settings';
 import type { TestType } from '../assessment/optotypeRenderer';
 
 const DISCLAIMER =
@@ -93,6 +93,9 @@ export function AssessmentPage() {
   const [expandedTest, setExpandedTest] = useState<TestType | null>(null);
   const [localTrials, setLocalTrials] = useState<number>(18);
   const [customTrialsInput, setCustomTrialsInput] = useState('');
+  const [plInputMode, setPlInputMode] = useState<'keyboard' | 'webgazer'>(
+    () => getSetting('preferentialLookingInputMode'),
+  );
 
   const handleCardClick = (testId: TestType) => {
     if (!activeUser) {
@@ -111,9 +114,21 @@ export function AssessmentPage() {
 
   const handleStartTest = () => {
     if (!expandedTest || !activeUser) return;
-    navigate(
-      `/acuity-test?type=${expandedTest}&trials=${localTrials}`,
-    );
+    const params = new URLSearchParams({
+      type: expandedTest,
+      trials: String(localTrials),
+    });
+
+    if (expandedTest === 'gratings') {
+      params.set('responseMode', plInputMode);
+    }
+
+    navigate(`/acuity-test?${params.toString()}`);
+  };
+
+  const handlePLInputMode = (mode: 'keyboard' | 'webgazer') => {
+    setPlInputMode(mode);
+    setSetting('preferentialLookingInputMode', mode);
   };
 
   const handleTrialsPreset = (n: number) => {
@@ -210,6 +225,34 @@ export function AssessmentPage() {
                 />
               </div>
             </div>
+
+            {expandedTest === 'gratings' && (
+              <div className="config-section">
+                <div className="config-label">Preferential Looking 判斷方式</div>
+                <div className="difficulty-selector">
+                  <button
+                    className={`diff-btn ${plInputMode === 'keyboard' ? 'active' : ''}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handlePLInputMode('keyboard');
+                    }}
+                  >
+                    <span className="diff-btn-label">鍵盤操作</span>
+                    <span className="diff-btn-desc">使用方向鍵或數字鍵選擇左側/右側</span>
+                  </button>
+                  <button
+                    className={`diff-btn ${plInputMode === 'webgazer' ? 'active' : ''}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handlePLInputMode('webgazer');
+                    }}
+                  >
+                    <span className="diff-btn-label">Webcam + WebGazer</span>
+                    <span className="diff-btn-desc">用 gaze sample 自動判斷受試者看向哪一側</span>
+                  </button>
+                </div>
+              </div>
+            )}
 
             <div className="config-actions">
               <button
