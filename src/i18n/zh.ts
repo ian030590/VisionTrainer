@@ -153,11 +153,11 @@ export const zh = {
 
   // Assessment & Acuity Test
   'assess.disclaimer': '本測驗參考弗萊堡視力測驗模式以及演算法，為程式練習所用。若要了解自己視力，請尋求專業醫療協助。',
-  'assess.landolt.title': '蘭氏環 (C)',
+  'assess.landolt.title': 'C視標',
   'assess.landolt.desc': '辨別環形缺口方向，八個方向選擇。為國際標準視力檢測法之一。',
-  'assess.tumblingE.title': '翻轉 E',
-  'assess.tumblingE.desc': '辨別 E 字母的開口方向，適合不熟悉字母者。四個方向選擇。',
-  'assess.sloan.title': '標準字母',
+  'assess.tumblingE.title': 'E視標',
+  'assess.tumblingE.desc': '辨別 E 的開口方向。其直線結構在螢幕顯示更精確、能良好模擬真實閱讀的擁擠效應，直觀的手勢表達也極適合幼兒。',
+  'assess.sloan.title': '字母視標',
   'assess.sloan.desc': '辨別十個標準字母，為國際視力表常用字集。',
   'assess.shapes.title': '圖形視標',
   'assess.shapes.desc': '辨別簡易圖形（房子、圓形、正方形、星星），適合幼兒或無法辨識字母者。',
