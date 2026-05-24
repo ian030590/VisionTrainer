@@ -185,6 +185,11 @@ export function HomePage() {
       params.set('shape', oculomotorTargetShape);
     }
 
+    if (expandedModule === 'eyegame') {
+      navigate('/eyegame');
+      return;
+    }
+
     navigate(`/experiment?${params.toString()}`);
   };
 

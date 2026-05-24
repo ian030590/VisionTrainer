@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
+import EyegamePage from './pages/EyegamePage';
 import { Navbar } from './components/Navbar';
 import { HomePage } from './pages/HomePage';
 import { SettingsPage } from './pages/SettingsPage';
@@ -11,6 +12,7 @@ export function App() {
     <Routes>
       {/* Full-screen pages, no navbar */}
       <Route path="/experiment" element={<ExperimentPage />} />
+      <Route path="/eyegame" element={<EyegamePage />} />
       <Route path="/acuity-test" element={<AcuityTestPage />} />
 
       {/* Normal pages with navbar */}
