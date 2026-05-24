@@ -318,8 +318,12 @@ function WebGazerCalibrationTab({ refresh }: { refresh: () => void }) {
           {
             type: WebGazerInitCameraPlugin,
             instructions: `
-              <p style="color:var(--text-primary);">請讓臉部位於攝影機畫面中央，並保持頭部穩定。</p>
-              <p style="color:var(--text-primary);">按鈕可用時，點擊繼續進行 calibration。</p>
+              <div class="webgazer-jspsych-instructions">
+                <h2>WebGazer 校正</h2>
+                <p>請允許瀏覽器使用 Webcam，並讓臉部位於攝影機畫面中央。</p>
+                <p>開始後會依序出現校正點。請先注視圓點中心，再用滑鼠點擊該圓點；每個位置會重複 2 次。</p>
+                <p>校正期間請盡量保持頭部穩定，若要中止可按 ESC 或右上角取消校正。</p>
+              </div>
             `,
             button_text: '開始校正',
           },
@@ -382,6 +386,15 @@ function WebGazerCalibrationTab({ refresh }: { refresh: () => void }) {
       </div>
 
       <div className="webgazer-calibration-panel">
+        <div className="webgazer-calibration-steps">
+          <h4>校正進行方式</h4>
+          <ol>
+            <li>按下開始後，允許瀏覽器使用 Webcam。</li>
+            <li>臉部對準攝影機中央，保持頭部穩定。</li>
+            <li>看到校正圓點時，先注視圓點中心，再用滑鼠點擊。</li>
+            <li>9 個位置會各重複 2 次；完成後系統會自動回到設定頁。</li>
+          </ol>
+        </div>
         {status !== 'running' && (
           <div className="webgazer-calibration-actions">
             <button className="btn btn-primary btn-sm" onClick={runCalibration}>
