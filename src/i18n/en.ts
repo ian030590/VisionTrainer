@@ -282,6 +282,6 @@ export const en: Record<TranslationKey, string> = {
   'credits.eyeTraining.desc': 'Referenced styts/eye-training project',
   'credits.foveaflow.title': 'Oculomotor Training',
   'credits.foveaflow.desc': 'Referenced MOT design from Jesper-N/foveaflow',
-  'credits.eyegame.title': 'Eyegame Training',
+  'credits.eyegame.title': 'Gabor Patch Training',
   'credits.eyegame.desc': 'Referenced game mechanics from Fordi/eyegame',
 };

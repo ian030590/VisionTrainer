@@ -506,7 +506,7 @@ function GammaTab({ refresh }: { refresh: () => void }) {
   return (
     <div className="fade-in" style={{ textAlign: 'center' }}>
       <p style={{ color: 'var(--text-secondary)', marginBottom: 16, lineHeight: 1.8 }}>
-        {t('settings.gamma.inst')}<br />預設值 2.0。
+        {t('settings.gamma.inst')}
       </p>
 
       <div style={{
