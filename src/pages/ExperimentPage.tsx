@@ -31,7 +31,6 @@ interface TrialData {
   pattern?: string;
   acquired_targets?: number;
   average_fps?: number;
-  average_fps?: number;
   duration_ms?: number;
   score?: number;
 }
@@ -176,8 +175,8 @@ export function ExperimentPage() {
       const avgRt = Math.round(results.reduce((sum, r) => sum + r.rt, 0) / results.length);
       const correctCount = results.filter((r) => r.correct).length;
       rows.push(['']);
-      rows.push([t('exp.csv.avgRt'), `${avgRt} ms`]);
-      rows.push([t('exp.csv.accuracy'), `${correctCount}/${results.length}`]);
+      rows.push([t('exp.avgRt'), `${avgRt} ms`]);
+      rows.push([t('exp.correctRate'), `${correctCount}/${results.length}`]);
     }
 
     const csvContent = [
@@ -309,10 +308,10 @@ export function ExperimentPage() {
 
         <div className="results-actions">
           <button className="btn btn-primary btn-lg" onClick={downloadCSV}>
-            {t('btn.downloadCsv')}
+            {t('exp.downloadCsv')}
           </button>
           <button className="btn btn-secondary btn-lg" onClick={goHome}>
-            {t('btn.backHome')}
+            {t('exp.backHome')}
           </button>
         </div>
       </div>

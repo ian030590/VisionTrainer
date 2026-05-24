@@ -233,46 +233,6 @@ export function AcuityTestPage() {
       });
   }, [ensureWebGazerReady, isWebGazerPL, testType, t]);
 
-  const runNextTrial = useCallback(() => {
-    const pest = pestRef.current;
-    if (!pest) return;
-
-    trialRef.current += 1;
-    if (trialRef.current > totalTrials) {
-      setTrialRecords([...recordsRef.current]);
-      setPhase('results');
-      return;
-    }
-
-    // Get next stimulus from BestPEST
-    const tPest = pest.nextStim2apply();
-    const { strokeMin, strokeMax } = strokeBoundsRef.current;
-    const strokePx = stimDeviceFromThresholder(tPest, strokeMin, strokeMax);
-    currentStrokePxRef.current = strokePx;
-
-    // Generate random alternative
-    currentAlternativeRef.current = randomAlternative(testType);
-
-    // ISI phase (blank screen)
-    setPhase('isi');
-    const canvas = canvasRef.current;
-    if (canvas) {
-      const prepared = prepareAcuityCanvas(canvas);
-      if (prepared) clearCanvas(
-        prepared.ctx,
-        prepared.width,
-        prepared.height,
-        getAcuityBackground(testType),
-      );
-    }
-
-    // Show stimulus after ISI delay
-    setTimeout(() => {
-      drawStimulus();
-      setPhase('stimulus');
-    }, 300);
-  }, [testType, totalTrials, drawStimulus]);
-
   const drawStimulus = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -332,6 +292,46 @@ export function AcuityTestPage() {
     ctx.font = `${ACUITY_OVERLAY_FONT_SIZE}px Inter, sans-serif`;
     ctx.fillText(snellen, 12, 20);
   }, [testType]);
+
+  const runNextTrial = useCallback(() => {
+    const pest = pestRef.current;
+    if (!pest) return;
+
+    trialRef.current += 1;
+    if (trialRef.current > totalTrials) {
+      setTrialRecords([...recordsRef.current]);
+      setPhase('results');
+      return;
+    }
+
+    // Get next stimulus from BestPEST
+    const tPest = pest.nextStim2apply();
+    const { strokeMin, strokeMax } = strokeBoundsRef.current;
+    const strokePx = stimDeviceFromThresholder(tPest, strokeMin, strokeMax);
+    currentStrokePxRef.current = strokePx;
+
+    // Generate random alternative
+    currentAlternativeRef.current = randomAlternative(testType);
+
+    // ISI phase (blank screen)
+    setPhase('isi');
+    const canvas = canvasRef.current;
+    if (canvas) {
+      const prepared = prepareAcuityCanvas(canvas);
+      if (prepared) clearCanvas(
+        prepared.ctx,
+        prepared.width,
+        prepared.height,
+        getAcuityBackground(testType),
+      );
+    }
+
+    // Show stimulus after ISI delay
+    setTimeout(() => {
+      drawStimulus();
+      setPhase('stimulus');
+    }, 300);
+  }, [testType, totalTrials, drawStimulus]);
 
   // ── Handle response ──
   const handleResponse = useCallback((responseIdx: number, meta: GazeDecisionMeta = { mode: 'keyboard' }) => {
@@ -588,7 +588,7 @@ export function AcuityTestPage() {
             </p>
           )}
           <p className="acuity-intro-hint">
-            {t('assess.introHint')}
+            {t('acuity.kbInst')}
           </p>
         </div>
       </div>
@@ -620,7 +620,7 @@ export function AcuityTestPage() {
         <button
           className="acuity-abort-btn"
           onClick={() => navigate('/assessment')}
-          title={t('acuity.abortTest')}
+          title={t('btn.cancel')}
         >
           ✕
         </button>
@@ -672,7 +672,7 @@ export function AcuityTestPage() {
     rows.push([]);
     rows.push([t('acuity.csv.finalResult')]);
     rows.push([t('acuity.csv.decimalAcuity'), finalLogMAR.toFixed(2)]);
-    rows.push([t('assess.csv.decVA'), finalDecVA.toFixed(2)]);
+    rows.push([t('acuity.decimalAcuity'), finalDecVA.toFixed(2)]);
     rows.push(['Snellen', finalSnellen]);
     rows.push(['Letter Score', String(finalLetterScore)]);
     rows.push([t('acuity.csv.accuracy'), `${(correctRate * 100).toFixed(1)}%`]);
@@ -714,7 +714,7 @@ export function AcuityTestPage() {
         <div className="acuity-result-meta">
           <span>{t('assess.config.test')}: <b>{getTestTitle(testType, t)}</b></span>
           <span>{t('acuity.decimalAcuity')}: <b style={{ color: 'var(--accent)' }}>{decimalAcuity}</b></span>
-          <span>{t('exp.csv.accuracy')}: <b style={{ color: 'var(--accent)' }}>{correctCount}/{records.length}</b></span>
+          <span>{t('acuity.csv.accuracy')}: <b style={{ color: 'var(--accent)' }}>{correctCount}/{records.length}</b></span>
           <span>{t('assess.config.user')}: <b>{userName}</b></span>
           {testType === 'gratings' && (
             <span>{t('assess.plMethodTitle')}: <b>{responseMode === 'webgazer' ? t('assess.wgMode') : t('assess.kbMode')}</b></span>
