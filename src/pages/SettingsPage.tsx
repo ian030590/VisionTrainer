@@ -276,6 +276,31 @@ function WebGazerCalibrationTab({ refresh }: { refresh: () => void }) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [status]);
 
+  // Override the dynamically injected #webgazer-center-style from jsPsych plugin
+  // so that the webcam video is horizontally centered at the top of the viewport.
+  React.useEffect(() => {
+    if (status !== 'running') return;
+    const overrideStyle = (el: HTMLElement) => {
+      if (el.id === 'webgazer-center-style' && el.tagName === 'STYLE') {
+        (el as HTMLStyleElement).textContent =
+          '#webgazerVideoContainer { top: 20px !important; left: 50% !important; transform: translateX(-50%) !important; }';
+      }
+    };
+    // If it already exists, override immediately
+    const existing = document.querySelector('#webgazer-center-style');
+    if (existing) overrideStyle(existing as HTMLElement);
+    // Watch for it being injected
+    const observer = new MutationObserver((mutations) => {
+      for (const m of mutations) {
+        for (const node of m.addedNodes) {
+          if (node instanceof HTMLElement) overrideStyle(node);
+        }
+      }
+    });
+    observer.observe(document.head, { childList: true });
+    return () => observer.disconnect();
+  }, [status]);
+
   const runCalibration = () => {
     // Check if webgazer.js is loaded
     if (!(window as any).webgazer) {
