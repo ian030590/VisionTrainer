@@ -6,6 +6,7 @@ import { SettingsPage } from './pages/SettingsPage';
 import { ExperimentPage } from './pages/ExperimentPage';
 import { AssessmentPage } from './pages/AssessmentPage';
 import { AcuityTestPage } from './pages/AcuityTestPage';
+import { CreditsPage } from './pages/CreditsPage';
 
 export function App() {
   return (
@@ -25,6 +26,7 @@ export function App() {
               <Route path="/" element={<HomePage />} />
               <Route path="/assessment" element={<AssessmentPage />} />
               <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/credits" element={<CreditsPage />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </div>

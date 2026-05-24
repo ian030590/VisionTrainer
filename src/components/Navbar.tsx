@@ -1,8 +1,10 @@
 import { NavLink } from 'react-router-dom';
 import { getActiveUser } from '../utils/settings';
+import { useT } from '../i18n';
 
 export function Navbar() {
   const user = getActiveUser();
+  const { t } = useT();
 
   return (
     <nav className="navbar">
@@ -20,19 +22,25 @@ export function Navbar() {
           end
           className={({ isActive }) => `navbar-link ${isActive ? 'active' : ''}`}
         >
-          訓練清單
+          {t('nav.trainingList')}
         </NavLink>
         <NavLink
           to="/assessment"
           className={({ isActive }) => `navbar-link ${isActive ? 'active' : ''}`}
         >
-          視力評估
+          {t('nav.assessment')}
         </NavLink>
         <NavLink
           to="/settings"
           className={({ isActive }) => `navbar-link ${isActive ? 'active' : ''}`}
         >
-          設定與校正
+          {t('nav.settings')}
+        </NavLink>
+        <NavLink
+          to="/credits"
+          className={({ isActive }) => `navbar-link ${isActive ? 'active' : ''}`}
+        >
+          {t('nav.credits')}
         </NavLink>
       </div>
 
@@ -43,7 +51,7 @@ export function Navbar() {
             <span>{user}</span>
           </>
         ) : (
-          <span style={{ color: 'var(--warning)' }}>未選擇使用者</span>
+          <span style={{ color: 'var(--warning)' }}>{t('nav.noUser')}</span>
         )}
       </div>
     </nav>

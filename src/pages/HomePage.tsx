@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
+import { useT } from '../i18n';
 import { useNavigate } from 'react-router-dom';
 import {
   getUsers,
@@ -19,6 +20,7 @@ import {
 import type { OculomotorMode, OculomotorPattern, OculomotorTargetShape } from '../oculomotor/types';
 
 export function HomePage() {
+  const { t } = useT();
   const navigate = useNavigate();
   const [users, setUsersState] = useState(getUsers);
   const [activeUser, setActiveUserState] = useState(getActiveUser);
@@ -62,6 +64,8 @@ export function HomePage() {
   const [oculomotorCustomTargetImage, setOculomotorCustomTargetImage] = useState(
     () => getSetting('oculomotorCustomTargetImage'),
   );
+  const [gaborDurationSec, setGaborDurationSec] = useState(60);
+  const [gaborMaxSpots, setGaborMaxSpots] = useState(10);
   const [prewarmed, setPrewarmed] = useState(() => pixiAppManager.ready);
 
   const refreshUsers = useCallback(() => {
@@ -85,7 +89,7 @@ export function HomePage() {
   };
 
   const handleRemoveUser = (name: string) => {
-    if (confirm(`確定要刪除使用者「${name}」嗎？`)) {
+    if (confirm(t('home.deleteUserPrompt', { name }))) {
       removeUser(name);
       refreshUsers();
     }
@@ -158,7 +162,7 @@ export function HomePage() {
   // ── Handlers ──
   const handleCardClick = (moduleId: string) => {
     if (!activeUser) {
-      alert('請先選擇或新增一位使用者');
+      alert(t('home.pleaseSelectUser'));
       return;
     }
     setExpandedModule(expandedModule === moduleId ? null : moduleId);
@@ -190,6 +194,11 @@ export function HomePage() {
       return;
     }
 
+    if (expandedModule === 'gabor-patch') {
+      params.set('duration', String(gaborDurationSec));
+      params.set('maxSpots', String(gaborMaxSpots));
+    }
+
     navigate(`/experiment?${params.toString()}`);
   };
 
@@ -209,7 +218,7 @@ export function HomePage() {
   const handleCustomTargetImageChange = (file: File | undefined) => {
     if (!file) return;
     if (!file.type.startsWith('image/')) {
-      alert('請選擇圖片檔案');
+      alert(t('home.pleaseSelectImage'));
       return;
     }
     const reader = new FileReader();
@@ -226,17 +235,17 @@ export function HomePage() {
   const roundsPresets = [3, 5, 10, 15];
   const durationPresets = [30, 60, 90, 120];
   const targetShapeOptions: { key: OculomotorTargetShape; label: string }[] = [
-    { key: 'circle', label: '圓形' },
-    { key: 'star', label: '星形' },
-    { key: 'square', label: '方形' },
-    { key: 'cross', label: '十字' },
-    { key: 'triangle', label: '三角形' },
-    { key: 'custom', label: '自訂' },
+    { key: 'circle', label: t('home.shape.circle') },
+    { key: 'star', label: t('home.shape.star') },
+    { key: 'square', label: t('home.shape.square') },
+    { key: 'cross', label: t('home.shape.cross') },
+    { key: 'triangle', label: t('home.shape.triangle') },
+    { key: 'custom', label: t('home.shape.custom') },
   ];
   const diffOptions: { key: 'beginner' | 'intermediate' | 'advanced'; label: string; desc: string }[] = [
-    { key: 'beginner', label: '初級', desc: '網格排列' },
-    { key: 'intermediate', label: '中級', desc: '散落排列' },
-    { key: 'advanced', label: '高級', desc: '旋轉散落' },
+    { key: 'beginner', label: t('home.diff.beginner'), desc: t('home.diff.beginnerDesc') },
+    { key: 'intermediate', label: t('home.diff.intermediate'), desc: t('home.diff.intermediateDesc') },
+    { key: 'advanced', label: t('home.diff.advanced'), desc: t('home.diff.advancedDesc') },
   ];
 
   return (
@@ -251,17 +260,17 @@ export function HomePage() {
           value={activeUser || ''}
           onChange={(e) => handleSelectUser(e.target.value)}
         >
-          <option value="">-- 選擇使用者 --</option>
+          <option value="">{t('home.selectUser')}</option>
           {users.map((u) => (
             <option key={u} value={u}>{u}</option>
           ))}
         </select>
         <button className="btn btn-primary btn-sm" onClick={() => setShowAddUser(!showAddUser)}>
-          {showAddUser ? '取消' : '＋ 新增'}
+          {showAddUser ? t('btn.cancel') : t('btn.add')}
         </button>
         {activeUser && (
           <button className="btn btn-danger btn-sm" onClick={() => handleRemoveUser(activeUser)}>
-            刪除
+            {t('btn.delete')}
           </button>
         )}
         <button
@@ -273,7 +282,7 @@ export function HomePage() {
               document.exitFullscreen?.();
             }
           }}
-          title="切換全螢幕"
+          title={t('home.toggleFullscreen')}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M8 3H5a2 2 0 0 0-2 2v3" />
@@ -290,14 +299,14 @@ export function HomePage() {
           <input
             className="input"
             type="text"
-            placeholder="輸入使用者名稱"
+            placeholder={t('home.enterUserName')}
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleAddUser()}
             autoFocus
           />
           <button className="btn btn-primary btn-sm" onClick={handleAddUser}>
-            確認新增
+            {t('btn.confirmAdd')}
           </button>
         </div>
       )}
@@ -318,13 +327,13 @@ export function HomePage() {
           maxWidth: 700,
           width: '100%',
         }}>
-          ⚠ 尚未校正螢幕 — 前往設定頁校正以確保準確度
+          {t('home.calWarning')}
         </div>
       )}
 
       {/* ── Section Title ── */}
-      <h1 className="section-title fade-in-up">訓練清單</h1>
-      <p className="section-subtitle fade-in-up">選擇您想進行的訓練項目</p>
+      <h1 className="section-title fade-in-up">{t('home.listTitle')}</h1>
+      <p className="section-subtitle fade-in-up">{t('home.listSubtitle')}</p>
 
       {/* ── Training Cards ── */}
       <div className="training-grid">
@@ -338,9 +347,9 @@ export function HomePage() {
               <circle cx="12" cy="12" r="3" />
             </svg>
           </div>
-          <div className="card-title">移動卡片訓練</div>
+          <div className="card-title">{t('home.module.movingCard.title')}</div>
           <div className="card-desc">
-            訓練注視中心點時快速辨識移動卡片文字的能力，字母選項會動態移動增加難度。
+            {t('home.module.movingCard.desc')}
           </div>
           <div style={{
             display: 'flex',
@@ -351,7 +360,7 @@ export function HomePage() {
             color: 'var(--accent)',
             fontWeight: 600,
           }}>
-            {expandedModule === 'moving-card' ? '收合設定' : '選擇此模組'}
+            {expandedModule === 'moving-card' ? t('btn.collapseSettings') : t('btn.selectModule')}
             <svg
               width="16"
               height="16"
@@ -386,9 +395,9 @@ export function HomePage() {
               <path d="M7 12h2" />
             </svg>
           </div>
-          <div className="card-title">眼動訓練 Oculomotor Training</div>
+          <div className="card-title">{t('home.module.oculomotor.title')}</div>
           <div className="card-desc">
-            重製 FoveaFlow 的追視、跳視、多目標追蹤與 Lilac Chaser 周邊固視訓練。
+            {t('home.module.oculomotor.desc')}
           </div>
           <div style={{
             display: 'flex',
@@ -399,7 +408,7 @@ export function HomePage() {
             color: 'var(--accent)',
             fontWeight: 600,
           }}>
-            {expandedModule === 'oculomotor-training' ? '收合設定' : '選擇此模組'}
+            {expandedModule === 'oculomotor-training' ? t('btn.collapseSettings') : t('btn.selectModule')}
             <svg
               width="16"
               height="16"
@@ -416,6 +425,48 @@ export function HomePage() {
             </svg>
           </div>
         </div>
+
+        <div
+          className={`card fade-in-up ${expandedModule === 'gabor-patch' ? 'card-active' : ''}`}
+          onClick={() => handleCardClick('gabor-patch')}
+        >
+          <div className="card-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M8 12a4 4 0 0 1 8 0" />
+              <path d="M12 8v8" />
+            </svg>
+          </div>
+          <div className="card-title">{t('home.module.eyegame.title')}</div>
+          <div className="card-desc">
+            {t('home.module.eyegame.desc')}
+          </div>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            marginTop: 16,
+            fontSize: 13,
+            color: 'var(--accent)',
+            fontWeight: 600,
+          }}>
+            {expandedModule === 'gabor-patch' ? t('btn.collapseSettings') : t('btn.selectModule')}
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              style={{
+                transform: expandedModule === 'gabor-patch' ? 'rotate(180deg)' : 'rotate(0deg)',
+                transition: 'transform 0.3s ease',
+              }}
+            >
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+          </div>
+        </div>
       </div>
 
       {/* ── Module Config Panel ── */}
@@ -424,7 +475,7 @@ export function HomePage() {
           <div className="module-config-panel config-modal-panel" onClick={(e) => e.stopPropagation()}>
             {/* Difficulty */}
             <div className="config-section">
-              <div className="config-label">難度設定</div>
+              <div className="config-label">{t('home.config.difficulty')}</div>
               <div className="difficulty-selector">
                 {diffOptions.map((opt) => (
                   <button
@@ -441,7 +492,7 @@ export function HomePage() {
 
             {/* Rounds */}
             <div className="config-section">
-              <div className="config-label">回合數</div>
+              <div className="config-label">{t('home.config.rounds')}</div>
               <div className="rounds-selector">
                 {roundsPresets.map((r) => (
                   <button
@@ -457,7 +508,7 @@ export function HomePage() {
                   type="number"
                   min="1"
                   max="100"
-                  placeholder="自訂"
+                  placeholder={t('home.config.custom')}
                   value={customRoundsInput}
                   onClick={(e) => e.stopPropagation()}
                   onChange={(e) => handleCustomRoundsChange(e.target.value)}
@@ -474,22 +525,22 @@ export function HomePage() {
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                   <polygon points="5,3 19,12 5,21" />
                 </svg>
-                開始訓練
+                {t('btn.startTraining')}
                 {prewarmed && <span className="ready-dot" />}
               </button>
               <button
                 className="btn btn-ghost btn-lg"
                 onClick={(e) => { e.stopPropagation(); setExpandedModule(null); }}
               >
-                取消
+                {t('btn.cancel')}
               </button>
             </div>
 
             {/* Current settings summary */}
             <div className="config-summary">
-              使用者: <strong>{activeUser}</strong> ·{' '}
-              難度: <strong>{diffOptions.find((d) => d.key === localDifficulty)?.label}</strong> ·{' '}
-              回合: <strong>{localRounds}</strong>
+              {t('home.config.user')} <strong>{activeUser}</strong> ·{' '}
+              {t('home.config.diffLabel')} <strong>{diffOptions.find((d) => d.key === localDifficulty)?.label}</strong> ·{' '}
+              {t('home.config.roundsLabel')} <strong>{localRounds}</strong>
             </div>
           </div>
         </div>
@@ -499,7 +550,7 @@ export function HomePage() {
         <div className="config-modal-overlay fade-in" onClick={() => setExpandedModule(null)}>
           <div className="module-config-panel config-modal-panel" onClick={(e) => e.stopPropagation()}>
             <div className="config-section">
-              <div className="config-label">訓練模式</div>
+              <div className="config-label">{t('home.config.trainingMode')}</div>
               <div className="difficulty-selector">
                 {oculomotorModes.map((mode) => (
                   <button
@@ -510,8 +561,8 @@ export function HomePage() {
                       setOculomotorMode(mode.id);
                     }}
                   >
-                    <span className="diff-btn-label">{mode.label}</span>
-                    <span className="diff-btn-desc">{mode.desc}</span>
+                    <span className="diff-btn-label">{t(`preset.mode.${mode.id}` as any)}</span>
+                    <span className="diff-btn-desc">{t(`preset.mode.${mode.id}Desc` as any)}</span>
                   </button>
                 ))}
               </div>
@@ -519,7 +570,7 @@ export function HomePage() {
 
             {oculomotorMode !== 'lilac-chaser' && (
               <div className="config-section">
-                <div className="config-label">移動路徑</div>
+                <div className="config-label">{t('home.config.movementPath')}</div>
                 <select
                   className="input"
                   value={oculomotorPattern}
@@ -527,14 +578,14 @@ export function HomePage() {
                   onChange={(e) => setOculomotorPattern(e.target.value as OculomotorPattern)}
                 >
                   {oculomotorPatterns.map((pattern) => (
-                    <option key={pattern.id} value={pattern.id}>{pattern.label}</option>
+                    <option key={pattern.id} value={pattern.id}>{t(`preset.path.${pattern.id}` as any)}</option>
                   ))}
                 </select>
               </div>
             )}
 
             <div className="config-section">
-              <div className="config-label">時長（秒）</div>
+              <div className="config-label">{t('home.config.durationSec')}</div>
               <div className="rounds-selector">
                 {durationPresets.map((duration) => (
                   <button
@@ -566,10 +617,10 @@ export function HomePage() {
             </div>
 
             <div className="config-section">
-              <div className="config-label">速度與目標大小</div>
+              <div className="config-label">{t('home.config.speedAndSize')}</div>
               <div className="difficulty-selector">
                 <label className="diff-btn" style={{ cursor: 'default', alignItems: 'stretch' }}>
-                  <span className="diff-btn-desc">速度 deg/s</span>
+                  <span className="diff-btn-desc">{t('home.config.speed')}</span>
                   <input
                     className="rounds-custom-input"
                     type="number"
@@ -587,7 +638,7 @@ export function HomePage() {
                   />
                 </label>
                 <label className="diff-btn" style={{ cursor: 'default', alignItems: 'stretch' }}>
-                  <span className="diff-btn-desc">大小 mm</span>
+                  <span className="diff-btn-desc">{t('home.config.size')}</span>
                   <input
                     className="rounds-custom-input"
                     type="number"
@@ -605,7 +656,7 @@ export function HomePage() {
                   />
                 </label>
                 <label className="diff-btn" style={{ cursor: 'default', alignItems: 'stretch' }}>
-                  <span className="diff-btn-desc">干擾數</span>
+                  <span className="diff-btn-desc">{t('home.config.distractors')}</span>
                   <input
                     className="rounds-custom-input"
                     type="number"
@@ -627,10 +678,10 @@ export function HomePage() {
             </div>
 
             <div className="config-section">
-              <div className="config-label">顏色</div>
+              <div className="config-label">{t('home.config.colors')}</div>
               <div className="color-settings-row">
                 <label className="color-field">
-                  <span>目標顏色</span>
+                  <span>{t('home.config.targetColor')}</span>
                   <input
                     type="color"
                     value={oculomotorTargetColor}
@@ -639,7 +690,7 @@ export function HomePage() {
                   />
                 </label>
                 <label className="color-field">
-                  <span>背景顏色</span>
+                  <span>{t('home.config.bgColor')}</span>
                   <input
                     type="color"
                     value={oculomotorBackgroundColor}
@@ -651,7 +702,7 @@ export function HomePage() {
             </div>
 
             <div className="config-section">
-              <div className="config-label">目標物形狀</div>
+              <div className="config-label">{t('home.config.targetShape')}</div>
               <div className="shape-selector">
                 {targetShapeOptions.map((shape) => (
                   <button
@@ -677,7 +728,7 @@ export function HomePage() {
                   />
                   {oculomotorCustomTargetImage && (
                     <div className="custom-image-preview">
-                      <img src={oculomotorCustomTargetImage} alt="自訂目標預覽" />
+                      <img src={oculomotorCustomTargetImage} alt={t('home.config.customTargetPreview')} />
                       <button
                         className="btn btn-ghost btn-sm"
                         onClick={(e) => {
@@ -685,7 +736,7 @@ export function HomePage() {
                           setOculomotorCustomTargetImage('');
                         }}
                       >
-                        移除圖片
+                        {t('btn.removeImage')}
                       </button>
                     </div>
                   )}
@@ -701,21 +752,107 @@ export function HomePage() {
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                   <polygon points="5,3 19,12 5,21" />
                 </svg>
-                開始訓練
+                {t('btn.startTraining')}
                 {prewarmed && <span className="ready-dot" />}
               </button>
               <button
                 className="btn btn-ghost btn-lg"
                 onClick={(e) => { e.stopPropagation(); setExpandedModule(null); }}
               >
-                取消
+                {t('btn.cancel')}
               </button>
             </div>
 
             <div className="config-summary">
-              使用者: <strong>{activeUser}</strong> ·{' '}
-              模式: <strong>{oculomotorModes.find((mode) => mode.id === oculomotorMode)?.label}</strong> ·{' '}
-              時長: <strong>{oculomotorDurationSec}s</strong>
+              {t('home.config.user')} <strong>{activeUser}</strong> ·{' '}
+              {t('home.config.modeLabel')} <strong>{t(`preset.mode.${oculomotorModes.find((mode) => mode.id === oculomotorMode)?.id}` as any)}</strong> ·{' '}
+              {t('home.config.durationLabel')} <strong>{oculomotorDurationSec}s</strong>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {expandedModule === 'gabor-patch' && (
+        <div className="config-modal-overlay fade-in" onClick={() => setExpandedModule(null)}>
+          <div className="module-config-panel config-modal-panel" onClick={(e) => e.stopPropagation()}>
+            {/* Duration */}
+            <div className="config-section">
+              <div className="config-label">{t('home.config.gaborDuration')}</div>
+              <div className="rounds-selector">
+                {durationPresets.map((duration) => (
+                  <button
+                    key={duration}
+                    className={`rounds-btn ${gaborDurationSec === duration ? 'active' : ''}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setGaborDurationSec(duration);
+                    }}
+                  >
+                    {duration}s
+                  </button>
+                ))}
+                <input
+                  className="rounds-custom-input"
+                  type="number"
+                  min="15"
+                  max="300"
+                  value={gaborDurationSec}
+                  onClick={(e) => e.stopPropagation()}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value, 10);
+                    if (Number.isFinite(value)) {
+                      setGaborDurationSec(Math.max(15, Math.min(300, value)));
+                    }
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Max Spots */}
+            <div className="config-section">
+              <div className="config-label">{t('home.config.gaborMaxSpots')}</div>
+              <div className="difficulty-selector">
+                <input
+                  className="rounds-custom-input"
+                  type="number"
+                  min="3"
+                  max="50"
+                  value={gaborMaxSpots}
+                  onClick={(e) => e.stopPropagation()}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value, 10);
+                    if (Number.isFinite(value)) {
+                      setGaborMaxSpots(Math.max(3, Math.min(50, value)));
+                    }
+                  }}
+                  style={{ width: '100%', maxWidth: 200 }}
+                />
+              </div>
+            </div>
+
+            <div className="config-actions">
+              <button
+                className="btn btn-primary btn-lg config-start-btn"
+                onClick={(e) => { e.stopPropagation(); handleStartTraining(); }}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <polygon points="5,3 19,12 5,21" />
+                </svg>
+                {t('btn.startTraining')}
+                {prewarmed && <span className="ready-dot" />}
+              </button>
+              <button
+                className="btn btn-ghost btn-lg"
+                onClick={(e) => { e.stopPropagation(); setExpandedModule(null); }}
+              >
+                {t('btn.cancel')}
+              </button>
+            </div>
+
+            <div className="config-summary">
+              {t('home.config.user')} <strong>{activeUser}</strong> ·{' '}
+              {t('home.config.durationLabel')} <strong>{gaborDurationSec}s</strong> ·{' '}
+              {t('home.config.gaborMaxSpots')} <strong>{gaborMaxSpots}</strong>
             </div>
           </div>
         </div>

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useT } from '../i18n';
 import WebGazerExtension from '@jspsych/extension-webgazer';
 import { BestPEST } from '../assessment/bestPest';
 import {
@@ -136,6 +137,7 @@ function drawGratingApertureRing(
 }
 
 export function AcuityTestPage() {
+  const { t } = useT();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const testType = (searchParams.get('type') || 'landolt') as TestType;
@@ -161,7 +163,7 @@ export function AcuityTestPage() {
   const gratingRegionsRef = useRef<{ left: GazeRegion; right: GazeRegion } | null>(null);
   const gazeExtensionRef = useRef<any>(null);
 
-  const userName = getActiveUser() || '未知使用者';
+  const userName = getActiveUser() || t('exp.unknownUser');
   const nAlternatives = getAlternativeCount(testType);
 
   // Keep phaseRef in sync
@@ -171,7 +173,7 @@ export function AcuityTestPage() {
     if (!isWebGazerPL) return;
 
     if (!(window as any).webgazer) {
-      throw new Error('webgazer.js 尚未載入，請重新整理頁面後再試。');
+      throw new Error(t('assess.wgErrorNotLoaded'));
     }
 
     if (!gazeExtensionRef.current) {
@@ -182,7 +184,7 @@ export function AcuityTestPage() {
 
     const extension = gazeExtensionRef.current;
     if (!extension) {
-      throw new Error('WebGazer extension 初始化失敗。');
+      throw new Error(t('assess.wgErrorInit'));
     }
 
     if (!extension.isInitialized()) {
@@ -218,7 +220,7 @@ export function AcuityTestPage() {
     }
 
     setWebGazerStatus('starting');
-    setWebGazerMessage('正在啟動 Webcam + WebGazer，請允許瀏覽器使用攝影機。');
+    setWebGazerMessage(t('assess.wgStarting'));
     ensureWebGazerReady()
       .then(() => {
         setWebGazerStatus('ready');
@@ -226,7 +228,7 @@ export function AcuityTestPage() {
       })
       .catch((error) => {
         setWebGazerStatus('error');
-        setWebGazerMessage(error instanceof Error ? error.message : 'WebGazer 啟動失敗。');
+        setWebGazerMessage(error instanceof Error ? error.message : t('assess.wgErrorStart'));
       });
   }, [ensureWebGazerReady, isWebGazerPL, testType]);
 
@@ -557,16 +559,16 @@ export function AcuityTestPage() {
     return (
       <div className="experiment-container">
         <div className="acuity-intro">
-          <h1>{getTestTitle(testType)}</h1>
-          <p>{getTestInstruction(testType)}</p>
+          <h1>{getTestTitle(testType, t)}</h1>
+          <p>{getTestInstruction(testType, t)}</p>
           {isWebGazerPL ? (
             <div className="webgazer-pl-intro">
-              <strong>判斷方式: Webcam + WebGazer</strong>
-              <span>開始後請讓受試者自然看向有條紋刺激的一側，系統會自動取樣判斷。</span>
+              <strong>{t('assess.wgIntroTitle')}</strong>
+              <span>{t('assess.wgIntroDesc')}</span>
             </div>
           ) : (
             <div className="acuity-intro-keys">
-              {getKeyHints(testType)}
+              {getKeyHints(testType, t)}
             </div>
           )}
           <button
@@ -577,7 +579,7 @@ export function AcuityTestPage() {
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
               <polygon points="5,3 19,12 5,21" />
             </svg>
-            {webGazerStatus === 'starting' ? '啟動 WebGazer...' : '開始測驗'}
+            {webGazerStatus === 'starting' ? t('assess.wgStartingBtn') : t('btn.startTest')}
           </button>
           {webGazerMessage && (
             <p className={`webgazer-pl-message ${webGazerStatus === 'error' ? 'error' : ''}`}>
@@ -585,7 +587,7 @@ export function AcuityTestPage() {
             </p>
           )}
           <p className="acuity-intro-hint">
-            按空白鍵或 Enter 也可開始 · 按 Esc 隨時退出
+            {t('assess.introHint')}
           </p>
         </div>
       </div>
@@ -610,14 +612,14 @@ export function AcuityTestPage() {
         )}
         {!isWebGazerPL && (
           <div className="acuity-touch-controls">
-            {renderTouchButtons(testType, handleResponse)}
+            {renderTouchButtons(testType, handleResponse, t)}
           </div>
         )}
         {/* Abort button */}
         <button
           className="acuity-abort-btn"
           onClick={() => navigate('/assessment')}
-          title="退出測驗"
+          title={t('assess.abortTest')}
         >
           ✕
         </button>
@@ -640,14 +642,14 @@ export function AcuityTestPage() {
     const prefix = getSetting('downloadDirectory');
 
     const headers = [
-      '使用者',
-      '日期',
-      '時間',
-      '測驗',
-      '試驗',
-      '呈現',
-      '回應',
-      '正確',
+      t('exp.csv.user'),
+      t('exp.csv.date'),
+      t('exp.csv.time'),
+      t('assess.csv.test'),
+      t('assess.csv.trial'),
+      t('assess.csv.presented'),
+      t('assess.csv.responded'),
+      t('exp.csv.correct'),
       'LogMAR',
       'StrokePx',
       'ResponseMode',
@@ -665,12 +667,12 @@ export function AcuityTestPage() {
       r.gazeTotalSamples ?? '',
     ]);
     rows.push([]);
-    rows.push(['最終結果']);
+    rows.push([t('assess.csv.finalResult')]);
     rows.push(['LogMAR', finalLogMAR.toFixed(2)]);
-    rows.push(['十進制視力', finalDecVA.toFixed(2)]);
+    rows.push([t('assess.csv.decVA'), finalDecVA.toFixed(2)]);
     rows.push(['Snellen', finalSnellen]);
     rows.push(['Letter Score', String(finalLetterScore)]);
-    rows.push(['正確率', `${correctCount}/${records.length}`]);
+    rows.push([t('exp.csv.accuracy'), `${correctCount}/${records.length}`]);
 
     const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
     const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
@@ -685,7 +687,7 @@ export function AcuityTestPage() {
   return (
     <div className="experiment-container" style={{ overflowY: 'auto' }}>
       <div className="acuity-results">
-        <h1>測驗結束！</h1>
+        <h1>{t('assess.results.title')}</h1>
 
         <div className="acuity-result-cards">
           <div className="acuity-result-card">
@@ -693,7 +695,7 @@ export function AcuityTestPage() {
             <div className="acuity-result-value">{finalLogMAR.toFixed(2)}</div>
           </div>
           <div className="acuity-result-card">
-            <div className="acuity-result-label">十進制視力</div>
+            <div className="acuity-result-label">{t('assess.csv.decVA')}</div>
             <div className="acuity-result-value">{finalDecVA.toFixed(2)}</div>
           </div>
           <div className="acuity-result-card">
@@ -707,11 +709,11 @@ export function AcuityTestPage() {
         </div>
 
         <div className="acuity-result-meta">
-          <span>測驗: <b>{getTestTitle(testType)}</b></span>
-          <span>正確率: <b style={{ color: 'var(--accent)' }}>{correctCount}/{records.length}</b></span>
-          <span>使用者: <b>{userName}</b></span>
+          <span>{t('assess.config.test')}: <b>{getTestTitle(testType, t)}</b></span>
+          <span>{t('exp.csv.accuracy')}: <b style={{ color: 'var(--accent)' }}>{correctCount}/{records.length}</b></span>
+          <span>{t('assess.config.user')}: <b>{userName}</b></span>
           {testType === 'gratings' && (
-            <span>PL 判斷: <b>{responseMode === 'webgazer' ? 'Webcam + WebGazer' : '鍵盤操作'}</b></span>
+            <span>{t('assess.plMethodTitle')}: <b>{responseMode === 'webgazer' ? t('assess.wgMode') : t('assess.kbMode')}</b></span>
           )}
         </div>
 
@@ -719,10 +721,10 @@ export function AcuityTestPage() {
         <table className="results-table">
           <thead>
             <tr>
-              <th>試驗</th>
-              <th>呈現</th>
-              <th>回應</th>
-              <th>正確</th>
+              <th>{t('assess.csv.trial')}</th>
+              <th>{t('assess.csv.presented')}</th>
+              <th>{t('assess.csv.responded')}</th>
+              <th>{t('exp.results.correct')}</th>
               <th>LogMAR</th>
             </tr>
           </thead>
@@ -731,9 +733,9 @@ export function AcuityTestPage() {
               <tr key={i}>
                 <td>{r.trial}</td>
                 <td style={{ fontWeight: 600, color: 'var(--accent)' }}>
-                  {formatAlternative(testType, r.presented)}
+                  {formatAlternative(testType, r.presented, t)}
                 </td>
-                <td>{formatAlternative(testType, r.responded)}</td>
+                <td>{formatAlternative(testType, r.responded, t)}</td>
                 <td style={{ color: r.correct ? 'var(--success)' : 'var(--error)' }}>
                   {r.correct ? '✓' : '✗'}
                 </td>
@@ -745,15 +747,15 @@ export function AcuityTestPage() {
 
         <div className="results-actions">
           <button className="btn btn-primary btn-lg" onClick={downloadCSV}>
-            📥 下載 CSV 結果
+            {t('assess.downloadCsv')}
           </button>
           <button className="btn btn-secondary btn-lg" onClick={() => navigate('/assessment')}>
-            ← 返回評估頁面
+            {t('assess.backToAssess')}
           </button>
         </div>
 
         <p className="acuity-disclaimer-footer">
-          本測驗參考 FrACT 測驗模式以及演算法，為程式練習所用。若要了解自己視力，請尋求專業醫療協助。
+          {t('assess.disclaimer')}
         </p>
       </div>
     </div>
@@ -762,33 +764,33 @@ export function AcuityTestPage() {
 
 // ── Helpers ──
 
-function getTestTitle(t: TestType): string {
+function getTestTitle(t: TestType, tFunc: any): string {
   const map: Record<TestType, string> = {
-    landolt: '蘭氏環 (Landolt C)',
-    tumblingE: '翻轉 E (Tumbling E)',
-    letters: 'Sloan 字母',
-    pictures: '圖形視標',
-    gratings: '條紋視力 (PL)',
+    landolt: tFunc('assess.landolt.title'),
+    tumblingE: tFunc('assess.tumblingE.title'),
+    letters: tFunc('assess.sloan.title'),
+    pictures: tFunc('assess.shapes.title'),
+    gratings: tFunc('assess.pl.title'),
   };
   return map[t];
 }
 
-function getTestInstruction(t: TestType): string {
+function getTestInstruction(t: TestType, tFunc: any): string {
   switch (t) {
     case 'landolt':
-      return '每次畫面中央會出現一個環形（蘭氏環），請辨別環形缺口的方向，使用數字鍵盤回答。';
+      return tFunc('assess.landolt.inst');
     case 'tumblingE':
-      return '每次畫面中央會出現一個 E 字母，請辨別 E 的開口方向，使用方向鍵回答。';
+      return tFunc('assess.tumblingE.inst');
     case 'letters':
-      return '每次畫面中央會出現一個字母（C D H K N O R S V Z），請按鍵盤上對應的字母鍵回答。';
+      return tFunc('assess.sloan.inst');
     case 'pictures':
-      return '每次畫面中央會出現一個圖形（房子、圓形、正方形、星星），請使用方向鍵回答：→房子 ↑圓形 ←正方形 ↓星星。';
+      return tFunc('assess.shapes.inst');
     case 'gratings':
-      return '畫面會出現兩個圓形區域，其中一個有條紋。請判斷條紋在左側還是右側，使用左右方向鍵回答。';
+      return tFunc('assess.pl.inst');
   }
 }
 
-function getKeyHints(t: TestType): React.ReactNode {
+function getKeyHints(t: TestType, tFunc: any): React.ReactNode {
   switch (t) {
     case 'landolt':
       return (
@@ -821,14 +823,14 @@ function getKeyHints(t: TestType): React.ReactNode {
     case 'gratings':
       return (
         <div className="key-hints-grid-4">
-          <div className="key-hint" style={{ gridColumn: 1, gridRow: 2 }}>← 左</div>
-          <div className="key-hint" style={{ gridColumn: 3, gridRow: 2 }}>右 →</div>
+          <div className="key-hint" style={{ gridColumn: 1, gridRow: 2 }}>← {tFunc('assess.left')}</div>
+          <div className="key-hint" style={{ gridColumn: 3, gridRow: 2 }}>{tFunc('assess.right')} →</div>
         </div>
       );
   }
 }
 
-function renderTouchButtons(testType: TestType, onResponse: (idx: number) => void): React.ReactNode {
+function renderTouchButtons(testType: TestType, onResponse: (idx: number) => void, tFunc: any): React.ReactNode {
   switch (testType) {
     case 'landolt':
       return (
@@ -874,14 +876,14 @@ function renderTouchButtons(testType: TestType, onResponse: (idx: number) => voi
     case 'gratings':
       return (
         <div className="touch-btn-cross">
-          <button className="direction-btn dir-left" onClick={() => onResponse(0)}>← 左</button>
-          <button className="direction-btn dir-right" onClick={() => onResponse(1)}>右 →</button>
+          <button className="direction-btn dir-left" onClick={() => onResponse(0)}>← {tFunc('assess.left')}</button>
+          <button className="direction-btn dir-right" onClick={() => onResponse(1)}>{tFunc('assess.right')} →</button>
         </div>
       );
   }
 }
 
-function formatAlternative(testType: TestType, idx: number): string {
+function formatAlternative(testType: TestType, idx: number, tFunc: any): string {
   switch (testType) {
     case 'landolt':
       return LANDOLT_DIRECTION_LABELS[idx as LandoltDirection] || String(idx);
@@ -892,6 +894,6 @@ function formatAlternative(testType: TestType, idx: number): string {
     case 'pictures':
       return PICTURE_NAMES[idx] || String(idx);
     case 'gratings':
-      return idx === 0 ? '左' : '右';
+      return idx === 0 ? tFunc('assess.left') : tFunc('assess.right');
   }
 }

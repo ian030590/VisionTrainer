@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import { useT } from '../i18n';
 import ReactDOM from 'react-dom';
 import { initJsPsych } from 'jspsych';
 import WebGazerExtension from '@jspsych/extension-webgazer';
@@ -18,22 +19,23 @@ import { pixelFromMillimeter } from '../utils/spatialUtils';
 type Tab = 'general' | 'calibration' | 'webgazer' | 'gamma' | 'crowding';
 
 export function SettingsPage() {
+  const { t } = useT();
   const [activeTab, setActiveTab] = useState<Tab>('general');
   const [, setTick] = useState(0);
   const refresh = () => setTick((t) => t + 1);
 
   const tabs: { label: string; tab: Tab }[] = [
-    { label: '一般設定', tab: 'general' },
-    { label: '螢幕校正', tab: 'calibration' },
-    { label: 'WebGazer Calibration', tab: 'webgazer' },
-    { label: 'Gamma', tab: 'gamma' },
-    { label: 'Crowding', tab: 'crowding' },
+    { label: t('settings.tab.general'), tab: 'general' },
+    { label: t('settings.tab.calibration'), tab: 'calibration' },
+    { label: t('settings.tab.webgazer'), tab: 'webgazer' },
+    { label: t('settings.tab.gamma'), tab: 'gamma' },
+    { label: t('settings.tab.crowding'), tab: 'crowding' },
   ];
 
   return (
     <div className="page-content">
-      <h1 className="section-title fade-in-up">設定與校正</h1>
-      <p className="section-subtitle fade-in-up">調整訓練參數與螢幕校正</p>
+      <h1 className="section-title fade-in-up">{t('settings.title')}</h1>
+      <p className="section-subtitle fade-in-up">{t('settings.subtitle')}</p>
 
       <div className="settings-container">
         {/* Tabs */}
@@ -62,12 +64,36 @@ export function SettingsPage() {
 
 /* ── General Tab ── */
 function GeneralTab({ refresh }: { refresh: () => void }) {
+  const { t, lang, setLang } = useT();
+
   return (
     <div className="fade-in">
+      {/* Language Toggle */}
+      <div className="setting-row">
+        <div className="setting-info">
+          <h3>{t('settings.language.title')}</h3>
+          <p>{t('settings.language.desc')}</p>
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            className={`btn btn-sm ${lang === 'zh' ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => { setLang('zh'); refresh(); }}
+          >
+            中文
+          </button>
+          <button
+            className={`btn btn-sm ${lang === 'en' ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => { setLang('en'); refresh(); }}
+          >
+            English
+          </button>
+        </div>
+      </div>
+
       {/* Viewing Distance */}
       <SettingRow
-        title="觀看距離"
-        desc="受試者眼睛至螢幕的距離（公分）"
+        title={t('settings.distance.title')}
+        desc={t('settings.distance.desc')}
         value={`${getSetting('distanceInCM')} cm`}
         onEdit={(val) => {
           const num = parseInt(val, 10);
@@ -77,15 +103,11 @@ function GeneralTab({ refresh }: { refresh: () => void }) {
           }
         }}
         editPlaceholder="60"
-      />
-
-
-
-      {/* Sound Toggle */}
+      />      {/* Sound Toggle */}
       <div className="setting-row">
         <div className="setting-info">
-          <h3>音效回饋</h3>
-          <p>訓練時的正確/錯誤音效</p>
+          <h3>{t('settings.sound.title')}</h3>
+          <p>{t('settings.sound.desc')}</p>
         </div>
         <button
           className={`btn btn-sm ${getSetting('auditoryFeedbackEnabled') ? 'btn-primary' : 'btn-secondary'}`}
@@ -94,20 +116,20 @@ function GeneralTab({ refresh }: { refresh: () => void }) {
             refresh();
           }}
         >
-          {getSetting('auditoryFeedbackEnabled') ? '✓ 已開啟' : '✗ 已關閉'}
+          {getSetting('auditoryFeedbackEnabled') ? t('settings.sound.on') : t('settings.sound.off')}
         </button>
       </div>
 
       {/* Download Prefix */}
       <SettingRow
-        title="成績檔案前綴"
-        desc="匯出成績時的檔案識別碼"
-        value={getSetting('downloadDirectory') || '(未設定)'}
+        title={t('settings.prefix.title')}
+        desc={t('settings.prefix.desc')}
+        value={getSetting('downloadDirectory') || t('settings.prefix.notSet')}
         onEdit={(val) => {
           setSetting('downloadDirectory', val);
           refresh();
         }}
-        editPlaceholder="輸入前綴"
+        editPlaceholder={t('settings.prefix.placeholder')}
       />
     </div>
   );
@@ -115,6 +137,7 @@ function GeneralTab({ refresh }: { refresh: () => void }) {
 
 /* ── Calibration Tab ── */
 function CalibrationTab({ refresh }: { refresh: () => void }) {
+  const { t } = useT();
   const [calMode, setCalMode] = useState<'ruler' | 'card'>('ruler');
   const calibrated = isCalibrated();
   const mmPerPx = getMMPerPixel();
@@ -127,13 +150,13 @@ function CalibrationTab({ refresh }: { refresh: () => void }) {
           className={`btn btn-sm ${calMode === 'ruler' ? 'btn-primary' : 'btn-ghost'}`}
           onClick={() => setCalMode('ruler')}
         >
-          尺規校正
+          {t('settings.cal.rulerMode')}
         </button>
         <button
           className={`btn btn-sm ${calMode === 'card' ? 'btn-primary' : 'btn-ghost'}`}
           onClick={() => setCalMode('card')}
         >
-          卡片校正
+          {t('settings.cal.cardMode')}
         </button>
       </div>
 
@@ -145,9 +168,9 @@ function CalibrationTab({ refresh }: { refresh: () => void }) {
 
       {/* Info */}
       <div className="cal-info" style={{ color: calibrated ? 'var(--success)' : 'var(--warning)' }}>
-        <p>解析度: {mmPerPx.toFixed(3)} mm/px ({(1 / mmPerPx).toFixed(2)} px/mm)</p>
+        <p>{t('settings.cal.resolution')} {mmPerPx.toFixed(3)} mm/px ({(1 / mmPerPx).toFixed(2)} px/mm)</p>
         <p style={{ fontWeight: 600, marginTop: 4 }}>
-          {calibrated ? '✓ 校正完成' : '⚠ 尚未校正（使用預設值）'}
+          {calibrated ? t('settings.cal.done') : t('settings.cal.notDone')}
         </p>
       </div>
     </div>
@@ -155,6 +178,7 @@ function CalibrationTab({ refresh }: { refresh: () => void }) {
 }
 
 function RulerCalibration({ refresh }: { refresh: () => void }) {
+  const { t } = useT();
   const [inputVal, setInputVal] = useState('');
   const rulerBarPx = 500;
 
@@ -172,8 +196,8 @@ function RulerCalibration({ refresh }: { refresh: () => void }) {
   return (
     <div style={{ textAlign: 'center' }}>
       <p style={{ color: 'var(--text-secondary)', marginBottom: 16, lineHeight: 1.8 }}>
-        請拿出一把實體尺放在螢幕上，與下方的藍色線條對齊。<br />
-        然後輸入藍色線條的實際長度(mm)。
+        {t('settings.cal.rulerInst1')}<br />
+        {t('settings.cal.rulerInst2')}
       </p>
       <div className="cal-ruler-bar" style={{ width: rulerBarPx }} />
       <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 16 }}>
@@ -181,18 +205,19 @@ function RulerCalibration({ refresh }: { refresh: () => void }) {
           className="input"
           style={{ width: 160 }}
           type="number"
-          placeholder="藍線長度 (mm)"
+          placeholder={t('settings.cal.rulerPlaceholder')}
           value={inputVal}
           onChange={(e) => setInputVal(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleApply()}
         />
-        <button className="btn btn-primary btn-sm" onClick={handleApply}>確認校正</button>
+        <button className="btn btn-primary btn-sm" onClick={handleApply}>{t('btn.confirm')}</button>
       </div>
     </div>
   );
 }
 
 function CardCalibration({ refresh }: { refresh: () => void }) {
+  const { t } = useT();
   const wPx = pixelFromMillimeter(CARD_WIDTH_MM);
   const hPx = pixelFromMillimeter(CARD_HEIGHT_MM);
   const factors = [1.1, 1.01, 1.0 / 1.01, 1.0 / 1.1];
@@ -207,8 +232,8 @@ function CardCalibration({ refresh }: { refresh: () => void }) {
   return (
     <div style={{ textAlign: 'center' }}>
       <p style={{ color: 'var(--text-secondary)', marginBottom: 16, lineHeight: 1.8 }}>
-        請拿出一張標準塑膠卡片（身分證、信用卡或健保卡），<br />
-        輕靠在螢幕上，使用下方按鈕調整至大小完全一致。
+        {t('settings.cal.cardInst1')}<br />
+        {t('settings.cal.cardInst2')}
       </p>
       <div
         className="cal-card-outline"
@@ -245,6 +270,7 @@ function CardCalibration({ refresh }: { refresh: () => void }) {
 
 /* ── WebGazer Calibration Tab ── */
 function WebGazerCalibrationTab({ refresh }: { refresh: () => void }) {
+  const { t } = useT();
   const containerRef = useRef<HTMLDivElement>(null);
   const jsPsychRef = useRef<any>(null);
   const [status, setStatus] = useState<'idle' | 'running' | 'done' | 'error'>('idle');
@@ -306,19 +332,19 @@ function WebGazerCalibrationTab({ refresh }: { refresh: () => void }) {
     // Check if webgazer.js is loaded
     if (!(window as any).webgazer) {
       setStatus('error');
-      setMessage('webgazer.js 未載入。請確認 public/webgazer.js 存在且 index.html 正確引用。');
+      setMessage(t('settings.wg.errorNotLoaded'));
       return;
     }
 
     setStatus('running');
-    setMessage('正在啟動攝影機，請允許瀏覽器使用 Webcam。');
+    setMessage(t('settings.wg.startingCam'));
 
     // Wait for the overlay to render, then init jsPsych inside it
     requestAnimationFrame(() => {
       const container = containerRef.current;
       if (!container) {
         setStatus('error');
-        setMessage('無法取得校正容器元素。');
+        setMessage(t('settings.wg.errorContainer'));
         return;
       }
       container.innerHTML = '';
@@ -333,7 +359,7 @@ function WebGazerCalibrationTab({ refresh }: { refresh: () => void }) {
             setSetting('webGazerCalibrationAt', new Date().toISOString());
             jsPsychRef.current = null;
             setStatus('done');
-            setMessage('WebGazer calibration 已完成。');
+            setMessage(t('settings.wg.done'));
             refresh();
           },
         });
@@ -345,13 +371,13 @@ function WebGazerCalibrationTab({ refresh }: { refresh: () => void }) {
             type: WebGazerInitCameraPlugin,
             instructions: `
               <div class="webgazer-jspsych-instructions">
-                <h2>WebGazer 校正</h2>
-                <p>請允許瀏覽器使用 Webcam，並讓臉部位於攝影機畫面中央。</p>
-                <p>開始後會依序出現校正點。請先注視圓點中心，再用滑鼠點擊該圓點；每個位置會重複 2 次。</p>
-                <p>校正期間請盡量保持頭部穩定，若要中止可按 ESC 或右上角取消校正。</p>
+                <h2>${t('settings.wg.title')}</h2>
+                <p>${t('settings.wg.inst1')}</p>
+                <p>${t('settings.wg.inst2')}</p>
+                <p>${t('settings.wg.inst3')}</p>
               </div>
             `,
-            button_text: '開始校正',
+            button_text: t('settings.wg.startBtn'),
           },
           {
             type: WebGazerCalibratePlugin,
@@ -369,7 +395,7 @@ function WebGazerCalibrationTab({ refresh }: { refresh: () => void }) {
       } catch (error) {
         jsPsychRef.current = null;
         setStatus('error');
-        setMessage(error instanceof Error ? error.message : 'WebGazer calibration 啟動失敗。');
+        setMessage(error instanceof Error ? error.message : t('settings.wg.errorFail'));
       }
     });
   };
@@ -403,32 +429,32 @@ function WebGazerCalibrationTab({ refresh }: { refresh: () => void }) {
     <div className="fade-in">
       <div className="setting-row">
         <div className="setting-info">
-          <h3>WebGazer Calibration</h3>
-          <p>使用 jsPsych WebGazer extension 和 Webcam 建立 PL 測驗的 gaze 判斷基準。</p>
+          <h3>{t('settings.wg.title')}</h3>
+          <p>{t('settings.wg.desc')}</p>
         </div>
         <span className="setting-value" style={{ fontSize: 14 }}>
-          {calibratedAt ? new Date(calibratedAt).toLocaleString('zh-TW') : '尚未校正'}
+          {calibratedAt ? new Date(calibratedAt).toLocaleString() : t('settings.wg.notCalibrated')}
         </span>
       </div>
 
       <div className="webgazer-calibration-panel">
         <div className="webgazer-calibration-steps">
-          <h4>校正進行方式</h4>
+          <h4>{t('settings.wg.howToTitle')}</h4>
           <ol>
-            <li>按下開始後，允許瀏覽器使用 Webcam。</li>
-            <li>臉部對準攝影機中央，保持頭部穩定。</li>
-            <li>看到校正圓點時，先注視圓點中心，再用滑鼠點擊。</li>
-            <li>9 個位置會各重複 2 次；完成後系統會自動回到設定頁。</li>
+            <li>{t('settings.wg.step1')}</li>
+            <li>{t('settings.wg.step2')}</li>
+            <li>{t('settings.wg.step3')}</li>
+            <li>{t('settings.wg.step4')}</li>
           </ol>
         </div>
         {status !== 'running' && (
           <div className="webgazer-calibration-actions">
             <button className="btn btn-primary btn-sm" onClick={runCalibration}>
-              {calibratedAt ? '重新校正' : '開始 WebGazer Calibration'}
+              {calibratedAt ? t('settings.wg.recalibrateBtn') : t('settings.wg.startBtn')}
             </button>
             {calibratedAt && (
               <button className="btn btn-ghost btn-sm" onClick={clearCalibrationStatus}>
-                清除校正狀態
+                {t('settings.wg.clearBtn')}
               </button>
             )}
           </div>
@@ -450,9 +476,9 @@ function WebGazerCalibrationTab({ refresh }: { refresh: () => void }) {
             <button
               className="webgazer-cancel-btn"
               onClick={cancelCalibration}
-              title="取消校正"
+              title={t('settings.wg.cancelTitle')}
             >
-              ✕ 取消校正 (ESC)
+              {t('settings.wg.cancelBtn')}
             </button>
           </div>,
           document.body
@@ -463,6 +489,7 @@ function WebGazerCalibrationTab({ refresh }: { refresh: () => void }) {
 
 /* ── Gamma Tab ── */
 function GammaTab({ refresh }: { refresh: () => void }) {
+  const { t } = useT();
   const gammaVal = getSetting('gammaValue');
   const deltas = [
     { label: '− 0.1', delta: -0.1 },
@@ -479,7 +506,7 @@ function GammaTab({ refresh }: { refresh: () => void }) {
   return (
     <div className="fade-in" style={{ textAlign: 'center' }}>
       <p style={{ color: 'var(--text-secondary)', marginBottom: 16, lineHeight: 1.8 }}>
-        調整 Gamma 值直到中央棋盤圖案與周圍灰色完全融合。<br />預設值 2.0。
+        {t('settings.gamma.inst')}<br />預設值 2.0。
       </p>
 
       <div style={{
@@ -560,15 +587,23 @@ function GammaCheckerboard({ gammaVal, size }: { gammaVal: number; size: number 
 
 /* ── Crowding Tab ── */
 function CrowdingTab({ refresh }: { refresh: () => void }) {
-  const crowdTypes = ['無', '兩側橫棒', '包圍方框', '包圍圓圈', '相鄰字符', '兩側字符', '完整包圍'];
-  const distTypes = ['2.6 bar-widths (DIN)', '1 個字符', '0.5 個字符', '緊貼'];
+  const { t } = useT();
+  const crowdTypes = [
+    t('settings.crowd.type0'), t('settings.crowd.type1'), t('settings.crowd.type2'),
+    t('settings.crowd.type3'), t('settings.crowd.type4'), t('settings.crowd.type5'),
+    t('settings.crowd.type6')
+  ];
+  const distTypes = [
+    t('settings.crowd.dist0'), t('settings.crowd.dist1'),
+    t('settings.crowd.dist2'), t('settings.crowd.dist3')
+  ];
 
   return (
     <div className="fade-in">
       <div className="setting-row">
         <div className="setting-info">
-          <h3>擠壓類型</h3>
-          <p>影響周邊字符對目標的干擾程度</p>
+          <h3>{t('settings.crowd.typeTitle')}</h3>
+          <p>{t('settings.crowd.typeDesc')}</p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <span className="setting-value" style={{ fontSize: 14 }}>
@@ -581,15 +616,15 @@ function CrowdingTab({ refresh }: { refresh: () => void }) {
               refresh();
             }}
           >
-            切換
+            {t('btn.switch')}
           </button>
         </div>
       </div>
 
       <div className="setting-row">
         <div className="setting-info">
-          <h3>擠壓間距</h3>
-          <p>控制干擾字符與目標的距離</p>
+          <h3>{t('settings.crowd.distTitle')}</h3>
+          <p>{t('settings.crowd.distDesc')}</p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <span className="setting-value" style={{ fontSize: 14 }}>
@@ -602,7 +637,7 @@ function CrowdingTab({ refresh }: { refresh: () => void }) {
               refresh();
             }}
           >
-            切換
+            {t('btn.switch')}
           </button>
         </div>
       </div>
@@ -624,6 +659,7 @@ function SettingRow({
   onEdit: (val: string) => void;
   editPlaceholder: string;
 }) {
+  const { t } = useT();
   const [editing, setEditing] = useState(false);
   const [inputVal, setInputVal] = useState('');
 
@@ -657,13 +693,13 @@ function SettingRow({
             }}
             autoFocus
           />
-          <button className="btn btn-primary btn-sm" onClick={handleConfirm}>確認</button>
-          <button className="btn btn-ghost btn-sm" onClick={() => setEditing(false)}>取消</button>
+          <button className="btn btn-primary btn-sm" onClick={handleConfirm}>{t('btn.confirm')}</button>
+          <button className="btn btn-ghost btn-sm" onClick={() => setEditing(false)}>{t('btn.cancel')}</button>
         </div>
       ) : (
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <span className="setting-value">{value}</span>
-          <button className="btn btn-ghost btn-sm" onClick={handleStartEdit}>✎ 編輯</button>
+          <button className="btn btn-ghost btn-sm" onClick={handleStartEdit}>{t('btn.edit')}</button>
         </div>
       )}
     </div>

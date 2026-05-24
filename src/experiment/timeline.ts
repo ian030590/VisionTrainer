@@ -4,6 +4,7 @@
  */
 import PixiMovingCardPlugin from './plugins/pixi-moving-card';
 import PixiOculomotorTrainingPlugin from './plugins/pixi-oculomotor-training';
+import PixiGaborPatchPlugin from './plugins/pixi-gabor-patch';
 import { getSetting } from '../utils/settings';
 import { generateRandomLetters } from '../utils/mathUtils';
 import { pixelFromDegree, pixelFromMillimeter } from '../utils/spatialUtils';
@@ -30,6 +31,10 @@ export function buildTimeline(
       targetShape?: OculomotorTargetShape;
       customTargetImage?: string;
     };
+    gabor?: {
+      durationSec?: number;
+      maxSpots?: number;
+    };
   },
 ): object[] {
   switch (moduleId) {
@@ -37,6 +42,8 @@ export function buildTimeline(
       return buildMovingCardTimeline(overrides);
     case 'oculomotor-training':
       return buildOculomotorTimeline(overrides);
+    case 'gabor-patch':
+      return buildGaborPatchTimeline(overrides);
     default:
       console.warn(`Unknown module: ${moduleId}, falling back to moving-card`);
       return buildMovingCardTimeline(overrides);
@@ -114,6 +121,27 @@ function buildOculomotorTimeline(
       custom_target_image: customTargetImage,
       round_number: 1,
       total_rounds: 1,
+    },
+  ];
+}
+
+function buildGaborPatchTimeline(
+  overrides?: {
+    gabor?: {
+      durationSec?: number;
+      maxSpots?: number;
+    };
+  },
+): object[] {
+  const durationSec = overrides?.gabor?.durationSec ?? getSetting('oculomotorDurationSec'); // fallback to general duration
+  const maxSpots = overrides?.gabor?.maxSpots ?? 10;
+
+  return [
+    {
+      type: PixiGaborPatchPlugin,
+      duration_ms: Math.round(durationSec * 1000),
+      max_spots: maxSpots,
+      // Default parameters will be used for min_size, max_size, etc.
     },
   ];
 }

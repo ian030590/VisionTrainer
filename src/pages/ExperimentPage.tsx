@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useT } from '../i18n';
 import { initJsPsych } from 'jspsych';
 import type { JsPsych } from 'jspsych';
 import PixiMovingCardPlugin from '../experiment/plugins/pixi-moving-card';
@@ -30,10 +31,13 @@ interface TrialData {
   pattern?: string;
   acquired_targets?: number;
   average_fps?: number;
+  average_fps?: number;
   duration_ms?: number;
+  score?: number;
 }
 
 export function ExperimentPage() {
+  const { t } = useT();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const moduleId = searchParams.get('module') || 'moving-card';
@@ -65,12 +69,12 @@ export function ExperimentPage() {
   const jsPsychRef = useRef<JsPsych | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const userName = getActiveUser() || '未知使用者';
+  const userName = getActiveUser() || t('exp.unknownUser');
 
   const diffLabel: Record<string, string> = {
-    beginner: '初級 (網格)',
-    intermediate: '中級 (散落)',
-    advanced: '高級 (旋轉)',
+    beginner: t('home.diff.beginner'),
+    intermediate: t('home.diff.intermediate'),
+    advanced: t('home.diff.advanced'),
   };
 
   // ── Launch jsPsych immediately (no instructions phase) ──
@@ -110,6 +114,10 @@ export function ExperimentPage() {
         targetShape: oculomotorTargetShape,
         customTargetImage: oculomotorCustomTargetImage,
       },
+      gabor: {
+        durationSec: parseInt(searchParams.get('duration') || '', 10) || 60,
+        maxSpots: parseInt(searchParams.get('maxSpots') || '', 10) || 10,
+      },
     });
     jsPsych.run(timeline as any);
 
@@ -144,38 +152,33 @@ export function ExperimentPage() {
     const timeStr = new Date().toLocaleTimeString('zh-TW', { hour12: false }).replace(/:/g, '');
 
     const isOculomotor = moduleId === 'oculomotor-training';
-    const headers = isOculomotor
-      ? ['使用者', '日期', '時間', '模組', '模式', '路徑', '時長(ms)', '反應點擊', '平均FPS', '狀態']
-      : ['使用者', '日期', '時間', '模組', '難度', '回合', '題目', '作答', '正確', '反應時間(ms)'];
-    const rows: (string | number)[][] = results.map((r, i) => [
-      userName,
-      dateStr,
-      timeStr,
-      moduleId,
-      ...(isOculomotor
-        ? [
-            getOculomotorModeLabel(r.mode || oculomotorMode),
-            getOculomotorPatternLabel(r.pattern || oculomotorPattern),
-            r.duration_ms ?? r.rt,
-            r.acquired_targets ?? 0,
-            r.average_fps ?? '',
-            r.response,
-          ]
-        : [
-            difficulty,
-            i + 1,
-            r.target,
-            r.response,
-            r.correct ? '✓' : '✗',
-            r.rt,
-          ]),
-    ]);
+    const isGabor = moduleId === 'gabor-patch';
+    let headers: string[];
+    if (isOculomotor) {
+      headers = [t('exp.csv.user'), t('exp.csv.date'), t('exp.csv.time'), t('exp.csv.module'), t('exp.csv.mode'), t('exp.csv.path'), t('exp.csv.durationMs'), t('exp.csv.hits'), t('exp.csv.avgFps'), t('exp.csv.status')];
+    } else if (isGabor) {
+      headers = [t('exp.csv.user'), t('exp.csv.date'), t('exp.csv.time'), t('exp.csv.module'), t('exp.csv.durationMs'), 'Score', t('exp.csv.hits')];
+    } else {
+      headers = [t('exp.csv.user'), t('exp.csv.date'), t('exp.csv.time'), t('exp.csv.module'), t('exp.csv.diff'), t('exp.csv.round'), t('exp.csv.target'), t('exp.csv.response'), t('exp.csv.correct'), t('exp.csv.rt')];
+    }
+    const rows: (string | number)[][] = results.map((r, i) => {
+      const baseRow = [userName, dateStr, timeStr, moduleId];
+      if (isOculomotor) {
+        return [...baseRow, t(`preset.mode.${r.mode || oculomotorMode}` as any), t(`preset.path.${r.pattern || oculomotorPattern}` as any), r.duration_ms ?? r.rt, r.acquired_targets ?? 0, r.average_fps ?? '', r.response];
+      } else if (isGabor) {
+        return [...baseRow, r.duration_ms ?? r.rt, r.score ?? 0, r.acquired_targets ?? 0];
+      } else {
+        return [...baseRow, difficulty, i + 1, r.target, r.response, r.correct ? '✓' : '✗', r.rt];
+      }
+    });
 
-    const avgRt = Math.round(results.reduce((sum, r) => sum + r.rt, 0) / results.length);
-    const correctCount = results.filter((r) => r.correct).length;
-    rows.push(['']);
-    rows.push(['平均反應時間', `${avgRt} ms`]);
-    rows.push(['正確率', `${correctCount}/${results.length}`]);
+    if (!isOculomotor && !isGabor) {
+      const avgRt = Math.round(results.reduce((sum, r) => sum + r.rt, 0) / results.length);
+      const correctCount = results.filter((r) => r.correct).length;
+      rows.push(['']);
+      rows.push([t('exp.csv.avgRt'), `${avgRt} ms`]);
+      rows.push([t('exp.csv.accuracy'), `${correctCount}/${results.length}`]);
+    }
 
     const csvContent = [
       headers.join(','),
@@ -219,7 +222,7 @@ export function ExperimentPage() {
   return (
     <div className="experiment-container" style={{ overflowY: 'auto' }}>
       <div className="experiment-results">
-        <h1 style={{ fontSize: 32 }}>訓練結束！</h1>
+        <h1 style={{ fontSize: 32 }}>{t('exp.done')}</h1>
         {isOculomotor ? (
           <>
             <div className="results-score">
@@ -234,11 +237,30 @@ export function ExperimentPage() {
               fontSize: 14,
               color: 'var(--text-secondary)',
             }}>
-              <span>模式: <b style={{ color: 'var(--accent)' }}>{getOculomotorModeLabel(oculomotorResult?.mode || oculomotorMode)}</b></span>
-              <span>路徑: <b style={{ color: 'var(--accent)' }}>{getOculomotorPatternLabel(oculomotorResult?.pattern || oculomotorPattern)}</b></span>
-              <span>反應點擊: <b style={{ color: 'var(--accent)' }}>{oculomotorResult?.acquired_targets ?? 0}</b></span>
-              <span>平均 FPS: <b style={{ color: 'var(--accent)' }}>{oculomotorResult?.average_fps ?? '-'}</b></span>
-              <span>使用者: <b>{userName}</b></span>
+              <span>{t('exp.results.mode')}: <b style={{ color: 'var(--accent)' }}>{t(`preset.mode.${oculomotorResult?.mode || oculomotorMode}` as any)}</b></span>
+              <span>{t('exp.results.path')}: <b style={{ color: 'var(--accent)' }}>{t(`preset.path.${oculomotorResult?.pattern || oculomotorPattern}` as any)}</b></span>
+              <span>{t('exp.results.hits')}: <b style={{ color: 'var(--accent)' }}>{oculomotorResult?.acquired_targets ?? 0}</b></span>
+              <span>{t('exp.results.avgFps')}: <b style={{ color: 'var(--accent)' }}>{oculomotorResult?.average_fps ?? '-'}</b></span>
+              <span>{t('exp.results.user')}: <b>{userName}</b></span>
+            </div>
+          </>
+        ) : moduleId === 'gabor-patch' ? (
+          <>
+            <div className="results-score" style={{ color: 'var(--accent)' }}>
+              Score: {results[0]?.score ?? 0}
+            </div>
+            <div style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              justifyContent: 'center',
+              gap: 24,
+              marginBottom: 16,
+              fontSize: 14,
+              color: 'var(--text-secondary)',
+            }}>
+              <span>{t('exp.results.hits')}: <b style={{ color: 'var(--accent)' }}>{results[0]?.acquired_targets ?? 0}</b></span>
+              <span>{t('home.config.durationLabel')} <b style={{ color: 'var(--accent)' }}>{Math.round((results[0]?.duration_ms ?? 0) / 1000)}s</b></span>
+              <span>{t('exp.results.user')}: <b>{userName}</b></span>
             </div>
           </>
         ) : (
@@ -251,19 +273,19 @@ export function ExperimentPage() {
               fontSize: 14,
               color: 'var(--text-secondary)',
             }}>
-              <span>平均 RT: <b style={{ color: 'var(--accent)' }}>{avgRt} ms</b></span>
-              <span>中位數 RT: <b style={{ color: 'var(--accent)' }}>{medianRt} ms</b></span>
-              <span>使用者: <b>{userName}</b></span>
+              <span>{t('exp.results.avgRt')}: <b style={{ color: 'var(--accent)' }}>{avgRt} ms</b></span>
+              <span>{t('exp.results.medianRt')}: <b style={{ color: 'var(--accent)' }}>{medianRt} ms</b></span>
+              <span>{t('exp.results.user')}: <b>{userName}</b></span>
             </div>
 
             <table className="results-table">
               <thead>
                 <tr>
-                  <th>回合</th>
-                  <th>題目</th>
-                  <th>作答</th>
-                  <th>正確</th>
-                  <th>反應時間 (ms)</th>
+                  <th>{t('exp.results.round')}</th>
+                  <th>{t('exp.results.target')}</th>
+                  <th>{t('exp.results.response')}</th>
+                  <th>{t('exp.results.correct')}</th>
+                  <th>{t('exp.results.rtMs')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -287,10 +309,10 @@ export function ExperimentPage() {
 
         <div className="results-actions">
           <button className="btn btn-primary btn-lg" onClick={downloadCSV}>
-            📥 下載 CSV 成績
+            {t('btn.downloadCsv')}
           </button>
           <button className="btn btn-secondary btn-lg" onClick={goHome}>
-            ← 返回首頁
+            {t('btn.backHome')}
           </button>
         </div>
       </div>
