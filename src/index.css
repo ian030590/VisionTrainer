@@ -1002,13 +1002,21 @@ html, body, #root {
 
 .webgazer-fullscreen-stage #webgazer-init-container > div {
   left: 50% !important;
-  top: max(280px, 42vh) !important;
+  top: calc(50% + 160px) !important;
   width: min(720px, calc(100vw - 40px)) !important;
-  transform: translateX(-50%) !important;
+  transform: translate(-50%, -50%) !important;
+}
+
+/* Override jspsych webgazer-center-style to perfectly center the video feed */
+#webgazerVideoContainer {
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  margin: 0 !important;
 }
 
 .webgazer-fullscreen-stage #calibration-point {
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%) !important;
   border: 2px solid #fff !important;
   background: var(--accent, #58a6ff) !important;
   box-shadow: 0 0 0 8px rgba(0, 94, 184, 0.18);
