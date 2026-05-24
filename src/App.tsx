@@ -7,6 +7,7 @@ import { ExperimentPage } from './pages/ExperimentPage';
 import { AssessmentPage } from './pages/AssessmentPage';
 import { AcuityTestPage } from './pages/AcuityTestPage';
 import { CreditsPage } from './pages/CreditsPage';
+import { BinocularFusionPage } from './fusion/BinocularFusionPage';
 
 export function App() {
   return (
@@ -15,6 +16,7 @@ export function App() {
       <Route path="/experiment" element={<ExperimentPage />} />
       <Route path="/eyegame" element={<EyegamePage />} />
       <Route path="/acuity-test" element={<AcuityTestPage />} />
+      <Route path="/binocular-fusion" element={<BinocularFusionPage />} />
 
       {/* Normal pages with navbar */}
       <Route

@@ -199,6 +199,11 @@ export function HomePage() {
       params.set('maxSpots', String(gaborMaxSpots));
     }
 
+    if (expandedModule === 'binocular-fusion') {
+      navigate('/binocular-fusion');
+      return;
+    }
+
     navigate(`/experiment?${params.toString()}`);
   };
 
@@ -465,6 +470,40 @@ export function HomePage() {
             >
               <path d="M6 9l6 6 6-6" />
             </svg>
+          </div>
+        </div>
+
+        <div
+          className={`card fade-in-up ${expandedModule === 'binocular-fusion' ? 'card-active' : ''}`}
+          onClick={() => {
+            if (!activeUser) {
+              alert(t('home.pleaseSelectUser'));
+              return;
+            }
+            navigate('/binocular-fusion');
+          }}
+        >
+          <div className="card-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 2a10 10 0 0 1 0 20" />
+              <path d="M12 2v20" />
+            </svg>
+          </div>
+          <div className="card-title">Binocular Fusion</div>
+          <div className="card-desc">
+            Train your extraocular muscles with anaglyph vergence techniques.
+          </div>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            marginTop: 16,
+            fontSize: 13,
+            color: 'var(--accent)',
+            fontWeight: 600,
+          }}>
+            {t('btn.selectModule')}
           </div>
         </div>
       </div>
