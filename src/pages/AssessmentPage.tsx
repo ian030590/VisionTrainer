@@ -14,7 +14,7 @@ interface TestCard {
   defaultTrials: number;
 }
 
-  const TEST_CARDS: TestCard[] = [
+const getTestCards = (t: any): TestCard[] => [
     {
       id: 'landolt',
       title: t('assess.landolt.title'),
@@ -81,7 +81,7 @@ interface TestCard {
       nAlt: 2,
       defaultTrials: 36,
     },
-  ];
+];
 
 export function AssessmentPage() {
   const { t } = useT();
@@ -110,6 +110,8 @@ export function AssessmentPage() {
       setCustomTrialsInput('');
     }
   };
+
+  const TEST_CARDS = getTestCards(t);
 
   const handleStartTest = () => {
     if (!expandedTest || !activeUser) return;

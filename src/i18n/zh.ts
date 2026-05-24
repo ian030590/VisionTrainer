@@ -71,6 +71,7 @@ export const zh = {
   'home.config.colors': '顏色',
   'home.config.targetColor': '目標顏色',
   'home.config.bgColor': '背景顏色',
+  'home.config.targetShape': '目標物形狀',
   'home.config.customTargetPreview': '自訂目標預覽',
   'home.config.gaborMaxSpots': '最大斑塊數量',
   'home.config.gaborDuration': '測驗時長',

@@ -1,4 +1,4 @@
-import { TranslationKey } from './zh';
+import type { TranslationKey } from './zh';
 
 export const en: Record<TranslationKey, string> = {
   // Navigation
@@ -73,6 +73,7 @@ export const en: Record<TranslationKey, string> = {
   'home.config.colors': 'Colors',
   'home.config.targetColor': 'Target Color',
   'home.config.bgColor': 'Background Color',
+  'home.config.targetShape': 'Target Shape',
   'home.config.customTargetPreview': 'Custom Target Preview',
   'home.config.gaborMaxSpots': 'Max Spots',
   'home.config.gaborDuration': 'Test Duration',

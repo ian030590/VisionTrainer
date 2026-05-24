@@ -173,7 +173,7 @@ export function AcuityTestPage() {
     if (!isWebGazerPL) return;
 
     if (!(window as any).webgazer) {
-      throw new Error(t('assess.wgErrorNotLoaded'));
+      throw alert(t('acuity.wgNotLoaded'));
     }
 
     if (!gazeExtensionRef.current) {
@@ -184,7 +184,7 @@ export function AcuityTestPage() {
 
     const extension = gazeExtensionRef.current;
     if (!extension) {
-      throw new Error(t('assess.wgErrorInit'));
+      throw alert(t('acuity.wgFailed'));
     }
 
     if (!extension.isInitialized()) {
@@ -194,7 +194,7 @@ export function AcuityTestPage() {
     extension.hideVideo();
     extension.hidePredictions();
     extension.resume();
-  }, [isWebGazerPL]);
+  }, [isWebGazerPL, t]);
 
   // ── Initialize and manage the test ──
   const startTest = useCallback(() => {
@@ -220,17 +220,18 @@ export function AcuityTestPage() {
     }
 
     setWebGazerStatus('starting');
-    setWebGazerMessage(t('assess.wgStarting'));
+    setWebGazerMessage(t('acuity.wgStarting'));
     ensureWebGazerReady()
       .then(() => {
         setWebGazerStatus('ready');
         begin();
       })
-      .catch((error) => {
+      .catch((err) => {
         setWebGazerStatus('error');
-        setWebGazerMessage(error instanceof Error ? error.message : t('assess.wgErrorStart'));
+        console.error(err);
+        alert(t('acuity.wgFailed'));
       });
-  }, [ensureWebGazerReady, isWebGazerPL, testType]);
+  }, [ensureWebGazerReady, isWebGazerPL, testType, t]);
 
   const runNextTrial = useCallback(() => {
     const pest = pestRef.current;
@@ -270,7 +271,7 @@ export function AcuityTestPage() {
       drawStimulus();
       setPhase('stimulus');
     }, 300);
-  }, [testType, totalTrials]);
+  }, [testType, totalTrials, drawStimulus]);
 
   const drawStimulus = useCallback(() => {
     const canvas = canvasRef.current;
@@ -563,8 +564,8 @@ export function AcuityTestPage() {
           <p>{getTestInstruction(testType, t)}</p>
           {isWebGazerPL ? (
             <div className="webgazer-pl-intro">
-              <strong>{t('assess.wgIntroTitle')}</strong>
-              <span>{t('assess.wgIntroDesc')}</span>
+              <h3>{t('acuity.plWgMethod')}</h3>
+              <p>{t('acuity.plWgInst')}</p>
             </div>
           ) : (
             <div className="acuity-intro-keys">
@@ -579,7 +580,7 @@ export function AcuityTestPage() {
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
               <polygon points="5,3 19,12 5,21" />
             </svg>
-            {webGazerStatus === 'starting' ? t('assess.wgStartingBtn') : t('btn.startTest')}
+            {webGazerStatus === 'starting' ? t('acuity.startingWg') : t('btn.startTest')}
           </button>
           {webGazerMessage && (
             <p className={`webgazer-pl-message ${webGazerStatus === 'error' ? 'error' : ''}`}>
@@ -619,7 +620,7 @@ export function AcuityTestPage() {
         <button
           className="acuity-abort-btn"
           onClick={() => navigate('/assessment')}
-          title={t('assess.abortTest')}
+          title={t('acuity.abortTest')}
         >
           ✕
         </button>
@@ -635,6 +636,8 @@ export function AcuityTestPage() {
   const finalSnellen = formatSnellenFraction(finalDecVA);
   const finalLetterScore = Math.round(lettersFromLogMAR(finalLogMAR));
   const correctCount = records.filter((r) => r.correct).length;
+  const correctRate = records.length > 0 ? correctCount / records.length : 0;
+  const decimalAcuity = finalDecVA.toFixed(2);
 
   const downloadCSV = () => {
     const dateStr = new Date().toISOString().split('T')[0];
@@ -645,11 +648,11 @@ export function AcuityTestPage() {
       t('exp.csv.user'),
       t('exp.csv.date'),
       t('exp.csv.time'),
-      t('assess.csv.test'),
-      t('assess.csv.trial'),
-      t('assess.csv.presented'),
-      t('assess.csv.responded'),
-      t('exp.csv.correct'),
+      t('acuity.csv.test'),
+      t('acuity.csv.trial'),
+      t('acuity.csv.presented'),
+      t('acuity.csv.response'),
+      t('acuity.csv.correct'),
       'LogMAR',
       'StrokePx',
       'ResponseMode',
@@ -667,12 +670,12 @@ export function AcuityTestPage() {
       r.gazeTotalSamples ?? '',
     ]);
     rows.push([]);
-    rows.push([t('assess.csv.finalResult')]);
-    rows.push(['LogMAR', finalLogMAR.toFixed(2)]);
+    rows.push([t('acuity.csv.finalResult')]);
+    rows.push([t('acuity.csv.decimalAcuity'), finalLogMAR.toFixed(2)]);
     rows.push([t('assess.csv.decVA'), finalDecVA.toFixed(2)]);
     rows.push(['Snellen', finalSnellen]);
     rows.push(['Letter Score', String(finalLetterScore)]);
-    rows.push([t('exp.csv.accuracy'), `${correctCount}/${records.length}`]);
+    rows.push([t('acuity.csv.accuracy'), `${(correctRate * 100).toFixed(1)}%`]);
 
     const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
     const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
@@ -687,7 +690,7 @@ export function AcuityTestPage() {
   return (
     <div className="experiment-container" style={{ overflowY: 'auto' }}>
       <div className="acuity-results">
-        <h1>{t('assess.results.title')}</h1>
+        <h1 style={{ fontSize: 32 }}>{t('acuity.done')}</h1>
 
         <div className="acuity-result-cards">
           <div className="acuity-result-card">
@@ -695,7 +698,7 @@ export function AcuityTestPage() {
             <div className="acuity-result-value">{finalLogMAR.toFixed(2)}</div>
           </div>
           <div className="acuity-result-card">
-            <div className="acuity-result-label">{t('assess.csv.decVA')}</div>
+            <div className="test-hint fade-in">{t('acuity.kbInst')}</div>
             <div className="acuity-result-value">{finalDecVA.toFixed(2)}</div>
           </div>
           <div className="acuity-result-card">
@@ -710,6 +713,7 @@ export function AcuityTestPage() {
 
         <div className="acuity-result-meta">
           <span>{t('assess.config.test')}: <b>{getTestTitle(testType, t)}</b></span>
+          <span>{t('acuity.decimalAcuity')}: <b style={{ color: 'var(--accent)' }}>{decimalAcuity}</b></span>
           <span>{t('exp.csv.accuracy')}: <b style={{ color: 'var(--accent)' }}>{correctCount}/{records.length}</b></span>
           <span>{t('assess.config.user')}: <b>{userName}</b></span>
           {testType === 'gratings' && (
@@ -721,10 +725,10 @@ export function AcuityTestPage() {
         <table className="results-table">
           <thead>
             <tr>
-              <th>{t('assess.csv.trial')}</th>
-              <th>{t('assess.csv.presented')}</th>
-              <th>{t('assess.csv.responded')}</th>
-              <th>{t('exp.results.correct')}</th>
+              <th>{t('acuity.csv.trial')}</th>
+              <th>{t('acuity.csv.presented')}</th>
+              <th>{t('acuity.csv.response')}</th>
+              <th>{t('acuity.csv.correct')}</th>
               <th>LogMAR</th>
             </tr>
           </thead>
@@ -747,10 +751,10 @@ export function AcuityTestPage() {
 
         <div className="results-actions">
           <button className="btn btn-primary btn-lg" onClick={downloadCSV}>
-            {t('assess.downloadCsv')}
+            {t('acuity.downloadCsv')}
           </button>
           <button className="btn btn-secondary btn-lg" onClick={() => navigate('/assessment')}>
-            {t('assess.backToAssess')}
+            {t('acuity.backAssess')}
           </button>
         </div>
 

@@ -109,12 +109,6 @@ class PixiGaborPatchPlugin implements JsPsychPlugin<Info> {
     container.style.cursor = 'crosshair';
     display_element.appendChild(container);
 
-    const canvas = document.createElement('canvas');
-    canvas.style.display = 'block';
-    canvas.style.width = '100%';
-    canvas.style.height = '100%';
-    container.appendChild(canvas);
-
     const HUD = document.createElement('div');
     HUD.style.position = 'absolute';
     HUD.style.top = '20px';
@@ -140,12 +134,11 @@ class PixiGaborPatchPlugin implements JsPsychPlugin<Info> {
     this.spots = [];
     this.isGameOver = false;
 
-    pixiAppManager.getApp(canvas, {
-      background: trial.background_color,
-      antialias: false,
-      resolution: window.devicePixelRatio || 1,
-    }).then(app => {
+    pixiAppManager.ensureReady().then(app => {
       this.app = app;
+      pixiAppManager.attachTo(container);
+      pixiAppManager.clearStage();
+      app.renderer.background.color = trial.background_color ?? '#808080';
       
       // Generate some distinct Gabor textures
       this.textures = [
@@ -159,7 +152,8 @@ class PixiGaborPatchPlugin implements JsPsychPlugin<Info> {
 
       const updateHUD = () => {
         const elapsed = performance.now() - this.gameStartTime;
-        const remaining = Math.max(0, Math.ceil((trial.duration_ms - elapsed) / 1000));
+        const duration = trial.duration_ms ?? 60000;
+        const remaining = Math.max(0, Math.ceil((duration - elapsed) / 1000));
         timerEl.textContent = `Time: ${remaining}s`;
         scoreEl.textContent = `Score: ${this.score}`;
       };
@@ -171,14 +165,18 @@ class PixiGaborPatchPlugin implements JsPsychPlugin<Info> {
         const sprite = new Sprite(tex);
         
         sprite.anchor.set(0.5);
-        sprite.x = 128 + Math.random() * (this.app.screen.width - 256);
-        sprite.y = 128 + Math.random() * (this.app.screen.height - 256);
+        sprite.x = 128 + Math.random() * (this.app!.screen.width - 256);
+        sprite.y = 128 + Math.random() * (this.app!.screen.height - 256);
         sprite.rotation = Math.random() * Math.PI * 2;
         
-        const size = trial.min_size + Math.random() * Math.random() * (trial.max_size - trial.min_size);
+        const minSize = trial.min_size ?? 0.2;
+        const maxSize = trial.max_size ?? 0.8;
+        const size = minSize + Math.random() * Math.random() * (maxSize - minSize);
         sprite.scale.set(size);
         
-        const opacity = trial.min_opacity + Math.random() * (trial.max_opacity - trial.min_opacity);
+        const minOp = trial.min_opacity ?? 0.15;
+        const maxOp = trial.max_opacity ?? 0.8;
+        const opacity = minOp + Math.random() * (maxOp - minOp);
         sprite.alpha = 0; // Fade in
         
         sprite.eventMode = 'static';
@@ -186,12 +184,12 @@ class PixiGaborPatchPlugin implements JsPsychPlugin<Info> {
 
         const spotData = { sprite, size, opacity, type };
 
-        sprite.on('pointerdown', (e) => {
+        sprite.on('pointerdown', (e: any) => {
           e.stopPropagation();
           this.handleSpotClick(spotData);
         });
 
-        this.app.stage.addChild(sprite);
+        this.app!.stage.addChild(sprite);
         this.spots.push(spotData);
       };
 
@@ -199,7 +197,7 @@ class PixiGaborPatchPlugin implements JsPsychPlugin<Info> {
         if (this.isGameOver || !this.app) return;
         
         const elapsed = time - this.gameStartTime;
-        if (elapsed >= trial.duration_ms) {
+        if (elapsed >= (trial.duration_ms ?? 60000)) {
           this.endGame(trial, display_element);
           return;
         }
@@ -214,7 +212,7 @@ class PixiGaborPatchPlugin implements JsPsychPlugin<Info> {
         }
 
         // Spawn new spots if under limit
-        if (this.spots.length < trial.max_spots && Math.random() < 0.05) {
+        if (this.spots.length < (trial.max_spots ?? 10) && Math.random() < 0.05) {
           spawnSpot();
         }
 
@@ -247,14 +245,20 @@ class PixiGaborPatchPlugin implements JsPsychPlugin<Info> {
     this.hits += 1;
 
     // Show floating score
-    const floatText = new Text(finalPoints.toString(), {
-      fontFamily: 'Inter',
-      fontSize: 24,
-      fontWeight: 'bold',
-      fill: 0xFFFFFF,
-      dropShadow: true,
-      dropShadowColor: 0x000000,
-      dropShadowDistance: 2,
+    const floatText = new Text({
+      text: finalPoints.toString(),
+      style: {
+        fontFamily: 'Inter',
+        fontSize: 24,
+        fontWeight: 'bold',
+        fill: 0xFFFFFF,
+        dropShadow: {
+          alpha: 0.5,
+          color: 0x000000,
+          blur: 2,
+          distance: 2,
+        }
+      }
     });
     floatText.anchor.set(0.5);
     floatText.x = spot.sprite.x;
@@ -287,7 +291,8 @@ class PixiGaborPatchPlugin implements JsPsychPlugin<Info> {
     cancelAnimationFrame(this.gameLoopRaf);
 
     if (this.app) {
-      pixiAppManager.releaseApp(this.app);
+      pixiAppManager.clearStage();
+      pixiAppManager.detachCanvas();
       this.app = null;
     }
 

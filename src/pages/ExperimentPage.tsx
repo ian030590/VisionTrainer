@@ -155,9 +155,9 @@ export function ExperimentPage() {
     const isGabor = moduleId === 'gabor-patch';
     let headers: string[];
     if (isOculomotor) {
-      headers = [t('exp.csv.user'), t('exp.csv.date'), t('exp.csv.time'), t('exp.csv.module'), t('exp.csv.mode'), t('exp.csv.path'), t('exp.csv.durationMs'), t('exp.csv.hits'), t('exp.csv.avgFps'), t('exp.csv.status')];
+      headers = [t('exp.csv.user'), t('exp.csv.date'), t('exp.csv.time'), t('exp.csv.module'), t('exp.csv.mode'), t('exp.csv.path'), t('exp.csv.duration'), t('exp.csv.acquired'), t('exp.csv.fps'), t('exp.csv.status')];
     } else if (isGabor) {
-      headers = [t('exp.csv.user'), t('exp.csv.date'), t('exp.csv.time'), t('exp.csv.module'), t('exp.csv.durationMs'), 'Score', t('exp.csv.hits')];
+      headers = [t('exp.csv.user'), t('exp.csv.date'), t('exp.csv.time'), t('exp.csv.module'), t('exp.csv.duration'), 'Score', t('exp.csv.acquired')];
     } else {
       headers = [t('exp.csv.user'), t('exp.csv.date'), t('exp.csv.time'), t('exp.csv.module'), t('exp.csv.diff'), t('exp.csv.round'), t('exp.csv.target'), t('exp.csv.response'), t('exp.csv.correct'), t('exp.csv.rt')];
     }
@@ -237,11 +237,11 @@ export function ExperimentPage() {
               fontSize: 14,
               color: 'var(--text-secondary)',
             }}>
-              <span>{t('exp.results.mode')}: <b style={{ color: 'var(--accent)' }}>{t(`preset.mode.${oculomotorResult?.mode || oculomotorMode}` as any)}</b></span>
-              <span>{t('exp.results.path')}: <b style={{ color: 'var(--accent)' }}>{t(`preset.path.${oculomotorResult?.pattern || oculomotorPattern}` as any)}</b></span>
-              <span>{t('exp.results.hits')}: <b style={{ color: 'var(--accent)' }}>{oculomotorResult?.acquired_targets ?? 0}</b></span>
-              <span>{t('exp.results.avgFps')}: <b style={{ color: 'var(--accent)' }}>{oculomotorResult?.average_fps ?? '-'}</b></span>
-              <span>{t('exp.results.user')}: <b>{userName}</b></span>
+              <span>{t('exp.res.mode')}: <b style={{ color: 'var(--accent)' }}>{t(`preset.mode.${oculomotorResult?.mode || oculomotorMode}` as any)}</b></span>
+              <span>{t('exp.res.path')}: <b style={{ color: 'var(--accent)' }}>{t(`preset.path.${oculomotorResult?.pattern || oculomotorPattern}` as any)}</b></span>
+              <span>{t('exp.res.acquired')}: <b style={{ color: 'var(--accent)' }}>{oculomotorResult?.acquired_targets ?? 0}</b></span>
+              <span>{t('exp.res.fps')}: <b style={{ color: 'var(--accent)' }}>{oculomotorResult?.average_fps ?? '-'}</b></span>
+              <span>{t('exp.res.user')}: <b>{userName}</b></span>
             </div>
           </>
         ) : moduleId === 'gabor-patch' ? (
@@ -258,9 +258,9 @@ export function ExperimentPage() {
               fontSize: 14,
               color: 'var(--text-secondary)',
             }}>
-              <span>{t('exp.results.hits')}: <b style={{ color: 'var(--accent)' }}>{results[0]?.acquired_targets ?? 0}</b></span>
+              <span>{t('exp.res.acquired')}: <b style={{ color: 'var(--accent)' }}>{results[0]?.acquired_targets ?? 0}</b></span>
               <span>{t('home.config.durationLabel')} <b style={{ color: 'var(--accent)' }}>{Math.round((results[0]?.duration_ms ?? 0) / 1000)}s</b></span>
-              <span>{t('exp.results.user')}: <b>{userName}</b></span>
+              <span>{t('exp.res.user')}: <b>{userName}</b></span>
             </div>
           </>
         ) : (
@@ -273,19 +273,19 @@ export function ExperimentPage() {
               fontSize: 14,
               color: 'var(--text-secondary)',
             }}>
-              <span>{t('exp.results.avgRt')}: <b style={{ color: 'var(--accent)' }}>{avgRt} ms</b></span>
-              <span>{t('exp.results.medianRt')}: <b style={{ color: 'var(--accent)' }}>{medianRt} ms</b></span>
-              <span>{t('exp.results.user')}: <b>{userName}</b></span>
+              <span>{t('exp.res.avgRt')}: <b style={{ color: 'var(--accent)' }}>{avgRt} ms</b></span>
+              <span>{t('exp.res.medRt')}: <b style={{ color: 'var(--accent)' }}>{medianRt} ms</b></span>
+              <span>{t('exp.res.user')}: <b>{userName}</b></span>
             </div>
 
             <table className="results-table">
               <thead>
                 <tr>
-                  <th>{t('exp.results.round')}</th>
-                  <th>{t('exp.results.target')}</th>
-                  <th>{t('exp.results.response')}</th>
-                  <th>{t('exp.results.correct')}</th>
-                  <th>{t('exp.results.rtMs')}</th>
+                  <th>{t('exp.res.thRound')}</th>
+                  <th>{t('exp.res.thTarget')}</th>
+                  <th>{t('exp.res.thResp')}</th>
+                  <th>{t('exp.res.thCorrect')}</th>
+                  <th>{t('exp.res.thRt')}</th>
                 </tr>
               </thead>
               <tbody>

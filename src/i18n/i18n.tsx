@@ -1,5 +1,7 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { zh, TranslationKey } from './zh';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { zh } from './zh';
+import type { ReactNode } from 'react';
+import type { TranslationKey } from './zh';
 import { en } from './en';
 
 type Language = 'zh' | 'en';
