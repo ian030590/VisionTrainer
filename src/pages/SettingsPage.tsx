@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import ReactDOM from 'react-dom';
 import { initJsPsych } from 'jspsych';
 import WebGazerExtension from '@jspsych/extension-webgazer';
 import WebGazerInitCameraPlugin from '@jspsych/plugin-webgazer-init-camera';
@@ -439,19 +440,23 @@ function WebGazerCalibrationTab({ refresh }: { refresh: () => void }) {
         )}
       </div>
 
-      {/* Full-screen overlay for calibration */}
-      {status === 'running' && (
-        <div className="webgazer-fullscreen-overlay">
-          <div ref={containerRef} className="webgazer-fullscreen-stage" />
-          <button
-            className="webgazer-cancel-btn"
-            onClick={cancelCalibration}
-            title="取消校正"
-          >
-            ✕ 取消校正 (ESC)
-          </button>
-        </div>
-      )}
+
+      {/* Full-screen overlay for calibration – rendered via Portal on document.body
+          so it is completely independent of the app layout and Navbar */}
+      {status === 'running' &&
+        ReactDOM.createPortal(
+          <div className="webgazer-fullscreen-overlay">
+            <div ref={containerRef} className="webgazer-fullscreen-stage" />
+            <button
+              className="webgazer-cancel-btn"
+              onClick={cancelCalibration}
+              title="取消校正"
+            >
+              ✕ 取消校正 (ESC)
+            </button>
+          </div>,
+          document.body
+        )}
     </div>
   );
 }
