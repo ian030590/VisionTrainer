@@ -48,11 +48,11 @@ export const en: Record<TranslationKey, string> = {
   
   // Modules
   'home.module.movingCard.title': 'Moving Card Training',
-  'home.module.movingCard.desc': 'Train the ability to quickly recognize text on moving cards while fixating on the center.',
+  'home.module.movingCard.desc': 'Find specific targets among moving cards using keyboard arrows, training visual search and dynamic concentration.',
   'home.module.oculomotor.title': 'Oculomotor Training',
-  'home.module.oculomotor.desc': 'Remake of FoveaFlow for smooth pursuit, saccades, MOT, and peripheral fixation.',
-  'home.module.eyegame.title': 'Eyegame Training',
-  'home.module.eyegame.desc': 'Eyetracking game recreated from reference/eyegame.',
+  'home.module.oculomotor.desc': 'Offers various modes like pursuit, saccades, MOT, and peripheral fixation to comprehensively enhance eye movement smoothness, reaction speed, and visual memory.',
+  'home.module.eyegame.title': 'Gabor Patch Training',
+  'home.module.eyegame.desc': 'Find and quickly click on gradually appearing Gabor patches. This exercise aims to stimulate the visual cortex and improve contrast sensitivity and dynamic acuity.',
 
   // Training Config
   'home.config.difficulty': 'Difficulty Setting',
