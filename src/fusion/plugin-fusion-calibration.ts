@@ -48,6 +48,12 @@ class FusionCalibrationPlugin implements JsPsychPlugin<Info> {
       stageContainer = new Container();
       app.stage.addChild(stageContainer);
 
+      // Force Black Background for Anaglyph Contrast
+      const bg = new Graphics();
+      bg.rect(0, 0, app.screen.width, app.screen.height);
+      bg.fill({ color: 0x000000 });
+      stageContainer.addChild(bg);
+
       const cx = app.screen.width / 2;
       const cy = app.screen.height / 2;
 
