@@ -64,6 +64,9 @@ export function HomePage() {
   const [oculomotorCustomTargetImage, setOculomotorCustomTargetImage] = useState(
     () => getSetting('oculomotorCustomTargetImage'),
   );
+  const [oculomotorEnableWebgazer, setOculomotorEnableWebgazer] = useState(
+    () => getSetting('oculomotorEnableWebgazer'),
+  );
   const [gaborDurationSec, setGaborDurationSec] = useState(60);
   const [gaborMaxSpots, setGaborMaxSpots] = useState(10);
   const [prewarmed, setPrewarmed] = useState(() => pixiAppManager.ready);
@@ -158,6 +161,10 @@ export function HomePage() {
   useEffect(() => {
     setSetting('oculomotorCustomTargetImage', oculomotorCustomTargetImage);
   }, [oculomotorCustomTargetImage]);
+
+  useEffect(() => {
+    setSetting('oculomotorEnableWebgazer', oculomotorEnableWebgazer);
+  }, [oculomotorEnableWebgazer]);
 
   // ── Handlers ──
   const handleCardClick = (moduleId: string) => {
@@ -738,6 +745,22 @@ export function HomePage() {
                   />
                 </label>
               </div>
+            </div>
+
+            <div className="config-section">
+              <div className="config-label">{t('settings.train.wgToggle')}</div>
+              <label className="diff-btn" style={{ cursor: 'pointer', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <span className="diff-btn-label">{t('settings.train.wgToggle')}</span>
+                  <span className="diff-btn-desc" style={{ fontSize: '0.85em' }}>{t('settings.train.wgDesc')}</span>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={oculomotorEnableWebgazer}
+                  onChange={(e) => setOculomotorEnableWebgazer(e.target.checked)}
+                  style={{ transform: 'scale(1.5)', cursor: 'pointer' }}
+                />
+              </label>
             </div>
 
             <div className="config-section">

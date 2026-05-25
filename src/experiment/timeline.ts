@@ -5,6 +5,8 @@
 import PixiMovingCardPlugin from './plugins/pixi-moving-card';
 import PixiOculomotorTrainingPlugin from './plugins/pixi-oculomotor-training';
 import PixiGaborPatchPlugin from './plugins/pixi-gabor-patch';
+import WebgazerInitCameraPlugin from '@jspsych/plugin-webgazer-init-camera';
+import WebgazerCalibratePlugin from '@jspsych/plugin-webgazer-calibrate';
 import { getSetting } from '../utils/settings';
 import { generateRandomLetters } from '../utils/mathUtils';
 import { pixelFromDegree, pixelFromMillimeter } from '../utils/spatialUtils';
@@ -105,9 +107,27 @@ function buildOculomotorTimeline(
   const backgroundColor = overrides?.oculomotor?.backgroundColor ?? getSetting('oculomotorBackgroundColor');
   const targetShape = overrides?.oculomotor?.targetShape ?? getSetting('oculomotorTargetShape');
   const customTargetImage = overrides?.oculomotor?.customTargetImage ?? getSetting('oculomotorCustomTargetImage');
+  const enableWebGazer = getSetting('oculomotorEnableWebgazer');
 
-  return [
-    {
+  const timeline: object[] = [];
+
+  if (enableWebGazer) {
+    timeline.push({
+      type: WebgazerInitCameraPlugin,
+    });
+    timeline.push({
+      type: WebgazerCalibratePlugin,
+      calibration_points: [
+        [10, 10], [10, 50], [10, 90],
+        [50, 10], [50, 50], [50, 90],
+        [90, 10], [90, 50], [90, 90],
+      ],
+      repetitions_per_point: 2,
+      randomize_calibration_order: true,
+    });
+  }
+
+  timeline.push({
       type: PixiOculomotorTrainingPlugin,
       mode,
       pattern,
@@ -119,10 +139,13 @@ function buildOculomotorTimeline(
       background_color: backgroundColor,
       target_shape: targetShape,
       custom_target_image: customTargetImage,
+      enable_webgazer: enableWebGazer,
       round_number: 1,
       total_rounds: 1,
-    },
-  ];
+    }
+  );
+
+  return timeline;
 }
 
 function buildGaborPatchTimeline(

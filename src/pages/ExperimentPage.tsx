@@ -5,6 +5,7 @@ import { initJsPsych } from 'jspsych';
 import type { JsPsych } from 'jspsych';
 import PixiMovingCardPlugin from '../experiment/plugins/pixi-moving-card';
 import PixiOculomotorTrainingPlugin from '../experiment/plugins/pixi-oculomotor-training';
+import WebGazerExtension from '@jspsych/extension-webgazer';
 import { buildTimeline } from '../experiment/timeline';
 import { getActiveUser, getSetting } from '../utils/settings';
 import {
@@ -62,6 +63,7 @@ export function ExperimentPage() {
   const oculomotorTargetColor = searchParams.get('targetColor') || getSetting('oculomotorTargetColor');
   const oculomotorBackgroundColor = searchParams.get('backgroundColor') || getSetting('oculomotorBackgroundColor');
   const oculomotorCustomTargetImage = getSetting('oculomotorCustomTargetImage');
+  const enableWebGazer = getSetting('oculomotorEnableWebgazer');
 
   const [phase, setPhase] = useState<Phase>('running');
   const [results, setResults] = useState<TrialData[]>([]);
@@ -86,6 +88,7 @@ export function ExperimentPage() {
 
     const jsPsych = initJsPsych({
       display_element: container,
+      extensions: enableWebGazer ? [{ type: WebGazerExtension }] : [],
       on_finish: () => {
         const data = jsPsych.data.get().values() as TrialData[];
         setResults(data);
@@ -154,7 +157,7 @@ export function ExperimentPage() {
     const isGabor = moduleId === 'gabor-patch';
     let headers: string[];
     if (isOculomotor) {
-      headers = [t('exp.csv.user'), t('exp.csv.date'), t('exp.csv.time'), t('exp.csv.module'), t('exp.csv.mode'), t('exp.csv.path'), t('exp.csv.duration'), t('exp.csv.acquired'), t('exp.csv.fps'), t('exp.csv.status')];
+      headers = [t('exp.csv.user'), t('exp.csv.date'), t('exp.csv.time'), t('exp.csv.module'), t('exp.csv.mode'), t('exp.csv.path'), t('exp.csv.duration'), t('exp.csv.acquired'), t('exp.csv.fps'), 'AOI Score', t('exp.csv.status')];
     } else if (isGabor) {
       headers = [t('exp.csv.user'), t('exp.csv.date'), t('exp.csv.time'), t('exp.csv.module'), t('exp.csv.duration'), t('exp.csv.score'), t('exp.csv.acquired')];
     } else {
@@ -163,7 +166,7 @@ export function ExperimentPage() {
     const rows: (string | number)[][] = results.map((r, i) => {
       const baseRow = [userName, dateStr, timeStr, moduleId];
       if (isOculomotor) {
-        return [...baseRow, t(`preset.mode.${r.mode || oculomotorMode}` as any), t(`preset.path.${r.pattern || oculomotorPattern}` as any), r.duration_ms ?? r.rt, r.acquired_targets ?? 0, r.average_fps ?? '', r.response];
+        return [...baseRow, t(`preset.mode.${r.mode || oculomotorMode}` as any), t(`preset.path.${r.pattern || oculomotorPattern}` as any), r.duration_ms ?? r.rt, r.acquired_targets ?? 0, r.average_fps ?? '', (r as any).aoi_score ?? '-', r.response];
       } else if (isGabor) {
         return [...baseRow, r.duration_ms ?? r.rt, r.score ?? 0, r.acquired_targets ?? 0];
       } else {
@@ -240,6 +243,9 @@ export function ExperimentPage() {
               <span>{t('exp.res.path')}: <b style={{ color: 'var(--accent)' }}>{t(`preset.path.${oculomotorResult?.pattern || oculomotorPattern}` as any)}</b></span>
               <span>{t('exp.res.acquired')}: <b style={{ color: 'var(--accent)' }}>{oculomotorResult?.acquired_targets ?? 0}</b></span>
               <span>{t('exp.res.fps')}: <b style={{ color: 'var(--accent)' }}>{oculomotorResult?.average_fps ?? '-'}</b></span>
+              {(oculomotorResult as any)?.aoi_score !== undefined && (
+                <span>AOI Score: <b style={{ color: 'var(--accent)' }}>{(oculomotorResult as any).aoi_score}</b></span>
+              )}
               <span>{t('exp.res.user')}: <b>{userName}</b></span>
             </div>
           </>

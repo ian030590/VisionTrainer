@@ -41,6 +41,7 @@ export interface AppSettings {
   oculomotorCustomTargetImage: string;
   preferentialLookingInputMode: 'keyboard' | 'webgazer';
   webGazerCalibrationAt: string;
+  oculomotorEnableWebgazer: boolean;
 }
 
 interface SettingMeta<T> {
@@ -77,6 +78,7 @@ const META: { [K in keyof AppSettings]: SettingMeta<AppSettings[K]> } = {
   oculomotorCustomTargetImage: { dflt: '' },
   preferentialLookingInputMode: { dflt: 'keyboard' },
   webGazerCalibrationAt: { dflt: '' },
+  oculomotorEnableWebgazer: { dflt: false },
 };
 
 function storageKey(name: string): string {

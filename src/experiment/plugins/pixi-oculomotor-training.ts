@@ -9,6 +9,7 @@ import type { JsPsychPlugin, TrialType } from 'jspsych';
 import { Application, Graphics, Sprite, Text, Texture } from 'pixi.js';
 import { pixiColors, typography } from '../../theme';
 import { pixiAppManager } from '../../utils/pixiPool';
+import { pixelFromDegree } from '../../utils/spatialUtils';
 import { createRng } from '../../oculomotor/random';
 import { sampleOculomotorPatternInto } from '../../oculomotor/patterns';
 import type { Arena, OculomotorMode, OculomotorPattern, OculomotorTargetShape, TargetFrame } from '../../oculomotor/types';
@@ -66,6 +67,10 @@ const info = {
       type: ParameterType.INT,
       default: 1,
     },
+    enable_webgazer: {
+      type: ParameterType.BOOL,
+      default: false,
+    },
   },
   data: {
     rt: { type: ParameterType.INT },
@@ -77,6 +82,7 @@ const info = {
     acquired_targets: { type: ParameterType.INT },
     average_fps: { type: ParameterType.FLOAT },
     duration_ms: { type: ParameterType.INT },
+    aoi_score: { type: ParameterType.INT },
   },
 } as const;
 
@@ -261,6 +267,15 @@ class PixiOculomotorTrainingPlugin implements JsPsychPlugin<Info> {
     let lastFpsTimestamp = performance.now();
     let flashUntil = 0;
 
+    const enableWebgazer = trial.enable_webgazer as boolean;
+    let wgState: 'training' | 'calibration' = 'training';
+    let timeSinceLastCalibrationMs = 0;
+    let calibrationEndTime = 0;
+    let totalTrainingTimeMs = 0;
+    let totalAOITimeMs = 0;
+    let calibrationPausedMs = 0;
+    const aoiRadiusPx = pixelFromDegree(5);
+
     const runWithApp = (app: Application) => {
       manager.clearStage();
       manager.attachTo(wrapper);
@@ -333,7 +348,7 @@ class PixiOculomotorTrainingPlugin implements JsPsychPlugin<Info> {
       const getElapsedMs = () => {
         const now = performance.now();
         const activePause = paused ? now - pauseStartedAt : 0;
-        return Math.max(0, now - startTime - pausedMs - activePause);
+        return Math.max(0, now - startTime - pausedMs - activePause - calibrationPausedMs);
       };
 
       const getElapsedSec = () => getElapsedMs() / 1000;
@@ -471,6 +486,7 @@ class PixiOculomotorTrainingPlugin implements JsPsychPlugin<Info> {
 
         const elapsed = Math.min(durationMs, Math.round(getElapsedMs()));
         const averageFps = frameCount > 0 ? fpsAccumulator / frameCount : 0;
+        const aoiScore = totalTrainingTimeMs > 0 ? Math.round((totalAOITimeMs / totalTrainingTimeMs) * 100) : 0;
 
         self.jsPsych.finishTrial({
           rt: elapsed,
@@ -482,6 +498,7 @@ class PixiOculomotorTrainingPlugin implements JsPsychPlugin<Info> {
           acquired_targets: acquiredTargets,
           average_fps: Math.round(averageFps * 10) / 10,
           duration_ms: elapsed,
+          aoi_score: enableWebgazer ? aoiScore : undefined,
         });
       };
 
@@ -551,6 +568,14 @@ class PixiOculomotorTrainingPlugin implements JsPsychPlugin<Info> {
         reactionLetter.visible = false;
         lilacGfx.visible = mode === 'lilac-chaser';
 
+        if (wgState === 'calibration') {
+          const cx = arena.width / 2;
+          const cy = arena.height / 2;
+          targetGfx.moveTo(cx - 24, cy).lineTo(cx + 24, cy).stroke({ color: 0xffffff, width: 4 });
+          targetGfx.moveTo(cx, cy - 24).lineTo(cx, cy + 24).stroke({ color: 0xffffff, width: 4 });
+          return;
+        }
+
         if (mode === 'lilac-chaser') {
           drawLilacChaser(arena, elapsedSec);
           return;
@@ -615,6 +640,45 @@ class PixiOculomotorTrainingPlugin implements JsPsychPlugin<Info> {
         if (dt > 0 && dt < 1000) {
           frameCount += 1;
           fpsAccumulator += 1000 / dt;
+
+          if (enableWebgazer && !paused) {
+            let currentPrediction: { x: number, y: number } | null = null;
+            if (self.jsPsych.extensions?.webgazer) {
+              currentPrediction = (self.jsPsych.extensions.webgazer as any).getCurrentPrediction();
+            } else if ((window as any).webgazer) {
+              currentPrediction = (window as any).webgazer.getCurrentPrediction();
+            }
+
+            if (wgState === 'training') {
+              timeSinceLastCalibrationMs += dt;
+              totalTrainingTimeMs += dt;
+              
+              if (currentPrediction && latestTarget) {
+                const dx = currentPrediction.x - latestTarget.x;
+                const dy = currentPrediction.y - latestTarget.y;
+                if (Math.hypot(dx, dy) <= aoiRadiusPx) {
+                  totalAOITimeMs += dt;
+                }
+              }
+
+              if (timeSinceLastCalibrationMs >= 17000) {
+                wgState = 'calibration';
+                calibrationEndTime = now + 3000;
+              }
+            } else if (wgState === 'calibration') {
+              calibrationPausedMs += dt;
+              if (now >= calibrationEndTime) {
+                wgState = 'training';
+                timeSinceLastCalibrationMs = 0;
+              } else {
+                if (currentPrediction && (window as any).webgazer) {
+                  const cx = app.screen.width / 2;
+                  const cy = app.screen.height / 2;
+                  (window as any).webgazer.recordScreenPosition(cx, cy, 'click');
+                }
+              }
+            }
+          }
         }
 
         if (!paused) {
