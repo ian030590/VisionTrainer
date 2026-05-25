@@ -782,15 +782,15 @@ function getTestTitle(t: TestType, tFunc: any): string {
 function getTestInstruction(t: TestType, tFunc: any): string {
   switch (t) {
     case 'landolt':
-      return tFunc('assess.landolt.inst');
+      return tFunc('acuity.inst.landolt');
     case 'tumblingE':
-      return tFunc('assess.tumblingE.inst');
+      return tFunc('acuity.inst.tumbling');
     case 'letters':
-      return tFunc('assess.sloan.inst');
+      return tFunc('acuity.inst.sloan');
     case 'pictures':
-      return tFunc('assess.shapes.inst');
+      return tFunc('acuity.inst.shapes');
     case 'gratings':
-      return tFunc('assess.pl.inst');
+      return tFunc('acuity.inst.pl');
   }
 }
 
