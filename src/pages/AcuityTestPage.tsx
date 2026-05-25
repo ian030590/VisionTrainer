@@ -827,8 +827,8 @@ function getKeyHints(t: TestType, tFunc: any): React.ReactNode {
     case 'gratings':
       return (
         <div className="key-hints-grid-4">
-          <div className="key-hint" style={{ gridColumn: 1, gridRow: 2 }}>← {tFunc('assess.left')}</div>
-          <div className="key-hint" style={{ gridColumn: 3, gridRow: 2 }}>{tFunc('assess.right')} →</div>
+          <div className="key-hint" style={{ gridColumn: 1, gridRow: 2 }}>← {tFunc('acuity.lbl.left')}</div>
+          <div className="key-hint" style={{ gridColumn: 3, gridRow: 2 }}>{tFunc('acuity.lbl.right')} →</div>
         </div>
       );
   }
@@ -880,8 +880,8 @@ function renderTouchButtons(testType: TestType, onResponse: (idx: number) => voi
     case 'gratings':
       return (
         <div className="touch-btn-cross">
-          <button className="direction-btn dir-left" onClick={() => onResponse(0)}>← {tFunc('assess.left')}</button>
-          <button className="direction-btn dir-right" onClick={() => onResponse(1)}>{tFunc('assess.right')} →</button>
+          <button className="direction-btn dir-left" onClick={() => onResponse(0)}>← {tFunc('acuity.lbl.left')}</button>
+          <button className="direction-btn dir-right" onClick={() => onResponse(1)}>{tFunc('acuity.lbl.right')} →</button>
         </div>
       );
   }
@@ -898,6 +898,6 @@ function formatAlternative(testType: TestType, idx: number, tFunc: any): string 
     case 'pictures':
       return PICTURE_NAMES[idx] || String(idx);
     case 'gratings':
-      return idx === 0 ? tFunc('assess.left') : tFunc('assess.right');
+      return idx === 0 ? tFunc('acuity.lbl.left') : tFunc('acuity.lbl.right');
   }
 }
