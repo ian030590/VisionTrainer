@@ -212,7 +212,7 @@ export const zh = {
   'exp.res.thResp': '作答',
   'exp.res.thCorrect': '正確',
   'exp.res.thRt': '反應時間 (ms)',
-  'exp.downloadCsv': '📥 下載 CSV 成績',
+  'exp.downloadCsv': '下載 CSV 成績',
   'exp.backHome': '← 返回首頁',
 
   // Acuity Test Page

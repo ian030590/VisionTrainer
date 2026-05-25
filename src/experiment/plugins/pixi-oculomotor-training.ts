@@ -284,6 +284,7 @@ class PixiOculomotorTrainingPlugin implements JsPsychPlugin<Info> {
         : null;
 
       let latestTarget: TargetFrame | null = null;
+      let hudVisible = false;
 
       app.stage.addChild(bgGfx, guideGfx, lilacGfx, targetGfx, reactionLetter, hudGfx, titleText, metaText, timeText, pauseText, exitText);
 
@@ -358,10 +359,21 @@ class PixiOculomotorTrainingPlugin implements JsPsychPlugin<Info> {
         const w = app.screen.width;
         const h = app.screen.height;
         const hudHeight = Math.max(58, Math.min(72, h * 0.09));
+
+        hudVisible = paused;
+
+        hudGfx.clear();
+        titleText.visible = hudVisible;
+        metaText.visible = hudVisible;
+        timeText.visible = hudVisible;
+        pauseText.visible = hudVisible;
+        exitText.visible = hudVisible;
+
+        if (!hudVisible) return;
+
         const buttonY = hudHeight / 2 - 15;
 
         hudGfx
-          .clear()
           .rect(0, 0, w, hudHeight)
           .fill({ color: pixiColors.bgPanel, alpha: 0.94 })
           .rect(0, hudHeight - 1, w, 1)
@@ -420,9 +432,9 @@ class PixiOculomotorTrainingPlugin implements JsPsychPlugin<Info> {
 
         const step = 72;
         for (let x = step; x < arena.width; x += step) {
-          guideGfx.moveTo(x, hudHeight).lineTo(x, arena.height);
+          guideGfx.moveTo(x, 0).lineTo(x, arena.height);
         }
-        for (let y = hudHeight + step; y < arena.height; y += step) {
+        for (let y = step; y < arena.height; y += step) {
           guideGfx.moveTo(0, y).lineTo(arena.width, y);
         }
         guideGfx.stroke({ color: pixiColors.border, width: 1, alpha: 0.26 });
@@ -490,7 +502,7 @@ class PixiOculomotorTrainingPlugin implements JsPsychPlugin<Info> {
         const w = app.screen.width;
         const hudHeight = Math.max(58, Math.min(72, app.screen.height * 0.09));
 
-        if (point.y <= hudHeight) {
+        if (hudVisible && point.y <= hudHeight) {
           if (point.x >= w - 168 && point.x <= w - 96) togglePause();
           if (point.x >= w - 84 && point.x <= w - 24) finish('手動結束');
           return;
