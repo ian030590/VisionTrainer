@@ -564,8 +564,26 @@ class PixiOculomotorTrainingPlugin implements JsPsychPlugin<Info> {
         if (wgState === 'calibration') {
           const cx = arena.width / 2;
           const cy = arena.height / 2;
-          targetGfx.moveTo(cx - 24, cy).lineTo(cx + 24, cy).stroke({ color: 0xffffff, width: 4 });
-          targetGfx.moveTo(cx, cy - 24).lineTo(cx, cy + 24).stroke({ color: 0xffffff, width: 4 });
+          if (customTexture) {
+            const sprite = ensureTargetSprite(0);
+            if (sprite) {
+              sprite.visible = true;
+              sprite.x = cx;
+              sprite.y = cy;
+              sprite.width = radiusPx * 2;
+              sprite.height = radiusPx * 2;
+              sprite.alpha = 1;
+            }
+          } else {
+            drawTargetShape(targetGfx, {
+              x: cx,
+              y: cy,
+              radiusPx,
+              color: targetColor,
+              alpha: 1,
+              role: 'target',
+            }, false, targetShape, backgroundColor);
+          }
           return;
         }
 
