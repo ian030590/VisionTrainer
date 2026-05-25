@@ -292,6 +292,28 @@ export const zh = {
   'fusion.train.q.l': '只看到 L 請按 <b>1</b>',
   'fusion.train.q.r': '只看到 R 請按 <b>2</b>',
   'fusion.train.q.both': '兩者都看到請按 <b>3</b>',
+
+  // Extra
+  'nav.brand': 'Vision Trainer',
+  'eyegame.gameOver': '遊戲結束',
+  'eyegame.clickToBegin': '點擊開始',
+  'acuity.wgSampling': 'WebGazer 採樣中',
+  'acuity.logmar': 'LogMAR',
+  'acuity.snellen': 'Snellen',
+  'acuity.letterScore': '字母分數',
+  'acuity.csv.logmar': 'LogMAR',
+  'acuity.csv.strokePx': '線條粗細(Px)',
+  'acuity.csv.responseMode': '回應模式',
+  'acuity.csv.gazeLeft': '左側視線採樣數',
+  'acuity.csv.gazeRight': '右側視線採樣數',
+  'acuity.csv.gazeTotal': '總視線採樣數',
+  'acuity.csv.snellen': 'Snellen',
+  'acuity.csv.letterScore': '字母分數',
+  'exp.csv.score': '分數',
+  'exp.res.score': '分數:',
+  'fusion.res.complete': '訓練完成',
+  'fusion.res.break': '分裂距離',
+  'fusion.res.recovery': '恢復距離',
 };
 
 export type TranslationKey = keyof typeof zh;

@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useT } from '../i18n';
 import {
   LineChart,
   Line,
@@ -16,6 +17,7 @@ interface FusionResultsProps {
 }
 
 export function FusionResults({ data, onBack }: FusionResultsProps) {
+  const { t } = useT();
   const chartData = useMemo(() => {
     return data
       .filter((trial) => trial.trial_type === 'vergence-training')
@@ -56,7 +58,7 @@ export function FusionResults({ data, onBack }: FusionResultsProps) {
 
   return (
     <div style={{ padding: '2rem', color: '#fff', backgroundColor: '#111', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-      <h1 style={{ marginBottom: '2rem' }}>Training Complete</h1>
+      <h1 style={{ marginBottom: '2rem' }}>{t('fusion.res.complete')}</h1>
       
       <div style={{ width: '80%', height: 400, backgroundColor: '#222', padding: '1rem', borderRadius: '8px' }}>
         <ResponsiveContainer width="100%" height="100%">
@@ -69,8 +71,8 @@ export function FusionResults({ data, onBack }: FusionResultsProps) {
             <YAxis stroke="#ccc" />
             <Tooltip contentStyle={{ backgroundColor: '#333', border: 'none', color: '#fff' }} />
             <Legend />
-            <Line type="monotone" dataKey="breakDistance" stroke="#ff4d4f" strokeWidth={3} name="Break Distance" />
-            <Line type="monotone" dataKey="recoveryDistance" stroke="#52c41a" strokeWidth={3} name="Recovery Distance" />
+            <Line type="monotone" dataKey="breakDistance" stroke="#ff4d4f" strokeWidth={3} name={t('fusion.res.break')} />
+            <Line type="monotone" dataKey="recoveryDistance" stroke="#52c41a" strokeWidth={3} name={t('fusion.res.recovery')} />
           </LineChart>
         </ResponsiveContainer>
       </div>
@@ -89,7 +91,7 @@ export function FusionResults({ data, onBack }: FusionResultsProps) {
             fontWeight: 'bold',
           }}
         >
-          Download CSV
+          {t('exp.downloadCsv')}
         </button>
         <button 
           onClick={onBack}
@@ -103,7 +105,7 @@ export function FusionResults({ data, onBack }: FusionResultsProps) {
             fontSize: '16px',
           }}
         >
-          Back to Home
+          {t('exp.backHome')}
         </button>
       </div>
     </div>

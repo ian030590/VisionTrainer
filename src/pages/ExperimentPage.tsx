@@ -156,7 +156,7 @@ export function ExperimentPage() {
     if (isOculomotor) {
       headers = [t('exp.csv.user'), t('exp.csv.date'), t('exp.csv.time'), t('exp.csv.module'), t('exp.csv.mode'), t('exp.csv.path'), t('exp.csv.duration'), t('exp.csv.acquired'), t('exp.csv.fps'), t('exp.csv.status')];
     } else if (isGabor) {
-      headers = [t('exp.csv.user'), t('exp.csv.date'), t('exp.csv.time'), t('exp.csv.module'), t('exp.csv.duration'), 'Score', t('exp.csv.acquired')];
+      headers = [t('exp.csv.user'), t('exp.csv.date'), t('exp.csv.time'), t('exp.csv.module'), t('exp.csv.duration'), t('exp.csv.score'), t('exp.csv.acquired')];
     } else {
       headers = [t('exp.csv.user'), t('exp.csv.date'), t('exp.csv.time'), t('exp.csv.module'), t('exp.csv.diff'), t('exp.csv.round'), t('exp.csv.target'), t('exp.csv.response'), t('exp.csv.correct'), t('exp.csv.rt')];
     }
@@ -246,7 +246,7 @@ export function ExperimentPage() {
         ) : moduleId === 'gabor-patch' ? (
           <>
             <div className="results-score" style={{ color: 'var(--accent)' }}>
-              Score: {results[0]?.score ?? 0}
+              {t('exp.res.score')} {results[0]?.score ?? 0}
             </div>
             <div style={{
               display: 'flex',

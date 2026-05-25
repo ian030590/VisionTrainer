@@ -1,8 +1,10 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useT } from '../i18n';
 
 export default function EyegamePage() {
   const navigate = useNavigate();
+  const { t } = useT();
 
   // Load eyegame assets on mount
   useEffect(() => {
@@ -32,8 +34,8 @@ export default function EyegamePage() {
 
   return (
     <div className="eyegame-container" style={{ width: '100%', height: '100vh' }}>
-      <div className="game-over">Game Over</div>
-      <div className="start">Click to begin</div>
+      <div className="game-over">{t('eyegame.gameOver')}</div>
+      <div className="start">{t('eyegame.clickToBegin')}</div>
       <div className="game-hud">
         <div className="timer">500</div>
         <div className="score">0</div>

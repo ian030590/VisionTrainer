@@ -609,7 +609,7 @@ export function AcuityTestPage() {
           }}
         />
         {isWebGazerPL && phase === 'stimulus' && (
-          <div className="webgazer-pl-badge">WebGazer sampling</div>
+          <div className="webgazer-pl-badge">{t('acuity.wgSampling')}</div>
         )}
         {!isWebGazerPL && (
           <div className="acuity-touch-controls">
@@ -653,12 +653,12 @@ export function AcuityTestPage() {
       t('acuity.csv.presented'),
       t('acuity.csv.response'),
       t('acuity.csv.correct'),
-      'LogMAR',
-      'StrokePx',
-      'ResponseMode',
-      'GazeLeftSamples',
-      'GazeRightSamples',
-      'GazeTotalSamples',
+      t('acuity.csv.logmar'),
+      t('acuity.csv.strokePx'),
+      t('acuity.csv.responseMode'),
+      t('acuity.csv.gazeLeft'),
+      t('acuity.csv.gazeRight'),
+      t('acuity.csv.gazeTotal'),
     ];
     const rows = records.map((r) => [
       userName, dateStr, timeStr, testType, r.trial,
@@ -673,8 +673,8 @@ export function AcuityTestPage() {
     rows.push([t('acuity.csv.finalResult')]);
     rows.push([t('acuity.csv.decimalAcuity'), finalLogMAR.toFixed(2)]);
     rows.push([t('acuity.decimalAcuity'), finalDecVA.toFixed(2)]);
-    rows.push(['Snellen', finalSnellen]);
-    rows.push(['Letter Score', String(finalLetterScore)]);
+    rows.push([t('acuity.csv.snellen'), finalSnellen]);
+    rows.push([t('acuity.csv.letterScore'), String(finalLetterScore)]);
     rows.push([t('acuity.csv.accuracy'), `${(correctRate * 100).toFixed(1)}%`]);
 
     const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
@@ -694,7 +694,7 @@ export function AcuityTestPage() {
 
         <div className="acuity-result-cards">
           <div className="acuity-result-card">
-            <div className="acuity-result-label">LogMAR</div>
+            <div className="acuity-result-label">{t('acuity.logmar')}</div>
             <div className="acuity-result-value">{finalLogMAR.toFixed(2)}</div>
           </div>
           <div className="acuity-result-card">
@@ -702,11 +702,11 @@ export function AcuityTestPage() {
             <div className="acuity-result-value">{finalDecVA.toFixed(2)}</div>
           </div>
           <div className="acuity-result-card">
-            <div className="acuity-result-label">Snellen</div>
+            <div className="acuity-result-label">{t('acuity.snellen')}</div>
             <div className="acuity-result-value">{finalSnellen}</div>
           </div>
           <div className="acuity-result-card">
-            <div className="acuity-result-label">Letter Score</div>
+            <div className="acuity-result-label">{t('acuity.letterScore')}</div>
             <div className="acuity-result-value">{finalLetterScore}</div>
           </div>
         </div>
@@ -729,7 +729,7 @@ export function AcuityTestPage() {
               <th>{t('acuity.csv.presented')}</th>
               <th>{t('acuity.csv.response')}</th>
               <th>{t('acuity.csv.correct')}</th>
-              <th>LogMAR</th>
+              <th>{t('acuity.logmar')}</th>
             </tr>
           </thead>
           <tbody>
