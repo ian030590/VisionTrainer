@@ -490,9 +490,9 @@ export function HomePage() {
               <path d="M12 2v20" />
             </svg>
           </div>
-          <div className="card-title">Binocular Fusion</div>
+          <div className="card-title">{t('home.module.fusion.title')}</div>
           <div className="card-desc">
-            Train your extraocular muscles with anaglyph vergence techniques.
+            {t('home.module.fusion.desc')}
           </div>
           <div style={{
             display: 'flex',

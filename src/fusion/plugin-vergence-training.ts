@@ -16,6 +16,8 @@ const info = {
     max_separation: { type: ParameterType.INT, default: 150 },
     // Anti-suppression question interval (ms)
     suppression_check_interval: { type: ParameterType.INT, default: 5000 },
+    instruction_html: { type: ParameterType.HTML_STRING, default: '' },
+    question_html: { type: ParameterType.HTML_STRING, default: '' },
   },
   data: {
     break_distance: { type: ParameterType.FLOAT },
@@ -110,7 +112,7 @@ class VergenceTrainingPlugin implements JsPsychPlugin<Info> {
       instructions.style.textAlign = 'center';
       instructions.style.color = '#ffffff';
       instructions.style.fontSize = '20px';
-      instructions.innerHTML = 'Focus on the shape.<br/>Press <b>B</b> when it BREAKS into two.<br/>Press <b>R</b> when it RECOVERS into one.';
+      instructions.innerHTML = trial.instruction_html || 'Focus on the shape.<br/>Press <b>B</b> when it BREAKS into two.<br/>Press <b>R</b> when it RECOVERS into one.';
       uiContainer.appendChild(instructions);
 
       const questionOverlay = document.createElement('div');
@@ -124,7 +126,7 @@ class VergenceTrainingPlugin implements JsPsychPlugin<Info> {
       questionOverlay.style.color = '#fff';
       questionOverlay.style.textAlign = 'center';
       questionOverlay.style.display = 'none';
-      questionOverlay.innerHTML = `
+      questionOverlay.innerHTML = trial.question_html || `
         <h2>What letters do you see?</h2>
         <p>Press <b>1</b> for L only</p>
         <p>Press <b>2</b> for R only</p>

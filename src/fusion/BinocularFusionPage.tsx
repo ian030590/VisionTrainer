@@ -3,9 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { initJsPsych } from 'jspsych';
 import { runFusionTimeline } from './timeline';
 import { FusionResults } from './FusionResults';
+import { useT } from '../i18n';
 
 export function BinocularFusionPage() {
   const navigate = useNavigate();
+  const { t } = useT();
   const jsPsychRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isFinished, setIsFinished] = useState(false);
@@ -28,7 +30,7 @@ export function BinocularFusionPage() {
     jsPsychRef.current = jsPsych;
 
     // Run the timeline
-    runFusionTimeline(jsPsych).catch((err) => {
+    runFusionTimeline(jsPsych, t).catch((err) => {
       console.error('Failed to run fusion timeline:', err);
     });
 

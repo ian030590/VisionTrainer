@@ -15,6 +15,10 @@ const info = {
       type: ParameterType.INT,
       default: 2,
     },
+    instruction_html: {
+      type: ParameterType.HTML_STRING,
+      default: '',
+    },
   },
   data: {
     offsetX: { type: ParameterType.INT },
@@ -84,7 +88,7 @@ class FusionCalibrationPlugin implements JsPsychPlugin<Info> {
       instructions.style.color = '#ffffff';
       instructions.style.fontSize = '20px';
       instructions.style.pointerEvents = 'none';
-      instructions.innerHTML = 'Use Arrow Keys to align the circles until they form a single solid white circle.<br/>Press SPACEBAR when done.';
+      instructions.innerHTML = trial.instruction_html || 'Use Arrow Keys to align the circles until they form a single solid white circle.<br/>Press SPACEBAR when done.';
       display_element.appendChild(instructions);
 
       // Keyboard Handling
