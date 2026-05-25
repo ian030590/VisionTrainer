@@ -438,13 +438,6 @@ class PixiOculomotorTrainingPlugin implements JsPsychPlugin<Info> {
           return;
         }
 
-        guideGfx
-          .moveTo(cx - 9, cy)
-          .lineTo(cx + 9, cy)
-          .moveTo(cx, cy - 9)
-          .lineTo(cx, cy + 9)
-          .stroke({ color: pixiColors.textMuted, width: 2, alpha: 0.8 });
-
         const step = 72;
         for (let x = step; x < arena.width; x += step) {
           guideGfx.moveTo(x, 0).lineTo(x, arena.height);
