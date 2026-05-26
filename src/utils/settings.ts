@@ -39,6 +39,10 @@ export interface AppSettings {
   oculomotorBackgroundColor: string;
   oculomotorTargetShape: 'circle' | 'star' | 'square' | 'cross' | 'triangle' | 'custom';
   oculomotorCustomTargetImage: string;
+  oculomotorTargetOpacity: number;
+  oculomotorBackgroundImage: string;
+  oculomotorAudio: string;
+  oculomotorBounceJitter: number;
   preferentialLookingInputMode: 'keyboard' | 'webgazer';
   webGazerCalibrationAt: string;
   oculomotorEnableWebgazer: boolean;
@@ -69,13 +73,17 @@ const META: { [K in keyof AppSettings]: SettingMeta<AppSettings[K]> } = {
   oculomotorMode:         { dflt: 'pursuit' },
   oculomotorPattern:      { dflt: 'randomWalk' },
   oculomotorDurationSec:  { dflt: 60,   min: 15,   max: 300 },
-  oculomotorSpeedDegPerSec: { dflt: 18, min: 2,    max: 80 },
+  oculomotorSpeedDegPerSec: { dflt: 10, min: 2,    max: 80 },
   oculomotorTargetSizeMm: { dflt: 10,   min: 2,    max: 50 },
   oculomotorDistractorCount: { dflt: 5, min: 0,    max: 12 },
   oculomotorTargetColor:   { dflt: '#FFFFFF' },
   oculomotorBackgroundColor: { dflt: '#000000' },
   oculomotorTargetShape:   { dflt: 'circle' },
   oculomotorCustomTargetImage: { dflt: '' },
+  oculomotorTargetOpacity: { dflt: 1.0, min: 0.1, max: 1.0 },
+  oculomotorBackgroundImage: { dflt: '' },
+  oculomotorAudio: { dflt: '' },
+  oculomotorBounceJitter: { dflt: 0, min: 0, max: 100 },
   preferentialLookingInputMode: { dflt: 'keyboard' },
   webGazerCalibrationAt: { dflt: '' },
   oculomotorEnableWebgazer: { dflt: false },

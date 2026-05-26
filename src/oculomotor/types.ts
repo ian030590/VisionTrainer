@@ -7,13 +7,33 @@ export type OculomotorMode =
 export type OculomotorPattern =
   | 'randomWalk'
   | 'circle'
+  | 'oval'
   | 'figureEight'
   | 'horizontalSweep'
   | 'verticalSweep'
   | 'bounce'
   | 'diagonal'
   | 'spiralBloom'
-  | 'zigZag';
+  | 'zigZag'
+  | 'triangle'
+  | 'square'
+  | 'rectangle'
+  | 'parallelogram'
+  | 'rhombus'
+  | 'trapezoid'
+  | 'kite'
+  | 'pentagon'
+  | 'hexagon'
+  | 'heptagon'
+  | 'octagon'
+  | 'nonagon'
+  | 'decagon'
+  | 'hexagram'
+  | 'decagram'
+  | 'superellipse'
+  | 'deltoid'
+  | 'randomizedSmooth'
+  | 'peekaboo';
 
 export type OculomotorTargetShape =
   | 'circle'
@@ -45,4 +65,6 @@ export interface PatternParams {
   distractorCount: number;
   colorA: number;
   colorB: number;
+  opacity?: number;
+  jitter?: number;
 }

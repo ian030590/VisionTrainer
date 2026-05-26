@@ -59,6 +59,22 @@ const info = {
       type: ParameterType.STRING,
       default: '',
     },
+    opacity: {
+      type: ParameterType.FLOAT,
+      default: 1.0,
+    },
+    background_image: {
+      type: ParameterType.STRING,
+      default: '',
+    },
+    audio: {
+      type: ParameterType.STRING,
+      default: '',
+    },
+    bounce_jitter: {
+      type: ParameterType.INT,
+      default: 0,
+    },
     round_number: {
       type: ParameterType.INT,
       default: 1,
@@ -254,6 +270,10 @@ class PixiOculomotorTrainingPlugin implements JsPsychPlugin<Info> {
     const customTargetImage = typeof trial.custom_target_image === 'string'
       ? trial.custom_target_image
       : '';
+    const opacity = Math.max(0.1, Math.min(1.0, trial.opacity as number));
+    const backgroundImage = typeof trial.background_image === 'string' ? trial.background_image : '';
+    const customAudio = typeof trial.audio === 'string' ? trial.audio : '';
+    const bounceJitter = Math.max(0, trial.bounce_jitter as number);
     const rng = createRng(Math.floor(Math.random() * 2_147_483_646) + 1);
     const manager = pixiAppManager;
 
@@ -302,6 +322,20 @@ class PixiOculomotorTrainingPlugin implements JsPsychPlugin<Info> {
       let hudVisible = false;
 
       app.stage.addChild(bgGfx, guideGfx, lilacGfx, targetGfx, reactionLetter, hudGfx, titleText, metaText, timeText, pauseText, exitText);
+
+      let audioElement: HTMLAudioElement | null = null;
+      if (customAudio) {
+        audioElement = new Audio(customAudio);
+        audioElement.loop = true;
+        audioElement.volume = 0.5; // Adjust as needed or from settings
+        audioElement.play().catch((err) => console.warn('Could not play audio automatically', err));
+      }
+
+      let bgSprite: Sprite | null = null;
+      if (backgroundImage) {
+        bgSprite = new Sprite(Texture.from(backgroundImage));
+        app.stage.addChildAt(bgSprite, 1); // Insert right after bgGfx
+      }
 
       titleText.style = {
         fontFamily: typography.fontFamily,
@@ -473,6 +507,10 @@ class PixiOculomotorTrainingPlugin implements JsPsychPlugin<Info> {
         app.renderer.off('resize', handleResize);
         app.stage.off('pointertap', handleStageTap);
         window.removeEventListener('keydown', handleKeydown);
+        if (audioElement) {
+          audioElement.pause();
+          audioElement.currentTime = 0;
+        }
         manager.clearStage();
         manager.detachCanvas();
         display_element.innerHTML = '';
@@ -500,10 +538,12 @@ class PixiOculomotorTrainingPlugin implements JsPsychPlugin<Info> {
         if (paused) {
           pausedMs += performance.now() - pauseStartedAt;
           paused = false;
+          if (audioElement) audioElement.play().catch(e => console.warn('Audio play failed', e));
           return;
         }
         pauseStartedAt = performance.now();
         paused = true;
+        if (audioElement) audioElement.pause();
       };
 
       const handleStageTap = (event: any) => {
@@ -553,6 +593,14 @@ class PixiOculomotorTrainingPlugin implements JsPsychPlugin<Info> {
         bgGfx.clear().rect(0, 0, arena.width, arena.height).fill({
           color: backgroundColor,
         });
+
+        if (bgSprite) {
+          bgSprite.width = arena.width;
+          bgSprite.height = arena.height;
+          bgSprite.x = 0;
+          bgSprite.y = 0;
+        }
+
         drawGuides(arena, hudHeight);
         drawHud(remainingMs);
 
@@ -613,6 +661,8 @@ class PixiOculomotorTrainingPlugin implements JsPsychPlugin<Info> {
             distractorCount: mode === 'multi-object' ? distractorCount : 0,
             colorA: targetColor,
             colorB: pixiColors.accent,
+            opacity,
+            jitter: bounceJitter,
           },
           rng,
         );

@@ -64,6 +64,18 @@ export function HomePage() {
   const [oculomotorCustomTargetImage, setOculomotorCustomTargetImage] = useState(
     () => getSetting('oculomotorCustomTargetImage'),
   );
+  const [oculomotorTargetOpacity, setOculomotorTargetOpacity] = useState(
+    () => getSetting('oculomotorTargetOpacity'),
+  );
+  const [oculomotorBackgroundImage, setOculomotorBackgroundImage] = useState(
+    () => getSetting('oculomotorBackgroundImage'),
+  );
+  const [oculomotorAudio, setOculomotorAudio] = useState(
+    () => getSetting('oculomotorAudio'),
+  );
+  const [oculomotorBounceJitter, setOculomotorBounceJitter] = useState(
+    () => getSetting('oculomotorBounceJitter'),
+  );
   const [oculomotorEnableWebgazer, setOculomotorEnableWebgazer] = useState(
     () => getSetting('oculomotorEnableWebgazer'),
   );
@@ -163,6 +175,22 @@ export function HomePage() {
   }, [oculomotorCustomTargetImage]);
 
   useEffect(() => {
+    setSetting('oculomotorTargetOpacity', oculomotorTargetOpacity);
+  }, [oculomotorTargetOpacity]);
+
+  useEffect(() => {
+    setSetting('oculomotorBackgroundImage', oculomotorBackgroundImage);
+  }, [oculomotorBackgroundImage]);
+
+  useEffect(() => {
+    setSetting('oculomotorAudio', oculomotorAudio);
+  }, [oculomotorAudio]);
+
+  useEffect(() => {
+    setSetting('oculomotorBounceJitter', oculomotorBounceJitter);
+  }, [oculomotorBounceJitter]);
+
+  useEffect(() => {
     setSetting('oculomotorEnableWebgazer', oculomotorEnableWebgazer);
   }, [oculomotorEnableWebgazer]);
 
@@ -238,6 +266,42 @@ export function HomePage() {
       if (typeof reader.result === 'string') {
         setOculomotorCustomTargetImage(reader.result);
         setOculomotorTargetShape('custom');
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleBackgroundImageChange = (file: File | undefined) => {
+    if (!file) {
+      setOculomotorBackgroundImage('');
+      return;
+    }
+    if (!file.type.startsWith('image/')) {
+      alert(t('home.pleaseSelectImage'));
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setOculomotorBackgroundImage(reader.result);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleAudioChange = (file: File | undefined) => {
+    if (!file) {
+      setOculomotorAudio('');
+      return;
+    }
+    if (!file.type.startsWith('audio/')) {
+      alert(t('home.pleaseSelectAudio')); // We will define this key later or just use english/chinese hardcoded if missing, but let's assume it'll be defined
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setOculomotorAudio(reader.result);
       }
     };
     reader.readAsDataURL(file);
@@ -664,6 +728,20 @@ export function HomePage() {
 
             <div className="config-section">
               <div className="config-label">{t('home.config.speedAndSize')}</div>
+              <div style={{ display: 'flex', gap: 8, marginBottom: 8, justifyContent: 'center' }}>
+                {[1, 2, 4, 8].map(mult => (
+                  <button
+                    key={mult}
+                    className="btn btn-secondary btn-sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setOculomotorSpeedDegPerSec(Math.min(80, oculomotorSpeedDegPerSec * mult));
+                    }}
+                  >
+                    {mult}x
+                  </button>
+                ))}
+              </div>
               <div className="difficulty-selector">
                 <label className="diff-btn" style={{ cursor: 'default', alignItems: 'stretch' }}>
                   <span className="diff-btn-desc">{t('home.config.speed')}</span>
@@ -689,13 +767,13 @@ export function HomePage() {
                     className="rounds-custom-input"
                     type="number"
                     min="2"
-                    max="50"
+                    max="100"
                     value={oculomotorTargetSizeMm}
                     onClick={(e) => e.stopPropagation()}
                     onChange={(e) => {
                       const value = parseFloat(e.target.value);
                       if (Number.isFinite(value)) {
-                        setOculomotorTargetSizeMm(Math.max(2, Math.min(50, value)));
+                        setOculomotorTargetSizeMm(Math.max(2, Math.min(100, value)));
                       }
                     }}
                     style={{ width: '100%' }}
@@ -742,6 +820,70 @@ export function HomePage() {
                     value={oculomotorBackgroundColor}
                     onClick={(e) => e.stopPropagation()}
                     onChange={(e) => setOculomotorBackgroundColor(e.target.value)}
+                  />
+                </label>
+                <label className="color-field" style={{ flex: 2 }}>
+                  <span>{t('home.config.opacity')} ({oculomotorTargetOpacity})</span>
+                  <input
+                    type="range"
+                    min="0.1"
+                    max="1.0"
+                    step="0.1"
+                    value={oculomotorTargetOpacity}
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={(e) => setOculomotorTargetOpacity(parseFloat(e.target.value))}
+                    style={{ width: '100%' }}
+                  />
+                </label>
+              </div>
+            </div>
+            
+            <div className="config-section">
+              <div className="config-label">{t('home.config.advancedConfig')}</div>
+              <div className="color-settings-row">
+                <label className="color-field" style={{ flex: 1 }}>
+                  <span>{t('home.config.bgImage')}</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={(e) => handleBackgroundImageChange(e.target.files?.[0])}
+                    style={{ fontSize: 12, width: '100%' }}
+                  />
+                  {oculomotorBackgroundImage && (
+                    <button className="btn btn-ghost btn-sm" onClick={(e) => { e.stopPropagation(); setOculomotorBackgroundImage(''); }}>
+                      {t('btn.delete')}
+                    </button>
+                  )}
+                </label>
+                <label className="color-field" style={{ flex: 1 }}>
+                  <span>{t('home.config.audio')}</span>
+                  <input
+                    type="file"
+                    accept="audio/*"
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={(e) => handleAudioChange(e.target.files?.[0])}
+                    style={{ fontSize: 12, width: '100%' }}
+                  />
+                  {oculomotorAudio && (
+                    <button className="btn btn-ghost btn-sm" onClick={(e) => { e.stopPropagation(); setOculomotorAudio(''); }}>
+                      {t('btn.delete')}
+                    </button>
+                  )}
+                </label>
+              </div>
+              <div className="color-settings-row" style={{ marginTop: 16 }}>
+                <label className="color-field" style={{ flex: 1 }}>
+                  <span>{t('home.config.bounceJitter')} ({oculomotorBounceJitter})</span>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    step="1"
+                    value={oculomotorBounceJitter}
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={(e) => setOculomotorBounceJitter(parseInt(e.target.value, 10))}
+                    style={{ width: '100%' }}
                   />
                 </label>
               </div>

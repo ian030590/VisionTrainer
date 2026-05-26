@@ -32,6 +32,10 @@ export function buildTimeline(
       backgroundColor?: string;
       targetShape?: OculomotorTargetShape;
       customTargetImage?: string;
+      opacity?: number;
+      backgroundImage?: string;
+      audio?: string;
+      bounceJitter?: number;
     };
     gabor?: {
       durationSec?: number;
@@ -107,6 +111,10 @@ function buildOculomotorTimeline(
   const backgroundColor = overrides?.oculomotor?.backgroundColor ?? getSetting('oculomotorBackgroundColor');
   const targetShape = overrides?.oculomotor?.targetShape ?? getSetting('oculomotorTargetShape');
   const customTargetImage = overrides?.oculomotor?.customTargetImage ?? getSetting('oculomotorCustomTargetImage');
+  const opacity = overrides?.oculomotor?.opacity ?? getSetting('oculomotorTargetOpacity');
+  const backgroundImage = overrides?.oculomotor?.backgroundImage ?? getSetting('oculomotorBackgroundImage');
+  const audio = overrides?.oculomotor?.audio ?? getSetting('oculomotorAudio');
+  const bounceJitter = overrides?.oculomotor?.bounceJitter ?? getSetting('oculomotorBounceJitter');
   const enableWebGazer = getSetting('oculomotorEnableWebgazer');
 
   const timeline: object[] = [];
@@ -142,6 +150,10 @@ function buildOculomotorTimeline(
       background_color: backgroundColor,
       target_shape: targetShape,
       custom_target_image: customTargetImage,
+      opacity,
+      background_image: backgroundImage,
+      audio,
+      bounce_jitter: bounceJitter,
       enable_webgazer: enableWebGazer,
       round_number: 1,
       total_rounds: 1,
