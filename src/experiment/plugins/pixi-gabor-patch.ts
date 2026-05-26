@@ -207,6 +207,10 @@ class PixiGaborPatchPlugin implements JsPsychPlugin<Info> {
       };
 
       const loop = (time: number) => {
+        if (!display_element.isConnected) {
+          this.endGame(trial, display_element);
+          return;
+        }
         if (this.isGameOver || !this.app) return;
         
         const elapsed = time - this.gameStartTime;

@@ -407,6 +407,10 @@ class PixiMovingCardPlugin implements JsPsychPlugin<Info> {
 
       // ── Move Timer ──
       function moveRandomOption() {
+        if (!display_element.isConnected) {
+          endTrial(0, false, 'Unmounted');
+          return;
+        }
         if (trialEnded || options.length === 0) return;
 
         const opt = options[Math.floor(Math.random() * options.length)];

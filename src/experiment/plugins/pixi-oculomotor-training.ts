@@ -695,6 +695,10 @@ class PixiOculomotorTrainingPlugin implements JsPsychPlugin<Info> {
       };
 
       const tick = () => {
+        if (!display_element.isConnected) {
+          finish('Unmounted');
+          return;
+        }
         const now = performance.now();
         const dt = now - lastFpsTimestamp;
         lastFpsTimestamp = now;
