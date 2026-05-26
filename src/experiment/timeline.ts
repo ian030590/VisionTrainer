@@ -7,10 +7,13 @@ import PixiOculomotorTrainingPlugin from './plugins/pixi-oculomotor-training';
 import PixiGaborPatchPlugin from './plugins/pixi-gabor-patch';
 import WebgazerInitCameraPlugin from '@jspsych/plugin-webgazer-init-camera';
 import WebgazerCalibratePlugin from '@jspsych/plugin-webgazer-calibrate';
+import HtmlButtonResponsePlugin from '@jspsych/plugin-html-button-response';
+import PixiReadingTrainingPlugin from './plugins/pixi-reading-training';
 import { getSetting } from '../utils/settings';
 import { generateRandomLetters } from '../utils/mathUtils';
 import { pixelFromDegree, pixelFromMillimeter } from '../utils/spatialUtils';
 import type { OculomotorMode, OculomotorPattern, OculomotorTargetShape } from '../oculomotor/types';
+import type { ReadingStory } from '../reading/types';
 
 /**
  * Build a jsPsych timeline for the given module.
@@ -41,6 +44,12 @@ export function buildTimeline(
       durationSec?: number;
       maxSpots?: number;
     };
+    reading?: {
+      wps?: number;
+      crowding?: number;
+      contrast?: number;
+      story?: ReadingStory;
+    };
   },
 ): object[] {
   switch (moduleId) {
@@ -50,6 +59,8 @@ export function buildTimeline(
       return buildOculomotorTimeline(overrides);
     case 'gabor-patch':
       return buildGaborPatchTimeline(overrides);
+    case 'reading-training':
+      return buildReadingTimeline(overrides);
     default:
       console.warn(`Unknown module: ${moduleId}, falling back to moving-card`);
       return buildMovingCardTimeline(overrides);
@@ -189,4 +200,57 @@ function buildGaborPatchTimeline(
       // Default parameters will be used for min_size, max_size, etc.
     },
   ];
+}
+
+function buildReadingTimeline(
+  overrides?: {
+    reading?: {
+      wps?: number;
+      crowding?: number;
+      contrast?: number;
+      story?: ReadingStory;
+    };
+  }
+): object[] {
+  const wps = overrides?.reading?.wps ?? getSetting('readingWPS');
+  const crowding = overrides?.reading?.crowding ?? getSetting('readingCrowding');
+  const contrast = overrides?.reading?.contrast ?? getSetting('readingContrast');
+  const story = overrides?.reading?.story;
+
+  const timeline: object[] = [];
+
+  if (story && story.content_array) {
+    timeline.push({
+      type: PixiReadingTrainingPlugin,
+      content_array: story.content_array,
+      wps: wps,
+      crowding: crowding,
+      contrast: contrast,
+    });
+    
+    // Pick 10 random questions or all if less than 10
+    const questions = [...(story.questions || [])];
+    questions.sort(() => Math.random() - 0.5);
+    const selectedQuestions = questions.slice(0, 10);
+    
+    for (const q of selectedQuestions) {
+      timeline.push({
+        type: HtmlButtonResponsePlugin,
+        stimulus: `<div style="font-size:24px; font-weight:600; margin-bottom: 24px;">${q.question}</div>`,
+        choices: q.options,
+        data: {
+          target: q.question,
+          correct_index: q.correct_index,
+        },
+        on_finish: (data: any) => {
+          data.correct = data.response === data.correct_index;
+          data.response_text = q.options[data.response];
+        }
+      });
+    }
+  } else {
+    console.error('No story data provided to reading timeline');
+  }
+
+  return timeline;
 }

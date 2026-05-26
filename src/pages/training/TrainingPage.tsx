@@ -91,42 +91,64 @@ export function TrainingPage() {
 
     const container = containerRef.current;
 
-    const jsPsych = initJsPsych({
-      display_element: container,
-      extensions: enableWebGazer ? [{ type: WebGazerExtension }] : [],
-      on_finish: () => {
-        const data = jsPsych.data.get().values() as TrialData[];
-        setResults(data);
-        jsPsychRef.current = null;
-        setPhase('results');
-      },
-    });
+    const setupExperiment = async () => {
+      let storyData: any = null;
+      if (moduleId === 'reading-training') {
+        try {
+          const resp = await fetch('/assets/reading/stories.json');
+          const stories = await resp.json();
+          const targetStoryId = getSetting('readingStoryId');
+          storyData = stories.find((s: any) => s.story_id === targetStoryId) || stories[0];
+        } catch (e) {
+          console.error('Failed to load stories:', e);
+        }
+      }
 
-    jsPsychRef.current = jsPsych;
+      const jsPsych = initJsPsych({
+        display_element: container,
+        extensions: enableWebGazer ? [{ type: WebGazerExtension }] : [],
+        on_finish: () => {
+          const data = jsPsych.data.get().values() as TrialData[];
+          setResults(data);
+          jsPsychRef.current = null;
+          setPhase('results');
+        },
+      });
 
-    const timeline = buildTimeline(moduleId, {
-      difficulty,
-      totalRounds,
-      oculomotor: {
-        mode: oculomotorMode,
-        pattern: oculomotorPattern,
-        durationSec: oculomotorDurationSec,
-        speedDegPerSec: oculomotorSpeedDegPerSec,
-        targetSizeMm: oculomotorTargetSizeMm,
-        distractorCount: Number.isFinite(oculomotorDistractorCount)
-          ? oculomotorDistractorCount
-          : getSetting('oculomotorDistractorCount'),
-        targetColor: oculomotorTargetColor,
-        backgroundColor: oculomotorBackgroundColor,
-        targetShape: oculomotorTargetShape,
-        customTargetImage: oculomotorCustomTargetImage,
-      },
-      gabor: {
-        durationSec: parseInt(searchParams.get('duration') || '', 10) || 60,
-        maxSpots: parseInt(searchParams.get('maxSpots') || '', 10) || 10,
-      },
-    });
-    jsPsych.run(timeline as any);
+      jsPsychRef.current = jsPsych;
+
+      const timeline = buildTimeline(moduleId, {
+        difficulty,
+        totalRounds,
+        oculomotor: {
+          mode: oculomotorMode,
+          pattern: oculomotorPattern,
+          durationSec: oculomotorDurationSec,
+          speedDegPerSec: oculomotorSpeedDegPerSec,
+          targetSizeMm: oculomotorTargetSizeMm,
+          distractorCount: Number.isFinite(oculomotorDistractorCount)
+            ? oculomotorDistractorCount
+            : getSetting('oculomotorDistractorCount'),
+          targetColor: oculomotorTargetColor,
+          backgroundColor: oculomotorBackgroundColor,
+          targetShape: oculomotorTargetShape,
+          customTargetImage: oculomotorCustomTargetImage,
+        },
+        gabor: {
+          durationSec: parseInt(searchParams.get('duration') || '', 10) || 60,
+          maxSpots: parseInt(searchParams.get('maxSpots') || '', 10) || 10,
+        },
+        reading: {
+          story: storyData,
+          wps: getSetting('readingWPS'),
+          crowding: getSetting('readingCrowding'),
+          contrast: getSetting('readingContrast'),
+        },
+      });
+      jsPsych.run(timeline as any);
+    };
+    
+    setupExperiment();
 
     // Cleanup on unmount
     return () => {
@@ -160,11 +182,14 @@ export function TrainingPage() {
 
     const isOculomotor = moduleId === 'oculomotor-training';
     const isGabor = moduleId === 'gabor-patch';
+    const isReading = moduleId === 'reading-training';
     let headers: string[];
     if (isOculomotor) {
       headers = [t('exp.csv.user'), t('exp.csv.date'), t('exp.csv.time'), t('exp.csv.module'), t('exp.csv.mode'), t('exp.csv.path'), t('exp.csv.duration'), t('exp.csv.acquired'), t('exp.csv.fps'), t('exp.csv.aoi'), t('exp.csv.status')];
     } else if (isGabor) {
       headers = [t('exp.csv.user'), t('exp.csv.date'), t('exp.csv.time'), t('exp.csv.module'), t('exp.csv.duration'), t('exp.csv.score'), t('exp.csv.acquired')];
+    } else if (isReading) {
+      headers = [t('exp.csv.user'), t('exp.csv.date'), t('exp.csv.time'), t('exp.csv.module'), 'WPS', 'Crowding', t('exp.csv.target'), t('exp.csv.response'), t('exp.csv.correct'), t('exp.csv.rt')];
     } else {
       headers = [t('exp.csv.user'), t('exp.csv.date'), t('exp.csv.time'), t('exp.csv.module'), t('exp.csv.diff'), t('exp.csv.round'), t('exp.csv.target'), t('exp.csv.response'), t('exp.csv.correct'), t('exp.csv.rt')];
     }
@@ -174,6 +199,11 @@ export function TrainingPage() {
         return [...baseRow, t(`preset.mode.${r.mode || oculomotorMode}` as any), t(`preset.path.${r.pattern || oculomotorPattern}` as any), r.duration_ms ?? r.rt, r.acquired_targets ?? 0, r.average_fps ?? '', (r as any).aoi_score ?? '-', r.response];
       } else if (isGabor) {
         return [...baseRow, r.duration_ms ?? r.rt, r.score ?? 0, r.acquired_targets ?? 0];
+      } else if (isReading) {
+        if (r.trial_type === 'html-button-response') {
+          return [...baseRow, getSetting('readingWPS'), getSetting('readingCrowding'), r.target, (r as any).response_text || r.response, r.correct ? '✓' : '✗', r.rt];
+        }
+        return [...baseRow, getSetting('readingWPS'), getSetting('readingCrowding'), 'Reading Phase', '-', '-', r.reading_time || 0];
       } else {
         return [...baseRow, difficulty, i + 1, r.target, r.response, r.correct ? '✓' : '✗', r.rt];
       }
@@ -233,7 +263,11 @@ export function TrainingPage() {
       : Math.round((sortedRts[Math.floor(sortedRts.length / 2) - 1] + sortedRts[Math.floor(sortedRts.length / 2)]) / 2))
     : 0;
   const isOculomotor = moduleId === 'oculomotor-training';
+  const isReading = moduleId === 'reading-training';
   const oculomotorResult = results[0];
+  const readingQuestions = results.filter((r: any) => r.trial_type === 'html-button-response');
+  const readingCorrect = readingQuestions.filter(r => r.correct).length;
+  const readingTime = results.find((r: any) => r.trial_type === 'pixi-reading-training')?.reading_time || 0;
 
   return (
     <div key="results" className="experiment-container" style={{ overflowY: 'auto' }}>
@@ -281,6 +315,47 @@ export function TrainingPage() {
               <span>{t('home.config.durationLabel')} <b style={{ color: 'var(--accent)' }}>{Math.round((results[0]?.duration_ms ?? 0) / 1000)}s</b></span>
               <span>{t('exp.res.user')} <b>{userName}</b></span>
             </div>
+          </>
+        ) : isReading ? (
+          <>
+            <div className="results-score">{readingCorrect}/{readingQuestions.length}</div>
+            <div style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              justifyContent: 'center',
+              gap: 24,
+              marginBottom: 16,
+              fontSize: 14,
+              color: 'var(--text-secondary)',
+            }}>
+              <span>{t('exp.res.user')} <b>{userName}</b></span>
+              <span>WPS: <b style={{ color: 'var(--accent)' }}>{getSetting('readingWPS')}</b></span>
+              <span>Crowding: <b style={{ color: 'var(--accent)' }}>{getSetting('readingCrowding')}</b></span>
+              <span>Total Time: <b style={{ color: 'var(--accent)' }}>{Math.round(readingTime / 100) / 10} s</b></span>
+            </div>
+            
+            <table className="results-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>{t('exp.res.thTarget')}</th>
+                  <th>{t('exp.res.thResp')}</th>
+                  <th>{t('exp.res.thCorrect')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {readingQuestions.map((r: any, i) => (
+                  <tr key={i}>
+                    <td>{i + 1}</td>
+                    <td style={{ fontWeight: 600, color: 'var(--accent)' }}>{r.target}</td>
+                    <td>{r.response_text}</td>
+                    <td style={{ color: r.correct ? 'var(--success)' : 'var(--error)' }}>
+                      {r.correct ? '✓' : '✗'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </>
         ) : (
           <>

@@ -48,6 +48,10 @@ export interface AppSettings {
   preferentialLookingInputMode: 'keyboard' | 'webgazer';
   webGazerCalibrationAt: string;
   oculomotorEnableWebgazer: boolean;
+  readingWPS: number;
+  readingCrowding: number;
+  readingContrast: number;
+  readingStoryId: string;
 }
 
 interface SettingMeta<T> {
@@ -89,6 +93,10 @@ const META: { [K in keyof AppSettings]: SettingMeta<AppSettings[K]> } = {
   preferentialLookingInputMode: { dflt: 'keyboard' },
   webGazerCalibrationAt: { dflt: '' },
   oculomotorEnableWebgazer: { dflt: false },
+  readingWPS: { dflt: 4, min: 1, max: 20 },
+  readingCrowding: { dflt: 1, min: 1, max: 5 },
+  readingContrast: { dflt: 1.0, min: 0.1, max: 1.0 },
+  readingStoryId: { dflt: 'en_story_01' },
 };
 
 function storageKey(name: string): string {
