@@ -36,6 +36,8 @@ interface TrialData {
   average_fps?: number;
   duration_ms?: number;
   score?: number;
+  trial_type?: string;
+  reading_time?: number;
 }
 
 export function TrainingPage() {
