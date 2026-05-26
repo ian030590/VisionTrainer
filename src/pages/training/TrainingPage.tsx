@@ -8,6 +8,7 @@ import PixiOculomotorTrainingPlugin from '../../experiment/plugins/pixi-oculomot
 import WebGazerExtension from '@jspsych/extension-webgazer';
 import { buildTimeline } from '../../experiment/timeline';
 import { getActiveUser, getSetting } from '../../utils/settings';
+import { getRandomStory } from '../../reading/stories';
 import {
   getOculomotorModeLabel,
   getOculomotorPatternLabel,
@@ -41,7 +42,7 @@ interface TrialData {
 }
 
 export function TrainingPage() {
-  const { t } = useT();
+  const { t, lang } = useT();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const moduleId = searchParams.get('module') || 'moving-card';
@@ -96,14 +97,7 @@ export function TrainingPage() {
     const setupExperiment = async () => {
       let storyData: any = null;
       if (moduleId === 'reading-training') {
-        try {
-          const resp = await fetch(import.meta.env.BASE_URL + 'assets/reading/stories.json');
-          const stories = await resp.json();
-          const targetStoryId = getSetting('readingStoryId');
-          storyData = stories.find((s: any) => s.story_id === targetStoryId) || stories[0];
-        } catch (e) {
-          console.error('Failed to load stories:', e);
-        }
+        storyData = getRandomStory(lang) || null;
       }
 
       const jsPsych = initJsPsych({

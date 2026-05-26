@@ -230,14 +230,20 @@ function buildReadingTimeline(
     
     // Pick 10 random questions or all if less than 10
     const questions = [...(story.questions || [])];
-    questions.sort(() => Math.random() - 0.5);
-    const selectedQuestions = questions.slice(0, 10);
+    const numQuestions = Math.min(10, questions.length);
+    for (let i = 0; i < numQuestions; i++) {
+      const j = i + Math.floor(Math.random() * (questions.length - i));
+      [questions[i], questions[j]] = [questions[j], questions[i]];
+    }
+    const selectedQuestions = questions.slice(0, numQuestions);
     
     for (const q of selectedQuestions) {
       timeline.push({
         type: HtmlButtonResponsePlugin,
-        stimulus: `<div style="font-size:24px; font-weight:600; margin-bottom: 24px;">${q.question}</div>`,
+        css_classes: ['reading-qa-trial'],
+        stimulus: `<div class="reading-qa-question">${q.question}</div>`,
         choices: q.options,
+        button_html: `<button class="reading-qa-btn">%choice%</button>`,
         data: {
           target: q.question,
           correct_index: q.correct_index,

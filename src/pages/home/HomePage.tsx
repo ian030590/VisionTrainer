@@ -84,8 +84,6 @@ export function HomePage() {
   const [readingWPS, setReadingWPS] = useState(() => getSetting('readingWPS'));
   const [readingCrowding, setReadingCrowding] = useState(() => getSetting('readingCrowding'));
   const [readingContrast, setReadingContrast] = useState(() => getSetting('readingContrast'));
-  const [readingStoryId, setReadingStoryId] = useState(() => getSetting('readingStoryId'));
-  const [stories, setStories] = useState<any[]>([]);
   const [prewarmed, setPrewarmed] = useState(() => pixiAppManager.ready);
 
   const refreshUsers = useCallback(() => {
@@ -130,14 +128,6 @@ export function HomePage() {
     return () => { cancelled = true; };
   }, [expandedModule]);
 
-  useEffect(() => {
-    if (expandedModule === 'reading-training' && stories.length === 0) {
-      fetch(import.meta.env.BASE_URL + 'assets/reading/stories.json')
-        .then(r => r.json())
-        .then(setStories)
-        .catch(console.error);
-    }
-  }, [expandedModule, stories.length]);
 
   // ── Persist settings when changed ──
   useEffect(() => {
@@ -220,9 +210,6 @@ export function HomePage() {
     setSetting('readingContrast', readingContrast);
   }, [readingContrast]);
 
-  useEffect(() => {
-    setSetting('readingStoryId', readingStoryId);
-  }, [readingStoryId]);
 
   // ── Handlers ──
   const handleCardClick = (moduleId: string) => {
@@ -1168,19 +1155,6 @@ export function HomePage() {
       {expandedModule === 'reading-training' && (
         <div className="config-modal-overlay fade-in" onClick={() => setExpandedModule(null)}>
           <div className="module-config-panel config-modal-panel" onClick={(e) => e.stopPropagation()}>
-            <div className="config-section">
-              <div className="config-label">選擇故事</div>
-              <select
-                className="input"
-                value={readingStoryId}
-                onClick={(e) => e.stopPropagation()}
-                onChange={(e) => setReadingStoryId(e.target.value)}
-              >
-                {stories.map(s => (
-                  <option key={s.story_id} value={s.story_id}>{s.title}</option>
-                ))}
-              </select>
-            </div>
 
             <div className="config-section">
               <div className="config-label">閱讀設定</div>
@@ -1255,7 +1229,7 @@ export function HomePage() {
 
             <div className="config-summary">
               {t('home.config.user')} <strong>{activeUser}</strong> ·{' '}
-              故事 <strong>{stories.find(s => s.story_id === readingStoryId)?.title || readingStoryId}</strong>
+              故事 <strong>隨機抽選</strong>
             </div>
           </div>
         </div>
