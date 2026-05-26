@@ -100,6 +100,7 @@ class PixiGaborPatchPlugin implements JsPsychPlugin<Info> {
   private gameStartTime = 0;
   private gameLoopRaf = 0;
   private isGameOver = false;
+  private keydownListener: ((e: KeyboardEvent) => void) | null = null;
 
   constructor(private jsPsych: JsPsych) {}
 
@@ -110,7 +111,7 @@ class PixiGaborPatchPlugin implements JsPsychPlugin<Info> {
     container.style.height = '100%';
     container.style.position = 'relative';
     container.style.overflow = 'hidden';
-    container.style.cursor = 'crosshair';
+    container.style.cursor = 'default';
     display_element.appendChild(container);
 
     const HUD = document.createElement('div');
@@ -152,6 +153,13 @@ class PixiGaborPatchPlugin implements JsPsychPlugin<Info> {
       ];
 
       this.gameStartTime = performance.now();
+
+      this.keydownListener = (event: KeyboardEvent) => {
+        if (event.code === 'Escape') {
+          this.endGame(trial, display_element);
+        }
+      };
+      window.addEventListener('keydown', this.keydownListener);
 
       const updateHUD = () => {
         const elapsed = performance.now() - this.gameStartTime;
@@ -236,7 +244,6 @@ class PixiGaborPatchPlugin implements JsPsychPlugin<Info> {
           const currentScore = Math.ceil(spot.maxScore * (1 - progress));
           
           if (currentScore <= 0) {
-            SoundManager.playPop();
             this.app.stage.removeChild(spot.sprite);
             spot.sprite.destroy();
             this.spots.splice(i, 1);
@@ -276,6 +283,7 @@ class PixiGaborPatchPlugin implements JsPsychPlugin<Info> {
 
     this.score += finalPoints;
     this.hits += 1;
+    SoundManager.playPop();
 
     // Show floating score
     const floatText = new Text({
@@ -322,6 +330,11 @@ class PixiGaborPatchPlugin implements JsPsychPlugin<Info> {
   private endGame(trial: TrialType<Info>, display_element: HTMLElement) {
     this.isGameOver = true;
     cancelAnimationFrame(this.gameLoopRaf);
+    
+    if (this.keydownListener) {
+      window.removeEventListener('keydown', this.keydownListener);
+      this.keydownListener = null;
+    }
 
     if (this.app) {
       pixiAppManager.clearStage();
