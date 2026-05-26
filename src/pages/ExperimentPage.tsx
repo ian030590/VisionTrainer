@@ -201,7 +201,7 @@ export function ExperimentPage() {
   // ── Running Phase ──
   if (phase === 'running') {
     return (
-      <div className="experiment-container">
+      <div key="running" className="experiment-container">
         <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
       </div>
     );
@@ -222,7 +222,7 @@ export function ExperimentPage() {
   const oculomotorResult = results[0];
 
   return (
-    <div className="experiment-container" style={{ overflowY: 'auto' }}>
+    <div key="results" className="experiment-container" style={{ overflowY: 'auto' }}>
       <div className="experiment-results">
         <h1 style={{ fontSize: 32 }}>{t('exp.done')}</h1>
         {isOculomotor ? (
