@@ -132,7 +132,7 @@ export function HomePage() {
 
   useEffect(() => {
     if (expandedModule === 'reading-training' && stories.length === 0) {
-      fetch('/assets/reading/stories.json')
+      fetch(import.meta.env.BASE_URL + 'assets/reading/stories.json')
         .then(r => r.json())
         .then(setStories)
         .catch(console.error);

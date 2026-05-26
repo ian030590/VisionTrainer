@@ -97,7 +97,7 @@ export function TrainingPage() {
       let storyData: any = null;
       if (moduleId === 'reading-training') {
         try {
-          const resp = await fetch('/assets/reading/stories.json');
+          const resp = await fetch(import.meta.env.BASE_URL + 'assets/reading/stories.json');
           const stories = await resp.json();
           const targetStoryId = getSetting('readingStoryId');
           storyData = stories.find((s: any) => s.story_id === targetStoryId) || stories[0];
