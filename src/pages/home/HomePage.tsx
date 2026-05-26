@@ -619,9 +619,9 @@ export function HomePage() {
               <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
             </svg>
           </div>
-          <div className="card-title">閱讀訓練 (RSVP)</div>
+          <div className="card-title">{t('home.module.reading.title')}</div>
           <div className="card-desc">
-            使用快速連續視覺呈現 (RSVP) 技術提升閱讀速度，並包含閱讀理解測驗。
+            {t('home.module.reading.desc')}
           </div>
           <div style={{
             display: 'flex',

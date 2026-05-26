@@ -243,7 +243,7 @@ function buildReadingTimeline(
         css_classes: ['reading-qa-trial'],
         stimulus: `<div class="reading-qa-question">${q.question}</div>`,
         choices: q.options,
-        button_html: `<button class="reading-qa-btn">%choice%</button>`,
+        button_html: (choice: string) => `<button class="reading-qa-btn">${choice}</button>`,
         data: {
           target: q.question,
           correct_index: q.correct_index,

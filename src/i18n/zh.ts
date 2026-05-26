@@ -57,6 +57,8 @@ export const zh = {
   'home.module.eyegame.desc': '在畫面上尋找並快速點擊逐漸浮現的蓋伯斑塊。此練習旨在刺激大腦視覺皮層，提升對比敏感度與動態敏銳度。',
   'home.module.fusion.title': '雙眼融合訓練',
   'home.module.fusion.desc': '使用紅藍眼鏡(Anaglyph)進行雙眼視差訓練，強化眼外肌與融合能力。',
+  'home.module.reading.title': '閱讀訓練 (RSVP)',
+  'home.module.reading.desc': '使用快速連續視覺呈現 (RSVP) 技術提升閱讀速度，並包含閱讀理解測驗。',
 
   // Training Config
   'home.config.difficulty': '難度設定',

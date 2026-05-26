@@ -58,7 +58,9 @@ export const en: Record<TranslationKey, string> = {
   'home.module.eyegame.title': 'Gabor Patch Training',
   'home.module.eyegame.desc': 'Find and quickly click on gradually appearing Gabor patches. This exercise aims to stimulate the visual cortex and improve contrast sensitivity and dynamic acuity.',
   'home.module.fusion.title': 'Binocular Fusion',
-  'home.module.fusion.desc': 'Train your extraocular muscles with anaglyph vergence techniques.',
+  'home.module.fusion.desc': 'Train binocular disparity and fusion using anaglyph red-cyan glasses.',
+  'home.module.reading.title': 'Reading Training (RSVP)',
+  'home.module.reading.desc': 'Use Rapid Serial Visual Presentation (RSVP) to improve reading speed, including reading comprehension tests.',
 
   // Training Config
   'home.config.difficulty': 'Difficulty Setting',
