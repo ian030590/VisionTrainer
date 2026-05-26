@@ -12,6 +12,8 @@ export const CAL_BAR_LENGTH_PX = 700;
 export const APP_VERSION = '3.0.0';
 export const STORAGE_PREFIX = 'vision_trainer_';
 
+import type { OculomotorPattern, OculomotorTargetShape } from '../oculomotor/types';
+
 // ── Settings ──
 export interface AppSettings {
   distanceInCM: number;
@@ -30,14 +32,14 @@ export interface AppSettings {
   auditoryFeedbackEnabled: boolean;
   downloadDirectory: string;
   oculomotorMode: 'pursuit' | 'reaction-jumps' | 'multi-object' | 'lilac-chaser';
-  oculomotorPattern: 'randomWalk' | 'circle' | 'figureEight' | 'horizontalSweep' | 'verticalSweep' | 'bounce' | 'diagonal' | 'spiralBloom' | 'zigZag';
+  oculomotorPattern: OculomotorPattern;
   oculomotorDurationSec: number;
   oculomotorSpeedDegPerSec: number;
   oculomotorTargetSizeMm: number;
   oculomotorDistractorCount: number;
   oculomotorTargetColor: string;
   oculomotorBackgroundColor: string;
-  oculomotorTargetShape: 'circle' | 'star' | 'square' | 'cross' | 'triangle' | 'custom';
+  oculomotorTargetShape: OculomotorTargetShape;
   oculomotorCustomTargetImage: string;
   oculomotorTargetOpacity: number;
   oculomotorBackgroundImage: string;

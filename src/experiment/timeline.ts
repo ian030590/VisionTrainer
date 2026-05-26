@@ -98,6 +98,10 @@ function buildOculomotorTimeline(
       backgroundColor?: string;
       targetShape?: OculomotorTargetShape;
       customTargetImage?: string;
+      opacity?: number;
+      backgroundImage?: string;
+      audio?: string;
+      bounceJitter?: number;
     };
   },
 ): object[] {
