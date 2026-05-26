@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { useT } from '../i18n';
+import { useT } from '../../i18n';
 import ReactDOM from 'react-dom';
 import { initJsPsych } from 'jspsych';
 import WebGazerExtension from '@jspsych/extension-webgazer';
@@ -13,8 +13,8 @@ import {
   CAL_BAR_LENGTH_PX,
   CARD_WIDTH_MM,
   CARD_HEIGHT_MM,
-} from '../utils/settings';
-import { pixelFromMillimeter } from '../utils/spatialUtils';
+} from '../../utils/settings';
+import { pixelFromMillimeter } from '../../utils/spatialUtils';
 
 type Tab = 'general' | 'calibration' | 'webgazer' | 'gamma' | 'crowding';
 

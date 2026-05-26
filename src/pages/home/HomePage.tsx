@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { useT } from '../i18n';
+import { useT } from '../../i18n';
 import { useNavigate } from 'react-router-dom';
 import {
   getUsers,
@@ -10,14 +10,14 @@ import {
   getSetting,
   setSetting,
   isCalibrated,
-} from '../utils/settings';
-import { pixiAppManager } from '../utils/pixiPool';
-import { SoundManager } from '../utils/soundManager';
+} from '../../utils/settings';
+import { pixiAppManager } from '../../utils/pixiPool';
+import { SoundManager } from '../../utils/soundManager';
 import {
   oculomotorModes,
   oculomotorPatterns,
-} from '../oculomotor/presets';
-import type { OculomotorMode, OculomotorPattern, OculomotorTargetShape } from '../oculomotor/types';
+} from '../../oculomotor/presets';
+import type { OculomotorMode, OculomotorPattern, OculomotorTargetShape } from '../../oculomotor/types';
 
 export function HomePage() {
   const { t } = useT();
@@ -225,21 +225,26 @@ export function HomePage() {
     }
 
     if (expandedModule === 'eyegame') {
-      navigate('/eyegame');
+      navigate('/training?module=eyegame');
       return;
     }
 
     if (expandedModule === 'gabor-patch') {
-      params.set('duration', String(gaborDurationSec));
-      params.set('maxSpots', String(gaborMaxSpots));
-    }
-
-    if (expandedModule === 'binocular-fusion') {
-      navigate('/binocular-fusion');
+      navigate(`/training?module=gabor-patch&duration=${gaborDurationSec}&difficulty=${localDifficulty}&maxSpots=${gaborMaxSpots}`);
       return;
     }
 
-    navigate(`/experiment?${params.toString()}`);
+    if (expandedModule === 'binocular-fusion') {
+      navigate('/training?module=binocular-fusion');
+      return;
+    }
+
+    if (expandedModule === 'moving-card') {
+      navigate(`/training?module=moving-card&difficulty=${localDifficulty}`);
+      return;
+    }
+
+    navigate(`/training?${params.toString()}`);
   };
 
   const handleRoundsPreset = (rounds: number) => {
@@ -556,7 +561,7 @@ export function HomePage() {
               alert(t('home.pleaseSelectUser'));
               return;
             }
-            navigate('/binocular-fusion');
+            navigate('/training?module=binocular-fusion');
           }}
         >
           <div className="card-icon">

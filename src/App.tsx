@@ -1,22 +1,18 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-import EyegamePage from './pages/EyegamePage';
 import { Navbar } from './components/Navbar';
-import { HomePage } from './pages/HomePage';
-import { SettingsPage } from './pages/SettingsPage';
-import { ExperimentPage } from './pages/ExperimentPage';
-import { AssessmentPage } from './pages/AssessmentPage';
-import { AcuityTestPage } from './pages/AcuityTestPage';
-import { CreditsPage } from './pages/CreditsPage';
-import { BinocularFusionPage } from './fusion/BinocularFusionPage';
+import { HomePage } from './pages/home';
+import { SettingsPage } from './pages/settings';
+import { TrainingPage } from './pages/training';
+import { AssessmentPage } from './pages/assessment';
+import { AcuityTestPage } from './pages/assessment';
+import { CreditsPage } from './pages/credits';
 
 export function App() {
   return (
     <Routes>
       {/* Full-screen pages, no navbar */}
-      <Route path="/experiment" element={<ExperimentPage />} />
-      <Route path="/eyegame" element={<EyegamePage />} />
+      <Route path="/training" element={<TrainingPage />} />
       <Route path="/acuity-test" element={<AcuityTestPage />} />
-      <Route path="/binocular-fusion" element={<BinocularFusionPage />} />
 
       {/* Normal pages with navbar */}
       <Route
