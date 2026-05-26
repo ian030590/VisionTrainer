@@ -26,7 +26,15 @@ export default function EyegamePage() {
     script.async = true;
     document.body.appendChild(script);
 
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Escape') {
+        navigate('/');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+
     return () => {
+      window.removeEventListener('keydown', handleKeyDown);
       links.forEach((l) => l.remove());
       script.remove();
     };

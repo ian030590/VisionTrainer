@@ -34,7 +34,16 @@ export function BinocularFusionPage() {
       console.error('Failed to run fusion timeline:', err);
     });
 
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Escape' && jsPsychRef.current) {
+        jsPsychRef.current.endExperiment('手動結束');
+        setIsFinished(true);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+
     return () => {
+      window.removeEventListener('keydown', handleKeyDown);
       // Cleanup if necessary (jsPsych doesn't have a strict destroy method, 
       // but clearing the DOM might be needed)
       if (containerRef.current) {

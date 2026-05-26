@@ -323,6 +323,11 @@ export function HomePage() {
     { key: 'intermediate', label: t('home.diff.intermediate'), desc: t('home.diff.intermediateDesc') },
     { key: 'advanced', label: t('home.diff.advanced'), desc: t('home.diff.advancedDesc') },
   ];
+  const gaborDiffOptions: { key: 'beginner' | 'intermediate' | 'advanced'; label: string; desc: string }[] = [
+    { key: 'beginner', label: t('home.diff.beginner'), desc: t('home.diff.gaborBeginnerDesc' as any) },
+    { key: 'intermediate', label: t('home.diff.intermediate'), desc: t('home.diff.gaborIntermediateDesc' as any) },
+    { key: 'advanced', label: t('home.diff.advanced'), desc: t('home.diff.gaborAdvancedDesc' as any) },
+  ];
 
   return (
     <div className="page-content">
@@ -983,7 +988,7 @@ export function HomePage() {
             <div className="config-section">
               <div className="config-label">{t('home.config.difficulty')}</div>
               <div className="difficulty-selector">
-                {diffOptions.map((opt) => (
+                {gaborDiffOptions.map((opt) => (
                   <button
                     key={opt.key}
                     className={`diff-btn ${localDifficulty === opt.key ? 'active' : ''}`}
@@ -1072,7 +1077,7 @@ export function HomePage() {
 
             <div className="config-summary">
               {t('home.config.user')} <strong>{activeUser}</strong> ·{' '}
-              {t('home.config.diffLabel')} <strong>{diffOptions.find((d) => d.key === localDifficulty)?.label}</strong> ·{' '}
+              {t('home.config.diffLabel')} <strong>{gaborDiffOptions.find((d) => d.key === localDifficulty)?.label}</strong> ·{' '}
               {t('home.config.durationLabel')} <strong>{gaborDurationSec}s</strong> ·{' '}
               {t('home.config.gaborMaxSpots')} <strong>{gaborMaxSpots}</strong>
             </div>

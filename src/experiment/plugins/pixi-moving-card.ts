@@ -493,6 +493,14 @@ class PixiMovingCardPlugin implements JsPsychPlugin<Info> {
       const handleResize = () => drawLayout();
       app.renderer.on('resize', handleResize);
 
+      // ── Keydown Handler ──
+      const handleKeydown = (e: KeyboardEvent) => {
+        if (e.code === 'Escape') {
+          endTrial(Math.round(performance.now() - startTime), false, 'Escape');
+        }
+      };
+      window.addEventListener('keydown', handleKeydown);
+
       // ── End Trial ──
       function endTrial(rt: number, correct: boolean, response: string) {
         if (trialEnded) return;
@@ -500,6 +508,7 @@ class PixiMovingCardPlugin implements JsPsychPlugin<Info> {
 
         if (moveTimerId) clearInterval(moveTimerId);
         app.renderer.off('resize', handleResize);
+        window.removeEventListener('keydown', handleKeydown);
 
         // Clear & detach (reuse app for next round)
         manager.clearStage();
