@@ -15,10 +15,7 @@ export function Navbar() {
     <nav className="navbar">
       <div className="navbar-inner">
         <NavLink to="/" className="navbar-brand" onClick={closeMenu}>
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-            <circle cx="12" cy="12" r="3" />
-          </svg>
+          <img src="/assets/logo.svg" alt="Vision Trainer Logo" height="22" style={{ width: 'auto', objectFit: 'contain' }} />
           {t('nav.brand')}
         </NavLink>
 
@@ -84,7 +81,4 @@ export function Navbar() {
           </div>
         </div>
       </div>
-      {isOpen && <div className="navbar-overlay" onClick={closeMenu} />}
-    </nav>
-  );
-}
+      {isOpen && <div className="navbar-overlay" onCli
