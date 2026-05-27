@@ -81,4 +81,7 @@ export function Navbar() {
           </div>
         </div>
       </div>
-      {isOpen && <div className="navbar-overlay" onCli
+      {isOpen && <div className="navbar-overlay" onClick={closeMenu} />}
+    </nav>
+  );
+}
