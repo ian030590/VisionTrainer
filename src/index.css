@@ -78,9 +78,16 @@ html, body, #root {
   display: flex;
   flex-direction: column;
   align-items: center;
-  max-width: 1280px;
-  margin: 0 auto;
   width: 100%;
+}
+
+.page-content > * {
+  max-width: 1280px;
+  width: 100%;
+}
+
+.page-content > .config-modal-overlay {
+  max-width: none;
 }
 
 @media (max-width: 768px) {
@@ -93,7 +100,7 @@ html, body, #root {
 .navbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   height: 64px;
   padding: 0 48px;
   background: var(--bg-card);
@@ -102,6 +109,14 @@ html, body, #root {
   box-shadow: 0 1px 4px rgba(0,0,0,0.02);
   position: relative;
   z-index: 100;
+}
+
+.navbar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 1280px;
 }
 
 .navbar-toggle {
@@ -160,9 +175,10 @@ html, body, #root {
     display: block;
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.4);
+    background: rgba(0, 0, 0, 0.35);
     z-index: 100;
-    backdrop-filter: blur(2px);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
 
   .navbar-links {
