@@ -95,7 +95,7 @@ const META: { [K in keyof AppSettings]: SettingMeta<AppSettings[K]> } = {
   oculomotorEnableWebgazer: { dflt: false },
   readingWPS: { dflt: 4, min: 1, max: 20 },
   readingCrowding: { dflt: 1, min: 1, max: 5 },
-  readingContrast: { dflt: 1.0, min: 0.1, max: 1.0 },
+  readingContrast: { dflt: 0.0, min: 0.0, max: 2.0 },
   readingStoryId: { dflt: 'en_story_01' },
 };
 

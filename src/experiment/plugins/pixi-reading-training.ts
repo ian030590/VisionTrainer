@@ -48,10 +48,12 @@ class PixiReadingTrainingPlugin implements JsPsychPlugin<Info> {
     const contentArray = trial.content_array as string[];
     const wps = trial.wps as number;
     const crowding = trial.crowding as number;
-    const contrast = trial.contrast as number;
+    const logCS = trial.contrast as number;
     
-    // Calculate color based on contrast. 1.0 = black (#000000).
-    // Simple interpolation from black to very light gray
+    // Convert logCS (log contrast sensitivity) to linear contrast.
+    // logCS = -log10(contrast), so contrast = 10^(-logCS).
+    // logCS 0 → contrast 1.0 (black text), logCS 1.3 → contrast ~0.05 (very faint).
+    const contrast = Math.pow(10, -logCS);
     const grayVal = Math.round((1 - contrast) * 200); 
     const hex = grayVal.toString(16).padStart(2, '0');
     const textColor = `#${hex}${hex}${hex}`;

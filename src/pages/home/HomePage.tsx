@@ -1192,11 +1192,11 @@ export function HomePage() {
                   />
                 </label>
                 <label className="diff-btn" style={{ cursor: 'default', alignItems: 'stretch' }}>
-                  <span className="diff-btn-desc">對比度</span>
+                  <span className="diff-btn-desc">對比度 (logCS)</span>
                   <input
                     type="range"
-                    min="0.1"
-                    max="1.0"
+                    min="0.0"
+                    max="2.0"
                     step="0.1"
                     value={readingContrast}
                     onClick={(e) => e.stopPropagation()}
