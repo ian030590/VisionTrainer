@@ -314,6 +314,8 @@ export const en: Record<TranslationKey, string> = {
   // Credits Page
   'credits.title': 'Credits',
   'credits.subtitle': 'Referenced open source projects and resources',
+  'credits.webgazer.title': 'WebGazer.js',
+  'credits.webgazer.desc': 'Provides webcam-based eye tracking using machine learning models to estimate user gaze location.',
   'credits.fract10.title': 'Visual Assessment & Screen Calibration',
   'credits.fract10.desc': 'Referenced implementation methods and algorithms from michaelbach/FrACT10',
   'credits.eyeTraining.title': 'Moving Card Training',
