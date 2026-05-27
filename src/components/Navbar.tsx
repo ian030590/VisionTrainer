@@ -15,7 +15,7 @@ export function Navbar() {
     <nav className="navbar">
       <div className="navbar-inner">
         <NavLink to="/" className="navbar-brand" onClick={closeMenu}>
-          <img src="/assets/logo.svg" alt="Vision Trainer Logo" height="22" style={{ width: 'auto', objectFit: 'contain' }} />
+          <img src={`${import.meta.env.BASE_URL}assets/logo.svg`} alt="Vision Trainer Logo" height="22" style={{ width: 'auto', objectFit: 'contain' }} />
           {t('nav.brand')}
         </NavLink>
 
