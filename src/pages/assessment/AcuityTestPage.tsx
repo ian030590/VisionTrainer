@@ -794,6 +794,8 @@ function getTestInstruction(t: TestType, tFunc: any): string {
       return tFunc('acuity.inst.pl');
     case 'contrast':
       return tFunc('acuity.inst.landolt');
+    default:
+      return '';
   }
 }
 
@@ -905,5 +907,7 @@ function formatAlternative(testType: TestType, idx: number, tFunc: any): string 
       return PICTURE_NAMES[idx] || String(idx);
     case 'gratings':
       return idx === 0 ? tFunc('acuity.lbl.left') : tFunc('acuity.lbl.right');
+    default:
+      return String(idx);
   }
 }

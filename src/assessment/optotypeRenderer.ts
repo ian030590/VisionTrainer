@@ -436,6 +436,7 @@ export function getAlternativeCount(testType: TestType): number {
     case 'pictures':  return 4;
     case 'gratings':  return 2;
     case 'contrast':  return 8;
+    default: return 0;
   }
 }
 
