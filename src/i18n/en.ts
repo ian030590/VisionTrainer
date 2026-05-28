@@ -57,8 +57,6 @@ export const en: Record<TranslationKey, string> = {
   'home.module.oculomotor.desc': 'Offers various modes like pursuit, saccades, MOT, and peripheral fixation to comprehensively enhance eye movement smoothness, reaction speed, and visual memory.',
   'home.module.eyegame.title': 'Gabor Patch Training',
   'home.module.eyegame.desc': 'Find and quickly click on gradually appearing Gabor patches. This exercise aims to stimulate the visual cortex and improve contrast sensitivity and dynamic acuity.',
-  'home.module.fusion.title': 'Binocular Fusion',
-  'home.module.fusion.desc': 'Train binocular disparity and fusion using anaglyph red-cyan glasses.',
   'home.module.reading.title': 'Reading Training (RSVP)',
   'home.module.reading.desc': 'Use Rapid Serial Visual Presentation (RSVP) to improve reading speed, including reading comprehension tests.',
 
@@ -325,14 +323,6 @@ export const en: Record<TranslationKey, string> = {
   'credits.eyegame.title': 'Gabor Patch Training',
   'credits.eyegame.desc': 'Referenced game mechanics from Fordi/eyegame',
 
-  // Fusion
-  'fusion.calib.inst': 'Use Arrow Keys to align the circles until they form a single solid white circle.<br/>Press SPACEBAR when done.',
-  'fusion.train.inst': 'Focus on the shape.<br/>Press <b>B</b> when it BREAKS into two.<br/>Press <b>R</b> when it RECOVERS into one.',
-  'fusion.train.q.title': 'What letters do you see?',
-  'fusion.train.q.l': 'Press <b>1</b> for L only',
-  'fusion.train.q.r': 'Press <b>2</b> for R only',
-  'fusion.train.q.both': 'Press <b>3</b> for Both',
-
   // Extra
   'nav.brand': 'Vision Trainer',
   'eyegame.gameOver': 'Game Over',
@@ -351,7 +341,4 @@ export const en: Record<TranslationKey, string> = {
   'acuity.csv.letterScore': 'Letter Score',
   'exp.csv.score': 'Score',
   'exp.res.score': 'Score:',
-  'fusion.res.complete': 'Training Complete',
-  'fusion.res.break': 'Break Distance',
-  'fusion.res.recovery': 'Recovery Distance',
 };

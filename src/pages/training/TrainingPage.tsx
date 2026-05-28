@@ -16,8 +16,7 @@ import {
   isOculomotorPattern,
 } from '../../oculomotor/presets';
 import type { OculomotorTargetShape } from '../../oculomotor/types';
-import { runFusionTimeline } from '../../fusion/timeline';
-import { FusionResults } from '../../fusion/FusionResults';
+
 
 // Ensure the plugin class is referenced so bundler doesn't tree-shake it
 void PixiMovingCardPlugin;
@@ -85,8 +84,8 @@ export function TrainingPage() {
 
   // ── Launch jsPsych immediately (no instructions phase) ──
   useEffect(() => {
-    // Only init if not eyegame and not binocular-fusion
-    if (moduleId === 'eyegame' || moduleId === 'binocular-fusion') return;
+    // Only init if not eyegame
+    if (moduleId === 'eyegame') return;
 
     if (phase !== 'running') return;
     if (!containerRef.current) return;
@@ -229,13 +228,9 @@ export function TrainingPage() {
 
   const goHome = () => navigate('/');
 
-  // ── Eyegame & Fusion Modules ──
+  // ── Eyegame Module ──
   if (moduleId === 'eyegame') {
     return <EyegameSubPage />;
-  }
-
-  if (moduleId === 'binocular-fusion') {
-    return <BinocularFusionSubPage />;
   }
 
   // ── Running Phase ──
@@ -464,74 +459,4 @@ function EyegameSubPage() {
   );
 }
 
-function BinocularFusionSubPage() {
-  const navigate = useNavigate();
-  const { t } = useT();
-  const jsPsychRef = useRef<any>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [isFinished, setIsFinished] = useState(false);
-  const [resultsData, setResultsData] = useState<any[]>([]);
 
-  useEffect(() => {
-    if (!containerRef.current) return;
-
-    // Initialize jsPsych
-    const jsPsych = initJsPsych({
-      display_element: containerRef.current,
-      on_finish: () => {
-        setIsFinished(true);
-        // After finish, get the CSV data
-        const data = jsPsych.data.get().csv();
-        setResultsData(jsPsych.data.get().values());
-      },
-    });
-
-    jsPsychRef.current = jsPsych;
-
-    // Run the timeline
-    runFusionTimeline(jsPsych, t).catch((err) => {
-      console.error('Failed to run fusion timeline:', err);
-    });
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.code === 'Escape' && jsPsychRef.current) {
-        jsPsychRef.current.endExperiment('手動結束');
-        setIsFinished(true);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      if (containerRef.current) {
-        containerRef.current.innerHTML = '';
-      }
-    };
-  }, []);
-
-  if (isFinished) {
-    return <FusionResults data={resultsData} onBack={() => navigate('/')} />;
-  }
-
-  return (
-    <div
-      style={{
-        width: '100vw',
-        height: '100vh',
-        backgroundColor: '#000000',
-        margin: 0,
-        padding: 0,
-        overflow: 'hidden',
-      }}
-    >
-      <div
-        ref={containerRef}
-        style={{
-          width: '100%',
-          height: '100%',
-          position: 'relative',
-        }}
-      />
-    </div>
-  );
-}

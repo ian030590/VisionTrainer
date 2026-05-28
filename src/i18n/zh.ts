@@ -55,8 +55,6 @@ export const zh = {
   'home.module.oculomotor.desc': '提供追視、跳視、多目標追蹤與周邊固視等多種模式，全面性地強化眼球運動的平滑度、反應速度與視覺空間記憶。',
   'home.module.eyegame.title': '蓋伯斑塊練習',
   'home.module.eyegame.desc': '在畫面上尋找並快速點擊逐漸浮現的蓋伯斑塊。此練習旨在刺激大腦視覺皮層，提升對比敏感度與動態敏銳度。',
-  'home.module.fusion.title': '雙眼融合訓練',
-  'home.module.fusion.desc': '使用紅藍眼鏡(Anaglyph)進行雙眼視差訓練，強化眼外肌與融合能力。',
   'home.module.reading.title': '閱讀訓練 (RSVP)',
   'home.module.reading.desc': '使用快速連續視覺呈現 (RSVP) 技術提升閱讀速度，並包含閱讀理解測驗。',
 
@@ -323,14 +321,6 @@ export const zh = {
   'credits.eyegame.title': '蓋伯斑塊練習',
   'credits.eyegame.desc': '參考 Fordi/eyegame 的遊戲機制',
 
-  // Fusion
-  'fusion.calib.inst': '使用方向鍵移動圓圈，直到兩圓完全重疊形成一個白色圓圈。<br/>完成後請按空白鍵。',
-  'fusion.train.inst': '注視中央圖形。<br/>當圖形<b>分裂(BREAKS)</b>成兩個時請按 <b>B</b>。<br/>當圖形<b>恢復(RECOVERS)</b>成一個時請按 <b>R</b>。',
-  'fusion.train.q.title': '你看到了哪些字母？',
-  'fusion.train.q.l': '只看到 L 請按 <b>1</b>',
-  'fusion.train.q.r': '只看到 R 請按 <b>2</b>',
-  'fusion.train.q.both': '兩者都看到請按 <b>3</b>',
-
   // Extra
   'nav.brand': 'Vision Trainer',
   'eyegame.gameOver': '遊戲結束',
@@ -349,9 +339,6 @@ export const zh = {
   'acuity.csv.letterScore': '字母分數',
   'exp.csv.score': '分數',
   'exp.res.score': '分數:',
-  'fusion.res.complete': '訓練完成',
-  'fusion.res.break': '分裂距離',
-  'fusion.res.recovery': '恢復距離',
 };
 
 export type TranslationKey = keyof typeof zh;
