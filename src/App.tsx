@@ -5,6 +5,7 @@ import { SettingsPage } from './pages/settings';
 import { TrainingPage } from './pages/training';
 import { AssessmentPage } from './pages/assessment';
 import { AcuityTestPage } from './pages/assessment';
+import { ContrastTestPage } from './pages/assessment/ContrastTestPage';
 import { CreditsPage } from './pages/credits';
 
 export function App() {
@@ -13,6 +14,7 @@ export function App() {
       {/* Full-screen pages, no navbar */}
       <Route path="/training" element={<TrainingPage />} />
       <Route path="/acuity-test" element={<AcuityTestPage />} />
+      <Route path="/contrast-test" element={<ContrastTestPage />} />
 
       {/* Normal pages with navbar */}
       <Route

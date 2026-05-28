@@ -339,6 +339,10 @@ export const zh = {
   'acuity.csv.letterScore': '字母分數',
   'exp.csv.score': '分數',
   'exp.res.score': '分數:',
+  'assess.contrast.title': '對比敏感度',
+  'assess.contrast.desc': '測量您的對比敏感度函數',
+  'assess.contrast.resultsTitle': '對比敏感度結果',
+  'common.back': '返回',
 };
 
 export type TranslationKey = keyof typeof zh;

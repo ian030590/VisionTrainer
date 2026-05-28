@@ -341,4 +341,8 @@ export const en: Record<TranslationKey, string> = {
   'acuity.csv.letterScore': 'Letter Score',
   'exp.csv.score': 'Score',
   'exp.res.score': 'Score:',
+  'assess.contrast.title': 'Contrast Sensitivity',
+  'assess.contrast.desc': 'Measure your contrast sensitivity function',
+  'assess.contrast.resultsTitle': 'Contrast Sensitivity Results',
+  'common.back': 'Back',
 };

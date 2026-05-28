@@ -775,6 +775,7 @@ function getTestTitle(t: TestType, tFunc: any): string {
     letters: tFunc('assess.sloan.title'),
     pictures: tFunc('assess.shapes.title'),
     gratings: tFunc('assess.pl.title'),
+    contrast: tFunc('assess.contrast.title'),
   };
   return map[t];
 }
@@ -791,12 +792,15 @@ function getTestInstruction(t: TestType, tFunc: any): string {
       return tFunc('acuity.inst.shapes');
     case 'gratings':
       return tFunc('acuity.inst.pl');
+    case 'contrast':
+      return tFunc('acuity.inst.landolt');
   }
 }
 
 function getKeyHints(t: TestType, tFunc: any): React.ReactNode {
   switch (t) {
     case 'landolt':
+    case 'contrast':
       return (
         <div className="key-hints-grid-8">
           {([3, 2, 1, 4, -1, 0, 5, 6, 7] as number[]).map((dir, i) => (
@@ -837,6 +841,7 @@ function getKeyHints(t: TestType, tFunc: any): React.ReactNode {
 function renderTouchButtons(testType: TestType, onResponse: (idx: number) => void, tFunc: any): React.ReactNode {
   switch (testType) {
     case 'landolt':
+    case 'contrast':
       return (
         <div className="touch-btn-ring">
           {([0, 1, 2, 3, 4, 5, 6, 7] as LandoltDirection[]).map((dir) => {
@@ -890,6 +895,7 @@ function renderTouchButtons(testType: TestType, onResponse: (idx: number) => voi
 function formatAlternative(testType: TestType, idx: number, tFunc: any): string {
   switch (testType) {
     case 'landolt':
+    case 'contrast':
       return LANDOLT_DIRECTION_LABELS[idx as LandoltDirection] || String(idx);
     case 'tumblingE':
       return E_DIRECTION_LABELS[(idx * 2) as EDirection] || String(idx);

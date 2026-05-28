@@ -81,6 +81,19 @@ const getTestCards = (t: any): TestCard[] => [
       nAlt: 2,
       defaultTrials: 36,
     },
+    {
+      id: 'contrast',
+      title: t('assess.contrast.title') || 'Contrast Sensitivity',
+      desc: t('assess.contrast.desc') || 'Measure your contrast sensitivity function.',
+      icon: (
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 3v18A9 9 0 0 0 12 3z" fill="currentColor" />
+        </svg>
+      ),
+      nAlt: 8,
+      defaultTrials: 18,
+    },
 ];
 
 export function AssessmentPage() {
@@ -116,15 +129,18 @@ export function AssessmentPage() {
   const handleStartTest = () => {
     if (!expandedTest || !activeUser) return;
     const params = new URLSearchParams({
-      type: expandedTest,
-      trials: String(localTrials),
+      test: expandedTest,
+      trials: localTrials.toString(),
     });
-
     if (expandedTest === 'gratings') {
-      params.set('responseMode', plInputMode);
+      params.set('mode', plInputMode);
     }
-
-    navigate(`/acuity-test?${params.toString()}`);
+    
+    if (expandedTest === 'contrast') {
+      navigate(`/contrast-test?${params.toString()}`);
+    } else {
+      navigate(`/acuity-test?${params.toString()}`);
+    }
   };
 
   const handlePLInputMode = (mode: 'keyboard' | 'webgazer') => {

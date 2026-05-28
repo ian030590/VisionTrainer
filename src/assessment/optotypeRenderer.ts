@@ -8,7 +8,7 @@
 
 // ── Types ──
 
-export type TestType = 'landolt' | 'tumblingE' | 'letters' | 'pictures' | 'gratings';
+export type TestType = 'landolt' | 'tumblingE' | 'letters' | 'pictures' | 'gratings' | 'contrast';
 
 /** Landolt C: 8 directions (0=right, 1=upper-right, 2=up, …, 7=lower-right) */
 export type LandoltDirection = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
@@ -43,7 +43,7 @@ function fillPolygon(
   ctx: CanvasRenderingContext2D,
   points: number[][],
   d: number,
-  color: string,
+  color: string = FORE,
 ) {
   ctx.fillStyle = color;
   ctx.beginPath();
@@ -63,18 +63,20 @@ export function drawLandoltC(
   cy: number,
   strokePx: number,
   direction: LandoltDirection,
+  foreColor: string = FORE,
+  backColor: string = BACK,
 ) {
   ctx.save();
   ctx.translate(cx, cy);
 
   // Outer filled circle
-  ctx.fillStyle = FORE;
+  ctx.fillStyle = foreColor;
   ctx.beginPath();
   ctx.arc(0, 0, 2.5 * strokePx, 0, Math.PI * 2);
   ctx.fill();
 
   // Inner cutout circle
-  ctx.fillStyle = BACK;
+  ctx.fillStyle = backColor;
   ctx.beginPath();
   ctx.arc(0, 0, 1.5 * strokePx, 0, Math.PI * 2);
   ctx.fill();
@@ -82,7 +84,7 @@ export function drawLandoltC(
   // Gap rectangle rotated to the correct direction
   const rot = (Math.PI / 180) * ((7 - (direction - 1)) / 8) * 360;
   ctx.rotate(rot);
-  ctx.fillStyle = BACK;
+  ctx.fillStyle = backColor;
   ctx.fillRect(
     strokePx * 1.4 - 1,
     -strokePx / 2,
@@ -102,6 +104,7 @@ export function drawTumblingE(
   cy: number,
   strokePx: number,
   direction: EDirection,
+  foreColor: string = FORE,
 ) {
   ctx.save();
   ctx.translate(cx, cy);
@@ -114,7 +117,7 @@ export function drawTumblingE(
 
   const angle = (-Math.PI / 4) * direction;
   ctx.rotate(angle);
-  fillPolygon(ctx, ePoints, strokePx * 0.5, FORE);
+  fillPolygon(ctx, ePoints, strokePx * 0.5, foreColor);
   ctx.rotate(-angle);
 
   ctx.restore();
@@ -432,6 +435,7 @@ export function getAlternativeCount(testType: TestType): number {
     case 'letters':   return 10;
     case 'pictures':  return 4;
     case 'gratings':  return 2;
+    case 'contrast':  return 8;
   }
 }
 
