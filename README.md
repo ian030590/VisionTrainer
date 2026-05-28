@@ -1,75 +1,59 @@
 # Vision Trainer
 ![logo image](./public/assets/logo2.png)
 
-Vision Trainer 是一個基於 **TypeScript + PixiJS** 建構的視覺能力訓練 Web 應用程式。UI/UX 設計參考了 [FrACT10](https://michaelbach.de/fract/) 的科學化測試介面，使用 Canvas 渲染確保精確的視覺刺激呈現。
+Vision Trainer 是一個基於 **React + jsPsych + PixiJS** 建構的視覺能力訓練與評估 Web 應用程式。UI/UX 設計參考了 [FrACT10](https://michaelbach.de/fract/) 的科學化測試介面，使用 PixiJS Canvas 渲染確保精確的視覺刺激呈現，並透過 jsPsych 實驗框架驅動標準化的試驗流程。
 
 ## 技術棧
 
-- **TypeScript** — 強型別開發
-- **PixiJS v8** — 高效能 2D Canvas 渲染
+- **React 19** + **TypeScript** — 元件化 UI 與強型別開發
+- **PixiJS v8** — 高效能 2D Canvas 渲染（視覺刺激呈現）
+- **jsPsych 8** — 心理學實驗框架（試驗流程控制、資料收集）
+- **WebGazer.js** — 瀏覽器端眼動追蹤（可選）
+- **React Router v7** — 客戶端路由（HashRouter）
+- **Recharts** — 結果資料視覺化
 - **Vite** — 快速開發與建置工具
 - **GitHub Pages** — 自動化部署（GitHub Actions）
 
-## 系統架構設計
+## 功能總覽
 
-本系統設計為**模組化擴充架構**（Plugin Pattern），新的訓練模組只需實作 `TrainingModule` 介面並註冊至 `TrainingRegistry` 即可自動出現在訓練清單中。
+### 🏋️ 訓練模組
 
-### 核心架構
+| 模組 | 說明 |
+|------|------|
+| **移動卡片訓練** (Moving Card) | 動態字母配對遊戲，訓練注視中心點時快速辨識周邊文字的能力 |
+| **眼動訓練** (Oculomotor Training) | 連續式眼動訓練，支援多種訓練模式與移動路徑 |
+| **Gabor Patch 訓練** | 對比敏感度訓練，透過辨識 Gabor 光斑位置強化視覺感知 |
+| **閱讀訓練** (Reading Training) | RSVP 快速序列視覺呈現閱讀訓練，附隨機理解測驗 |
 
-```
-src/
-├── main.ts                    # 應用程式入口
-├── core/
-│   ├── Globals.ts             # 全域常數
-│   ├── SceneManager.ts        # 場景生命週期管理
-│   ├── Settings.ts            # 設定持久化（localStorage）
-│   └── SoundManager.ts        # 音效回饋
-├── scenes/
-│   ├── MainMenuScene.ts       # 主選單
-│   ├── TrainingListScene.ts   # 訓練清單（自動讀取 Registry）
-│   ├── SettingsScene.ts       # 設定與螢幕校正
-│   └── PeripheralVisionScene.ts  # 周邊視覺訓練
-├── trainings/
-│   ├── TrainingModule.ts      # 模組介面定義
-│   ├── TrainingRegistry.ts    # 模組註冊中心
-│   └── PeripheralVisionModule.ts  # 周邊視覺訓練模組
-├── ui/
-│   ├── Theme.ts               # 設計 token（暗色主題）
-│   ├── Button.ts              # 互動按鈕元件
-│   ├── Panel.ts               # 面板容器
-│   └── Slider.ts              # 滑桿元件
-└── utils/
-    ├── SpatialUtils.ts        # 空間轉換（px↔mm↔degree）
-    └── MathUtils.ts           # 數學/動畫工具函式
-```
+### 📊 評估模組
 
-### 新增訓練模組
+| 模組 | 說明 |
+|------|------|
+| **視力評估** (Visual Acuity) | 類 FrACT10 視力測驗，使用 BestPEST 自適應閾值算法 |
 
-1. 在 `src/scenes/` 新增場景類別（實作 `Scene` 介面）
-2. 在 `src/trainings/` 新增模組類別（實作 `TrainingModule` 介面）
-3. 在 `src/main.ts` 中 `register()` 新模組
+### 🔬 實驗模組
 
-```typescript
-// 範例：新增 XxxModule
-const xxx = new XxxModule();
-xxx.setGoBack(() => sm.goTo('trainingList'));
-TrainingRegistry.register(xxx);
-``` 
+| 模組 | 說明 |
+|------|------|
+| **雙眼融合訓練** (Binocular Fusion) | 基於 jsPsych 的輻輳/開散訓練，含融合校正與漸進式訓練 |
 
-## 訓練模組
+---
+
+## 訓練模組詳細
 
 ### 移動卡片訓練 (Moving Card Training)
 
 動態字母配對遊戲，訓練注視中心點時快速辨識周邊文字的能力。
 
 - **校正機制**：文字大小根據螢幕校正值（塑膠卡片法）動態計算
+- **可調參數**：選項數量、移動間隔、目標/選項物理尺寸、難度
 - **參考資料**：FrACT10 CardController、styts/eye-training
 
 ### 眼動訓練 (Oculomotor Training)
 
 以 PixiJS 重製 FoveaFlow 風格的連續式眼動訓練，在全螢幕 Canvas 中呈現可調整速度、目標大小、訓練時間與干擾數量的視覺刺激。
 
-支援模式：
+**訓練模式：**
 
 | 模式 | 訓練重點 |
 |------|----------|
@@ -78,9 +62,25 @@ TrainingRegistry.register(xxx);
 | 多目標追蹤 (Multi-object Tracking) | 在干擾目標中維持對主要目標的注意 |
 | 周邊固視 (Lilac Chaser) | 固視中心點，同時察覺周邊刺激變化 |
 
-可選路徑包含隨機路徑、圓形、8 字形、水平/垂直掃視、反彈、斜向、螺旋與折線。此模組屬於視覺訓練與互動實驗用途，不作為醫療診斷、治療或視力矯正建議。
+**可選移動路徑（28 種）：** 隨機路徑、圓形、橢圓形、8 字形、水平/垂直掃視、反彈、斜向、螺旋、折線、三角形、正方形、長方形、平行四邊形、菱形、梯形、鳶形、五邊形～十邊形、六芒星、十芒星、超橢圓、三角星、平滑隨機、躲貓貓等。
 
-## 評估模組
+**可調參數：** 速度、目標大小、目標形狀（圓形/星形/方形/十字/三角形/自訂圖片）、目標顏色、背景顏色/圖片、透明度、干擾數量、反彈抖動量、音效、WebGazer 眼動追蹤（可選）。
+
+### Gabor Patch 訓練
+
+對比敏感度訓練，透過辨識隨機出現的 Gabor 光斑位置強化視覺感知能力。
+
+- **可調參數**：訓練時長、最大光斑數、難度等級
+
+### 閱讀訓練 (Reading Training)
+
+RSVP（Rapid Serial Visual Presentation）快速序列視覺呈現閱讀訓練。
+
+- **雙語故事庫**：支援中文與英文故事
+- **可調參數**：顯示速度 (WPS)、文字擁擠度、對比度
+- **理解測驗**：閱讀後隨機抽選理解問題進行測驗
+
+## 評估模組詳細
 
 ### 視力評估 (Visual Acuity Assessment)
 
@@ -100,20 +100,107 @@ TrainingRegistry.register(xxx);
 
 **核心演算法：** BestPEST (Maximum-Likelihood Adaptive Threshold Estimation)，移植自 FrACT10 的 `ThresholderPest.j`。
 
-> ⚠️ **免責聲明：** 本測驗參考 FrACT 測驗模式以及演算法，為程式練習所用。若要了解自己視力，請尋求專業醫療協助。
+## 實驗模組詳細
+
+### 雙眼融合訓練 (Binocular Fusion)
+
+基於 jsPsych 的輻輳/開散（vergence）訓練模組。
+
+- **融合校正階段**：使用者手動對齊兩個視覺目標，建立個人化的融合偏移基準
+- **漸進式訓練**：5 輪漸進式訓練，每輪逐步提高分離速度
+- **即時回饋**：每輪訓練後使用者自評融合品質
+
+## 國際化 (i18n)
+
+支援雙語介面切換：
+
+- 🇹🇼 繁體中文（預設）
+- 🇺🇸 English
+
+語言偏好透過 `localStorage` 持久化保存。
+
+## 系統架構
+
+本系統採用 **React + jsPsych + PixiJS 混合架構**：
+
+- **React** 負責 UI 框架、路由導航、設定管理
+- **jsPsych** 負責實驗試驗流程控制與資料收集
+- **PixiJS** 負責高精度視覺刺激渲染（內嵌於 jsPsych 自訂 Plugin）
+
+### 目錄結構
+
+```
+src/
+├── main.tsx                          # 應用程式入口
+├── App.tsx                           # React Router 路由定義
+├── index.css                         # 全域樣式
+├── theme.ts                          # 設計 token（暗色主題）
+├── components/
+│   └── Navbar.tsx                    # 導航列元件
+├── pages/
+│   ├── home/HomePage.tsx             # 首頁
+│   ├── training/TrainingPage.tsx     # 訓練頁面（全螢幕 jsPsych）
+│   ├── assessment/
+│   │   ├── AssessmentPage.tsx        # 評估選擇頁
+│   │   └── AcuityTestPage.tsx        # 視力測驗頁（全螢幕 PixiJS）
+│   ├── settings/SettingsPage.tsx     # 設定頁面
+│   └── credits/CreditsPage.tsx       # 致謝頁面
+├── experiment/
+│   ├── timeline.ts                   # jsPsych 時間軸建構器
+│   └── plugins/
+│       ├── pixi-moving-card.ts       # 移動卡片 jsPsych Plugin
+│       ├── pixi-oculomotor-training.ts # 眼動訓練 jsPsych Plugin
+│       ├── pixi-gabor-patch.ts       # Gabor Patch jsPsych Plugin
+│       └── pixi-reading-training.ts  # 閱讀訓練 jsPsych Plugin
+├── assessment/
+│   ├── acuityLogic.ts                # 視力計算邏輯（LogMAR, VA 轉換）
+│   ├── bestPest.ts                   # BestPEST 自適應閾值算法
+│   └── optotypeRenderer.ts          # 視標 PixiJS 渲染器
+├── fusion/
+│   ├── timeline.ts                   # 融合訓練 jsPsych 時間軸
+│   ├── plugin-fusion-calibration.ts  # 融合校正 Plugin
+│   ├── plugin-vergence-training.ts   # 輻輳訓練 Plugin
+│   ├── BinocularFusionPage.tsx       # 融合訓練頁面
+│   └── FusionResults.tsx             # 融合結果顯示
+├── oculomotor/
+│   ├── types.ts                      # 眼動訓練型別定義
+│   ├── patterns.ts                   # 28 種移動路徑算法
+│   ├── presets.ts                    # 模式/路徑預設值
+│   └── random.ts                     # 隨機路徑生成器
+├── reading/
+│   ├── types.ts                      # 閱讀訓練型別定義
+│   └── stories.ts                    # 故事載入器（Vite glob import）
+├── data/
+│   └── reading-stories/
+│       ├── en-story/                 # 英文故事 JSON
+│       └── zh-story/                 # 中文故事 JSON
+├── i18n/
+│   ├── i18n.tsx                      # LanguageProvider & useT hook
+│   ├── zh.ts                         # 繁體中文翻譯
+│   └── en.ts                         # 英文翻譯
+└── utils/
+    ├── settings.ts                   # 設定持久化（localStorage）
+    ├── spatialUtils.ts               # 空間轉換（px ↔ mm ↔ degree）
+    ├── mathUtils.ts                  # 數學/動畫工具函式
+    ├── soundManager.ts              # 音效回饋管理
+    └── pixiPool.ts                   # PixiJS Application 物件池
+```
+
+> ⚠️ **免責聲明：** 本應用參考 FrACT 測驗模式以及演算法，為程式練習所用。此模組屬於視覺訓練與互動實驗用途，不作為醫療診斷、治療或視力矯正建議。若要了解自己視力，請尋求專業醫療協助。
 
 ## Credits
 
-- **FoveaFlow**：眼動訓練模組參考 [Jesper-N/foveaflow](https://github.com/Jesper-N/foveaflow) 的訓練模式與互動概念。FoveaFlow 由 Jesper Nielsen 開發，採 MIT License。
-- **FrACT10**：視力評估與移動卡片訓練的介面/演算法參考來源。
-- **styts/eye-training**：移動卡片訓練概念參考來源。
+- **[FrACT10](https://github.com/michaelbach/FrACT10)**：視力評估與移動卡片訓練的介面/演算法參考來源。
+- **[styts/eye-training](https://github.com/styts/eye-training)**：移動卡片訓練概念參考來源。
+- **[Jesper-N/foveaflow](https://github.com/Jesper-N/foveaflow)**：眼動訓練模組參考訓練模式與互動概念。FoveaFlow 由 Jesper Nielsen 開發，採 MIT License。
+- **[Fordi/eyegame](https://github.com/Fordi/eyegame)**：雙眼融合訓練概念參考來源。
 
 ## 開發
 
 ```bash
 npm install       # 安裝依賴
 npm run dev       # 啟動開發伺服器
-npm run build     # 建置生產版本
+npm run build     # 建置生產版本（tsc + vite build）
 npm run preview   # 預覽生產版本
 ```
 
