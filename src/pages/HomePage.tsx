@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { useT } from '../../i18n';
+import { useT } from '../i18n';
 import { useNavigate } from 'react-router-dom';
 import {
   getUsers,
@@ -10,14 +10,14 @@ import {
   getSetting,
   setSetting,
   isCalibrated,
-} from '../../utils/settings';
-import { pixiAppManager } from '../../utils/pixiPool';
-import { SoundManager } from '../../utils/soundManager';
+} from '../utils/settings';
+import { pixiAppManager } from '../utils/pixiPool';
+import { SoundManager } from '../utils/soundManager';
 import {
   oculomotorModes,
   oculomotorPatterns,
-} from '../../oculomotor/presets';
-import type { OculomotorMode, OculomotorPattern, OculomotorTargetShape } from '../../oculomotor/types';
+} from './training/oculomotor/presets';
+import type { OculomotorMode, OculomotorPattern, OculomotorTargetShape } from './training/oculomotor/types';
 
 export function HomePage() {
   const { t } = useT();

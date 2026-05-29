@@ -12,8 +12,8 @@ import PixiReadingTrainingPlugin from './plugins/pixi-reading-training';
 import { getSetting } from '../utils/settings';
 import { generateRandomLetters } from '../utils/mathUtils';
 import { pixelFromDegree, pixelFromMillimeter } from '../utils/spatialUtils';
-import type { OculomotorMode, OculomotorPattern, OculomotorTargetShape } from '../oculomotor/types';
-import type { ReadingStory } from '../reading/types';
+import type { OculomotorMode, OculomotorPattern, OculomotorTargetShape } from '../pages/training/oculomotor/types';
+import type { ReadingStory } from '../pages/training/reading/types';
 
 /**
  * Build a jsPsych timeline for the given module.

@@ -10,10 +10,10 @@ import { Application, Graphics, Sprite, Text, Texture } from 'pixi.js';
 import { pixiColors, typography } from '../../theme';
 import { pixiAppManager } from '../../utils/pixiPool';
 import { pixelFromDegree } from '../../utils/spatialUtils';
-import { createRng } from '../../oculomotor/random';
-import { sampleOculomotorPatternInto } from '../../oculomotor/patterns';
-import type { Arena, OculomotorMode, OculomotorPattern, OculomotorTargetShape, TargetFrame } from '../../oculomotor/types';
-import { getOculomotorModeLabel, getOculomotorPatternLabel } from '../../oculomotor/presets';
+import { createRng } from '../../pages/training/oculomotor/random';
+import { sampleOculomotorPatternInto } from '../../pages/training/oculomotor/patterns';
+import type { Arena, OculomotorMode, OculomotorPattern, OculomotorTargetShape, TargetFrame } from '../../pages/training/oculomotor/types';
+import { getOculomotorModeLabel, getOculomotorPatternLabel } from '../../pages/training/oculomotor/presets';
 
 const info = {
   name: 'pixi-oculomotor-training',

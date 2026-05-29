@@ -2,8 +2,8 @@ import { JsPsych, ParameterType } from 'jspsych';
 import type { JsPsychPlugin, TrialType } from 'jspsych';
 import { Application, Sprite, Texture, Graphics } from 'pixi.js';
 import { pixiAppManager } from '../../utils/pixiPool';
-import { drawLandoltC, drawTumblingE } from '../../assessment/optotypeRenderer';
-import type { LandoltDirection, EDirection } from '../../assessment/optotypeRenderer';
+import { drawLandoltC, drawTumblingE } from '../../pages/assessment/logic/optotypeRenderer';
+import type { LandoltDirection, EDirection } from '../../pages/assessment/logic/optotypeRenderer';
 
 const info = {
   name: 'pixi-contrast-sensitivity',

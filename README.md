@@ -123,41 +123,29 @@ src/
 ├── theme.ts                          # 設計 token（暗色主題）
 ├── components/
 │   └── Navbar.tsx                    # 導航列元件
-├── pages/
-│   ├── home/HomePage.tsx             # 首頁
-│   ├── training/TrainingPage.tsx     # 訓練頁面（全螢幕 jsPsych）
-│   ├── assessment/
-│   │   ├── AssessmentPage.tsx        # 評估選擇頁
-│   │   └── AcuityTestPage.tsx        # 視力測驗頁（全螢幕 PixiJS）
-│   ├── settings/SettingsPage.tsx     # 設定頁面
-│   └── credits/CreditsPage.tsx       # 致謝頁面
 ├── experiment/
 │   ├── timeline.ts                   # jsPsych 時間軸建構器
-│   └── plugins/
-│       ├── pixi-moving-card.ts       # 移動卡片 jsPsych Plugin
-│       ├── pixi-oculomotor-training.ts # 眼動訓練 jsPsych Plugin
-│       ├── pixi-gabor-patch.ts       # Gabor Patch jsPsych Plugin
-│       └── pixi-reading-training.ts  # 閱讀訓練 jsPsych Plugin
-├── assessment/
-│   ├── acuityLogic.ts                # 視力計算邏輯（LogMAR, VA 轉換）
-│   ├── bestPest.ts                   # BestPEST 自適應閾值算法
-│   └── optotypeRenderer.ts          # 視標 PixiJS 渲染器
-├── oculomotor/
-│   ├── types.ts                      # 眼動訓練型別定義
-│   ├── patterns.ts                   # 28 種移動路徑算法
-│   ├── presets.ts                    # 模式/路徑預設值
-│   └── random.ts                     # 隨機路徑生成器
-├── reading/
-│   ├── types.ts                      # 閱讀訓練型別定義
-│   └── stories.ts                    # 故事載入器（Vite glob import）
-├── data/
-│   └── reading-stories/
-│       ├── en-story/                 # 英文故事 JSON
-│       └── zh-story/                 # 中文故事 JSON
+│   └── plugins/                      # jsPsych 實驗用 PixiJS Plugins
 ├── i18n/
 │   ├── i18n.tsx                      # LanguageProvider & useT hook
 │   ├── zh.ts                         # 繁體中文翻譯
 │   └── en.ts                         # 英文翻譯
+├── pages/
+│   ├── HomePage.tsx                  # 首頁
+│   ├── training/                     # 訓練頁面模組
+│   │   ├── TrainingPage.tsx          # 訓練主頁面
+│   │   ├── oculomotor/               # 眼動訓練邏輯與預設值
+│   │   ├── reading/                  # 閱讀訓練邏輯
+│   │   └── data/                     # 訓練資料庫 (如中英文故事 JSON)
+│   ├── assessment/                   # 評估頁面模組
+│   │   ├── AssessmentPage.tsx        # 評估選擇頁
+│   │   ├── AcuityTestPage.tsx        # 視力測驗頁
+│   │   ├── ContrastTestPage.tsx      # 對比敏感度測驗頁
+│   │   └── logic/                    # 評估核心邏輯 (BestPEST, 視標渲染器等)
+│   ├── settings/                     # 設定頁面
+│   │   └── SettingsPage.tsx
+│   └── credits/                      # 致謝頁面
+│       └── CreditsPage.tsx
 └── utils/
     ├── settings.ts                   # 設定持久化（localStorage）
     ├── spatialUtils.ts               # 空間轉換（px ↔ mm ↔ degree）

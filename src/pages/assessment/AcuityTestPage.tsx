@@ -2,7 +2,7 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useT } from '../../i18n';
 import WebGazerExtension from '@jspsych/extension-webgazer';
-import { BestPEST } from '../../assessment/bestPest';
+import { BestPEST } from './logic/bestPest';
 import {
   getStrokeBounds,
   stimDeviceFromThresholder,
@@ -11,7 +11,7 @@ import {
   decVAFromStrokePixels,
   formatSnellenFraction,
   lettersFromLogMAR,
-} from '../../assessment/acuityLogic';
+} from './logic/acuityLogic';
 import {
   clearCanvas,
   drawLandoltC,
@@ -25,7 +25,7 @@ import {
   E_DIRECTION_LABELS,
   SLOAN_LETTERS,
   PICTURE_NAMES,
-} from '../../assessment/optotypeRenderer';
+} from './logic/optotypeRenderer';
 import type {
   TestType,
   LandoltDirection,
@@ -33,7 +33,7 @@ import type {
   SloanLetterIndex,
   PictureIndex,
   GratingOrientation,
-} from '../../assessment/optotypeRenderer';
+} from './logic/optotypeRenderer';
 import { getActiveUser, getSetting } from '../../utils/settings';
 import { pixelFromDegree } from '../../utils/spatialUtils';
 import { SoundManager } from '../../utils/soundManager';

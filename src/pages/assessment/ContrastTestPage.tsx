@@ -5,7 +5,7 @@ import { initJsPsych } from 'jspsych';
 import type { JsPsych } from 'jspsych';
 import { pixiAppManager } from '../../utils/pixiPool';
 import PixiContrastSensitivityPlugin from '../../experiment/plugins/pixi-contrast-sensitivity';
-import { BestPEST } from '../../assessment/bestPest';
+import { BestPEST } from './logic/bestPest';
 import { getSetting } from '../../utils/settings';
 
 // Ensure plugin is referenced

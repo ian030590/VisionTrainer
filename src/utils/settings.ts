@@ -12,7 +12,7 @@ export const CAL_BAR_LENGTH_PX = 700;
 export const APP_VERSION = '3.0.0';
 export const STORAGE_PREFIX = 'vision_trainer_';
 
-import type { OculomotorPattern, OculomotorTargetShape } from '../oculomotor/types';
+import type { OculomotorPattern, OculomotorTargetShape } from '../pages/training/oculomotor/types';
 
 // ── Settings ──
 export interface AppSettings {

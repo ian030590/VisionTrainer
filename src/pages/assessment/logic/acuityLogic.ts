@@ -5,8 +5,8 @@
  * Based on FrACT10's MiscSpace.j and FractControllerAcuity.j.
  */
 
-import { pixelFromDegree, degreeFromPixel } from '../utils/spatialUtils';
-import { getSetting } from '../utils/settings';
+import { pixelFromDegree, degreeFromPixel } from '../../../utils/spatialUtils';
+import { getSetting } from '../../../utils/settings';
 
 // ── LogMAR ↔ decimal VA ──
 

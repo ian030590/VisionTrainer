@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useT } from '../../i18n';
 import { getActiveUser, getSetting, setSetting } from '../../utils/settings';
-import type { TestType } from '../../assessment/optotypeRenderer';
+import type { TestType } from './logic/optotypeRenderer';
 
 interface TestCard {
   id: TestType;

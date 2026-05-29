@@ -1,12 +1,12 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Navbar } from './components/Navbar';
-import { HomePage } from './pages/home';
-import { SettingsPage } from './pages/settings';
-import { TrainingPage } from './pages/training';
-import { AssessmentPage } from './pages/assessment';
-import { AcuityTestPage } from './pages/assessment';
+import { HomePage } from './pages/HomePage';
+import { SettingsPage } from './pages/settings/SettingsPage';
+import { TrainingPage } from './pages/training/TrainingPage';
+import { AssessmentPage } from './pages/assessment/AssessmentPage';
+import { AcuityTestPage } from './pages/assessment/AcuityTestPage';
 import { ContrastTestPage } from './pages/assessment/ContrastTestPage';
-import { CreditsPage } from './pages/credits';
+import { CreditsPage } from './pages/credits/CreditsPage';
 
 export function App() {
   return (

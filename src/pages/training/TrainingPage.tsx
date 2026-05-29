@@ -8,14 +8,14 @@ import PixiOculomotorTrainingPlugin from '../../experiment/plugins/pixi-oculomot
 import WebGazerExtension from '@jspsych/extension-webgazer';
 import { buildTimeline } from '../../experiment/timeline';
 import { getActiveUser, getSetting } from '../../utils/settings';
-import { getRandomStory } from '../../reading/stories';
+import { getRandomStory } from './reading/stories';
 import {
   getOculomotorModeLabel,
   getOculomotorPatternLabel,
   isOculomotorMode,
   isOculomotorPattern,
-} from '../../oculomotor/presets';
-import type { OculomotorTargetShape } from '../../oculomotor/types';
+} from './oculomotor/presets';
+import type { OculomotorTargetShape } from './oculomotor/types';
 
 
 // Ensure the plugin class is referenced so bundler doesn't tree-shake it
