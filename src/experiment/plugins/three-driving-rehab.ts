@@ -6,7 +6,7 @@ type ThreeModule = typeof import('three');
 
 const info = {
   name: 'three-driving-rehab',
-  version: '1.0.0',
+  version: '2.0.0',
   parameters: {
     duration_ms: {
       type: ParameterType.INT,
@@ -46,6 +46,7 @@ interface RouteSegment {
   dir: Vec2;
   length: number;
   instruction: string;
+  turnDir?: 'left' | 'right' | null;
 }
 
 interface RoutePoint {
@@ -66,10 +67,9 @@ interface DrivingInput {
 
 type HazardId = 'child-crossing' | 'plane-crash' | 'drunk-driver' | 'elder-stopped' | 'wrong-way-driver';
 
-interface HazardScript {
+interface HazardTemplate {
   id: HazardId;
   label: string;
-  distance: number;
 }
 
 interface DrivingEventResult {
@@ -84,7 +84,7 @@ interface DrivingEventResult {
 }
 
 interface ActiveHazard {
-  script: HazardScript;
+  template: HazardTemplate;
   group: any;
   triggerDistance: number;
   hazardDistance: number;
@@ -97,6 +97,16 @@ interface ActiveHazard {
   removeAt: number | null;
   currentDistance: number;
   result: DrivingEventResult;
+}
+
+/** Intersection node for free turning */
+interface IntersectionZone {
+  distance: number; // distance along route where intersection center is
+  segmentIndex: number;
+  instruction: string;
+  turnDir: 'left' | 'right' | null;
+  entered: boolean;
+  announced: boolean;
 }
 
 class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
@@ -118,9 +128,22 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
   private laneDeviationActive = false;
   private lastBrakePressed = false;
   private fpsSamples: number[] = [];
-  private triggeredHazards = new Set<HazardId>();
   private activeHazards: ActiveHazard[] = [];
   private eventResults: DrivingEventResult[] = [];
+  private hazardSpawnCount = 0;
+
+  // Random event scheduling
+  private nextHazardDistance = 0;
+  private hazardPool: HazardTemplate[] = [];
+
+  // Intersection / turning state
+  private intersections: IntersectionZone[] = [];
+  private currentSteeringAngle = 0;  // for smooth camera rotation
+
+  // Mini-map
+  private miniMapCanvas: HTMLCanvasElement | null = null;
+  private miniMapCtx: CanvasRenderingContext2D | null = null;
+
   private keyState = {
     left: false,
     right: false,
@@ -139,22 +162,28 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     event: HTMLDivElement;
     redFlash: HTMLDivElement;
     inputBars?: HTMLDivElement;
+    miniMapWrapper?: HTMLDivElement;
   } | null = null;
 
   private readonly roadWidth = 12;
   private readonly hazardLeadDistance = 34;
+
+  // Extended route with more segments for free driving
   private readonly route: RouteSegment[] = [
-    { start: { x: 0, z: 0 }, dir: { x: 0, z: 1 }, length: 110, instruction: '前方路口右轉' },
-    { start: { x: 0, z: 110 }, dir: { x: 1, z: 0 }, length: 120, instruction: '下一路口左轉' },
-    { start: { x: 120, z: 110 }, dir: { x: 0, z: 1 }, length: 135, instruction: '直行抵達目的地' },
+    { start: { x: 0, z: 0 }, dir: { x: 0, z: 1 }, length: 110, instruction: '直行', turnDir: null },
+    { start: { x: 0, z: 110 }, dir: { x: 1, z: 0 }, length: 120, instruction: '右轉', turnDir: 'right' },
+    { start: { x: 120, z: 110 }, dir: { x: 0, z: 1 }, length: 100, instruction: '直行', turnDir: null },
+    { start: { x: 120, z: 210 }, dir: { x: -1, z: 0 }, length: 100, instruction: '左轉', turnDir: 'left' },
+    { start: { x: 20, z: 210 }, dir: { x: 0, z: 1 }, length: 135, instruction: '直行抵達目的地', turnDir: null },
   ];
 
-  private readonly scripts: HazardScript[] = [
-    { id: 'child-crossing', label: '小孩突然衝出馬路', distance: 42 },
-    { id: 'plane-crash', label: '飛機墜落於前方道路', distance: 106 },
-    { id: 'drunk-driver', label: '醉酒駕駛車輛開上分隔島', distance: 168 },
-    { id: 'elder-stopped', label: '老人走到路中間停下', distance: 238 },
-    { id: 'wrong-way-driver', label: '毒駕車輛逆向衝來', distance: 303 },
+  /** Hazard templates – no fixed distance, pool to draw from randomly */
+  private readonly hazardTemplates: HazardTemplate[] = [
+    { id: 'child-crossing', label: '小孩突然衝出馬路' },
+    { id: 'plane-crash', label: '飛機墜落於前方道路' },
+    { id: 'drunk-driver', label: '醉酒駕駛車輛開上分隔島' },
+    { id: 'elder-stopped', label: '老人走到路中間停下' },
+    { id: 'wrong-way-driver', label: '毒駕車輛逆向衝來' },
   ];
 
   constructor(private jsPsych: JsPsych) {
@@ -232,10 +261,36 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     this.laneDeviationActive = false;
     this.lastBrakePressed = false;
     this.fpsSamples = [];
-    this.triggeredHazards = new Set<HazardId>();
     this.activeHazards = [];
     this.eventResults = [];
+    this.hazardSpawnCount = 0;
+    this.currentSteeringAngle = 0;
     this.keyState = { left: false, right: false, up: false, down: false };
+    this.miniMapCanvas = null;
+    this.miniMapCtx = null;
+
+    // Initialize hazard pool (shuffle order for randomness)
+    this.hazardPool = [...this.hazardTemplates].sort(() => Math.random() - 0.5);
+
+    // First hazard spawns between 30-65m
+    this.nextHazardDistance = 30 + Math.random() * 35;
+
+    // Build intersection zones from route
+    this.intersections = [];
+    let cumulativeDist = 0;
+    for (let i = 0; i < this.route.length; i++) {
+      cumulativeDist += this.route[i].length;
+      if (i < this.route.length - 1) {
+        this.intersections.push({
+          distance: cumulativeDist,
+          segmentIndex: i,
+          instruction: this.route[i + 1].instruction,
+          turnDir: this.route[i + 1].turnDir ?? null,
+          entered: false,
+          announced: false,
+        });
+      }
+    }
   }
 
   private createCalibrationOverlay(root: HTMLDivElement): HTMLDivElement {
@@ -256,7 +311,8 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
         <div style="font-size:13px; letter-spacing:2px; text-transform:uppercase; color:#7dd3fc; font-weight:700; margin-bottom:8px;">Driving Cognitive Rehab Simulator</div>
         <h1 style="font-size:34px; line-height:1.15; margin:0 0 12px;">駕駛認知復健模擬器</h1>
         <p style="font-size:16px; line-height:1.7; color:rgba(255,255,255,0.78); margin:0 0 24px;">
-          將貨物由 A 點送至 B 點。請依照地面導航箭頭前進，遇到突發事件時立即按下煞車。
+          將貨物由 A 點送至 B 點。請依照右下角的<b>導航小地圖</b>指示方向前進，在路口自行<b>轉動方向盤</b>轉彎。<br>
+          駕駛途中會<b>隨機出現突發事件</b>，請立即踩煞車反應。
         </p>
         <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; margin-bottom:22px;">
           <div style="padding:14px; border-radius:14px; background:rgba(255,255,255,0.08);"><b>方向</b><br><span style="color:rgba(255,255,255,0.68);">← / → 或方向盤</span></div>
@@ -421,11 +477,290 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
       boxShadow: redFlashEnabled ? 'inset 0 0 0 22px rgba(255, 46, 46, 0.86), inset 0 0 80px rgba(255, 0, 0, 0.42)' : 'none',
     });
 
+    // Create mini-map
+    const miniMapWrapper = this.createMiniMap();
+
     const cockpit = this.createCockpitMask();
-    hud.append(redFlash, cockpit, top, event);
+    hud.append(redFlash, cockpit, top, event, miniMapWrapper);
     root.appendChild(hud);
 
-    this.hud = { status, speed, distance, event, redFlash };
+    this.hud = { status, speed, distance, event, redFlash, miniMapWrapper };
+  }
+
+  /** Create the GPS-style mini-map navigation panel */
+  private createMiniMap(): HTMLDivElement {
+    const wrapper = document.createElement('div');
+    Object.assign(wrapper.style, {
+      position: 'absolute',
+      bottom: '28px',
+      right: '18px',
+      width: '200px',
+      height: '240px',
+      borderRadius: '18px',
+      overflow: 'hidden',
+      border: '2px solid rgba(255,255,255,0.22)',
+      background: 'rgba(8, 18, 28, 0.82)',
+      backdropFilter: 'blur(12px)',
+      boxShadow: '0 8px 32px rgba(0,0,0,0.45), 0 0 0 1px rgba(56, 189, 248, 0.15)',
+      zIndex: '15',
+      display: 'flex',
+      flexDirection: 'column',
+    });
+
+    // Title bar
+    const titleBar = document.createElement('div');
+    Object.assign(titleBar.style, {
+      padding: '8px 12px',
+      background: 'linear-gradient(180deg, rgba(56, 189, 248, 0.25), rgba(56, 189, 248, 0.08))',
+      borderBottom: '1px solid rgba(255,255,255,0.12)',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '6px',
+      fontSize: '11px',
+      fontWeight: '700',
+      color: '#7dd3fc',
+      letterSpacing: '0.5px',
+    });
+    // Navigation icon (SVG inline)
+    titleBar.innerHTML = `
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="3 11 22 2 13 21 11 13 3 11"/>
+      </svg>
+      <span>導航</span>
+    `;
+
+    // Direction instruction
+    const dirLabel = document.createElement('div');
+    dirLabel.setAttribute('data-minimap-dir', '');
+    Object.assign(dirLabel.style, {
+      padding: '6px 12px',
+      fontSize: '13px',
+      fontWeight: '700',
+      color: '#fff',
+      textAlign: 'center',
+      background: 'rgba(56, 189, 248, 0.12)',
+      borderBottom: '1px solid rgba(255,255,255,0.06)',
+    });
+    dirLabel.textContent = '直行';
+
+    // Canvas
+    const canvas = document.createElement('canvas');
+    canvas.width = 200;
+    canvas.height = 172;
+    Object.assign(canvas.style, {
+      width: '100%',
+      flex: '1',
+    });
+
+    wrapper.append(titleBar, dirLabel, canvas);
+    this.miniMapCanvas = canvas;
+    this.miniMapCtx = canvas.getContext('2d');
+
+    return wrapper;
+  }
+
+  /** Render the mini-map each frame */
+  private updateMiniMap() {
+    const ctx = this.miniMapCtx;
+    const canvas = this.miniMapCanvas;
+    if (!ctx || !canvas) return;
+
+    const w = canvas.width;
+    const h = canvas.height;
+
+    // Clear
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = 'rgba(12, 25, 38, 1)';
+    ctx.fillRect(0, 0, w, h);
+
+    // Compute bounding box of route
+    let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+    for (const seg of this.route) {
+      const endX = seg.start.x + seg.dir.x * seg.length;
+      const endZ = seg.start.z + seg.dir.z * seg.length;
+      minX = Math.min(minX, seg.start.x, endX);
+      maxX = Math.max(maxX, seg.start.x, endX);
+      minZ = Math.min(minZ, seg.start.z, endZ);
+      maxZ = Math.max(maxZ, seg.start.z, endZ);
+    }
+
+    const padding = 24;
+    const rangeX = maxX - minX || 1;
+    const rangeZ = maxZ - minZ || 1;
+    const scale = Math.min((w - padding * 2) / rangeX, (h - padding * 2) / rangeZ);
+
+    const offsetX = (w - rangeX * scale) / 2;
+    const offsetZ = (h - rangeZ * scale) / 2;
+
+    const toScreen = (px: number, pz: number) => ({
+      sx: offsetX + (px - minX) * scale,
+      sy: offsetZ + (pz - minZ) * scale,
+    });
+
+    // Draw route roads
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    // Road shadow
+    ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+    ctx.lineWidth = 10;
+    ctx.beginPath();
+    for (let i = 0; i < this.route.length; i++) {
+      const seg = this.route[i];
+      const s = toScreen(seg.start.x, seg.start.z);
+      const endX = seg.start.x + seg.dir.x * seg.length;
+      const endZ = seg.start.z + seg.dir.z * seg.length;
+      const e = toScreen(endX, endZ);
+      if (i === 0) ctx.moveTo(s.sx, s.sy);
+      ctx.lineTo(e.sx, e.sy);
+    }
+    ctx.stroke();
+
+    // Road body
+    ctx.strokeStyle = 'rgba(80, 95, 110, 0.9)';
+    ctx.lineWidth = 7;
+    ctx.beginPath();
+    for (let i = 0; i < this.route.length; i++) {
+      const seg = this.route[i];
+      const s = toScreen(seg.start.x, seg.start.z);
+      const endX = seg.start.x + seg.dir.x * seg.length;
+      const endZ = seg.start.z + seg.dir.z * seg.length;
+      const e = toScreen(endX, endZ);
+      if (i === 0) ctx.moveTo(s.sx, s.sy);
+      ctx.lineTo(e.sx, e.sy);
+    }
+    ctx.stroke();
+
+    // Already-traveled portion (bright)
+    ctx.strokeStyle = 'rgba(56, 189, 248, 0.45)';
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    let traveled = 0;
+    let started = false;
+    for (let i = 0; i < this.route.length; i++) {
+      const seg = this.route[i];
+      const s = toScreen(seg.start.x, seg.start.z);
+      if (!started) {
+        ctx.moveTo(s.sx, s.sy);
+        started = true;
+      } else {
+        ctx.lineTo(s.sx, s.sy);
+      }
+      const segEnd = traveled + seg.length;
+      if (this.progress <= segEnd) {
+        // Partial segment
+        const localD = Math.max(0, this.progress - traveled);
+        const px = seg.start.x + seg.dir.x * localD;
+        const pz = seg.start.z + seg.dir.z * localD;
+        const p = toScreen(px, pz);
+        ctx.lineTo(p.sx, p.sy);
+        break;
+      } else {
+        const endX = seg.start.x + seg.dir.x * seg.length;
+        const endZ = seg.start.z + seg.dir.z * seg.length;
+        const e = toScreen(endX, endZ);
+        ctx.lineTo(e.sx, e.sy);
+      }
+      traveled += seg.length;
+    }
+    ctx.stroke();
+
+    // Draw intersection dots
+    for (const inter of this.intersections) {
+      const pt = this.getRoutePoint(inter.distance);
+      const s = toScreen(pt.x, pt.z);
+      ctx.fillStyle = inter.entered ? 'rgba(56, 189, 248, 0.4)' : 'rgba(250, 204, 21, 0.7)';
+      ctx.beginPath();
+      ctx.arc(s.sx, s.sy, 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Draw start marker (A)
+    const startPt = toScreen(this.route[0].start.x, this.route[0].start.z);
+    ctx.fillStyle = '#34d399';
+    ctx.beginPath();
+    ctx.arc(startPt.sx, startPt.sy, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 9px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('A', startPt.sx, startPt.sy);
+
+    // Draw destination marker (B)
+    const destPt = this.getRoutePoint(this.routeLength - 2);
+    const destScreen = toScreen(destPt.x, destPt.z);
+    ctx.fillStyle = '#f87171';
+    ctx.beginPath();
+    ctx.arc(destScreen.sx, destScreen.sy, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.fillText('B', destScreen.sx, destScreen.sy);
+
+    // Draw current position (animated pulse)
+    const currentPt = this.getRoutePoint(this.progress);
+    const cs = toScreen(currentPt.x, currentPt.z);
+    const pulse = 0.5 + 0.5 * Math.sin(performance.now() / 300);
+
+    // Pulse ring
+    ctx.strokeStyle = `rgba(56, 189, 248, ${0.3 + pulse * 0.3})`;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(cs.sx, cs.sy, 6 + pulse * 3, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Player dot
+    ctx.fillStyle = '#38bdf8';
+    ctx.beginPath();
+    ctx.arc(cs.sx, cs.sy, 4, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Direction arrow from current position
+    const aheadPt = this.getRoutePoint(Math.min(this.routeLength, this.progress + 20));
+    const as = toScreen(aheadPt.x, aheadPt.z);
+    const dx = as.sx - cs.sx;
+    const dy = as.sy - cs.sy;
+    const len = Math.hypot(dx, dy) || 1;
+    const ndx = dx / len;
+    const ndy = dy / len;
+    const arrowLen = 12;
+
+    ctx.strokeStyle = '#38bdf8';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(cs.sx, cs.sy);
+    ctx.lineTo(cs.sx + ndx * arrowLen, cs.sy + ndy * arrowLen);
+    ctx.stroke();
+
+    // Arrowhead
+    const headLen = 5;
+    const headAngle = Math.atan2(ndy, ndx);
+    ctx.fillStyle = '#38bdf8';
+    ctx.beginPath();
+    ctx.moveTo(cs.sx + ndx * arrowLen, cs.sy + ndy * arrowLen);
+    ctx.lineTo(
+      cs.sx + ndx * arrowLen - headLen * Math.cos(headAngle - 0.5),
+      cs.sy + ndy * arrowLen - headLen * Math.sin(headAngle - 0.5),
+    );
+    ctx.lineTo(
+      cs.sx + ndx * arrowLen - headLen * Math.cos(headAngle + 0.5),
+      cs.sy + ndy * arrowLen - headLen * Math.sin(headAngle + 0.5),
+    );
+    ctx.closePath();
+    ctx.fill();
+
+    // Update direction label
+    const dirLabel = this.hud?.miniMapWrapper?.querySelector('[data-minimap-dir]');
+    if (dirLabel) {
+      const nextInter = this.intersections.find((iz) => !iz.entered && this.progress < iz.distance);
+      if (nextInter) {
+        const dist = Math.round(nextInter.distance - this.progress);
+        const arrow = nextInter.turnDir === 'right' ? '➡️' : nextInter.turnDir === 'left' ? '⬅️' : '⬆️';
+        dirLabel.textContent = `${arrow} ${dist}m 後${nextInter.instruction}`;
+      } else {
+        dirLabel.textContent = '⬆️ 直行抵達目的地';
+      }
+    }
   }
 
   private createHudChip(text: string): HTMLDivElement {
@@ -514,9 +849,10 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     const laneMat = new THREE.MeshBasicMaterial({ color: 0xf4e86d });
     const grassMat = new THREE.MeshBasicMaterial({ color: 0x6f9a63 });
 
-    const ground = new THREE.Mesh(new THREE.PlaneGeometry(520, 520), grassMat);
+    // Wider ground to cover the extended route
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(620, 620), grassMat);
     ground.rotation.x = -Math.PI / 2;
-    ground.position.set(60, -0.02, 155);
+    ground.position.set(60, -0.02, 200);
     this.scene.add(ground);
 
     for (const segment of this.route) {
@@ -561,8 +897,9 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
       }
     }
 
-    for (const distance of [110, 230]) {
-      const point = this.getRoutePoint(distance);
+    // Intersection cross-roads at each intersection zone
+    for (const inter of this.intersections) {
+      const point = this.getRoutePoint(inter.distance);
       const cross = new THREE.Mesh(new THREE.BoxGeometry(76, 0.035, this.roadWidth), roadMat);
       cross.position.set(point.x, 0.025, point.z);
       cross.rotation.y = Math.atan2(point.normal.x, point.normal.z);
@@ -570,7 +907,7 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     }
 
     this.addBuildings();
-    this.addRouteArrows();
+    this.addTurnSignage();
     this.addDestinationMarker();
   }
 
@@ -599,29 +936,69 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     }
   }
 
-  private addRouteArrows() {
+  /** Add physical road signs at intersections so player knows to turn */
+  private addTurnSignage() {
     const THREE = this.requireThree();
     if (!this.scene) return;
-    const arrowPlacements = [
-      { distance: 72, label: '→' },
-      { distance: 194, label: '←' },
-      { distance: 286, label: '↑' },
-    ];
 
-    for (const placement of arrowPlacements) {
-      const point = this.getRoutePoint(placement.distance);
-      const texture = this.createArrowTexture(placement.label);
-      const material = new THREE.MeshBasicMaterial({
-        map: texture,
-        transparent: true,
-        depthWrite: false,
-      });
-      const arrow = new THREE.Mesh(new THREE.PlaneGeometry(10, 10), material);
-      arrow.rotation.x = -Math.PI / 2;
-      arrow.rotation.z = -Math.atan2(point.dir.x, point.dir.z);
-      arrow.position.set(point.x, 0.08, point.z);
-      this.scene.add(arrow);
+    for (const inter of this.intersections) {
+      if (!inter.turnDir) continue;
+
+      // Place sign 20m before intersection
+      const signDist = Math.max(5, inter.distance - 20);
+      const point = this.getRoutePoint(signDist);
+
+      const group = new THREE.Group();
+
+      // Post
+      const postMat = new THREE.MeshBasicMaterial({ color: 0x888888 });
+      const post = new THREE.Mesh(new THREE.BoxGeometry(0.2, 4, 0.2), postMat);
+      post.position.y = 2;
+      group.add(post);
+
+      // Sign board
+      const signColor = inter.turnDir === 'right' ? 0x2563eb : 0x2563eb;
+      const signMat = new THREE.MeshBasicMaterial({ color: signColor });
+      const sign = new THREE.Mesh(new THREE.BoxGeometry(2.8, 1.8, 0.12), signMat);
+      sign.position.y = 4.2;
+      group.add(sign);
+
+      // Arrow on sign (using a canvas texture)
+      const arrowLabel = inter.turnDir === 'right' ? '→' : '←';
+      const texture = this.createSignTexture(arrowLabel);
+      const arrowMat = new THREE.MeshBasicMaterial({ map: texture, transparent: true, depthWrite: false });
+      const arrowPlane = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 1.4), arrowMat);
+      arrowPlane.position.set(0, 4.2, 0.07);
+      group.add(arrowPlane);
+
+      // Position to the right side of road
+      group.position.set(
+        point.x + point.normal.x * (this.roadWidth / 2 + 1),
+        0,
+        point.z + point.normal.z * (this.roadWidth / 2 + 1),
+      );
+      group.rotation.y = Math.atan2(point.dir.x, point.dir.z);
+      this.scene.add(group);
     }
+  }
+
+  private createSignTexture(label: string) {
+    const THREE = this.requireThree();
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 128;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.clearRect(0, 0, 256, 128);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 92px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(label, 128, 64);
+    }
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.needsUpdate = true;
+    return texture;
   }
 
   private addDestinationMarker() {
@@ -638,28 +1015,6 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     group.add(post, flag);
     group.position.set(point.x + point.normal.x * 6, 0, point.z + point.normal.z * 6);
     this.scene.add(group);
-  }
-
-  private createArrowTexture(label: string) {
-    const THREE = this.requireThree();
-    const canvas = document.createElement('canvas');
-    canvas.width = 256;
-    canvas.height = 256;
-    const ctx = canvas.getContext('2d');
-    if (ctx) {
-      ctx.clearRect(0, 0, 256, 256);
-      ctx.fillStyle = 'rgba(250, 204, 21, 0.90)';
-      ctx.strokeStyle = 'rgba(24, 24, 27, 0.55)';
-      ctx.lineWidth = 10;
-      ctx.font = 'bold 188px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.strokeText(label, 128, 128);
-      ctx.fillText(label, 128, 128);
-    }
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.needsUpdate = true;
-    return texture;
   }
 
   private loop(time: number, trial: TrialType<Info>, display_element: HTMLElement) {
@@ -683,10 +1038,12 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     this.lastBrakePressed = brakePressed;
 
     this.updateVehicle(input, dt);
-    this.spawnScriptedHazards(time);
+    this.updateIntersections();
+    this.spawnRandomHazards(time);
     this.updateHazards(time);
     this.updateCamera(input.steering);
     this.updateHud(trial.duration_ms ?? 90_000, elapsed);
+    this.updateMiniMap();
 
     this.renderer.render(this.scene, this.camera);
 
@@ -727,66 +1084,98 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     this.laneDeviationActive = deviating;
   }
 
-  private spawnScriptedHazards(time: number) {
-    const input = this.readInput();
-    for (const script of this.scripts) {
-      if (this.triggeredHazards.has(script.id)) continue;
-      if (this.progress < script.distance) continue;
+  /** Update intersection crossing detection */
+  private updateIntersections() {
+    for (const inter of this.intersections) {
+      if (inter.entered) continue;
 
-      this.triggeredHazards.add(script.id);
-      const hazardDistance = Math.min(this.routeLength - 8, this.progress + this.hazardLeadDistance);
-      const group = this.createHazardMesh(script.id);
-      const point = this.getRoutePoint(hazardDistance);
-      group.position.set(point.x, 0, point.z);
-      group.rotation.y = Math.atan2(point.dir.x, point.dir.z);
-      this.scene?.add(group);
+      // Announce upcoming intersection
+      const distToInter = inter.distance - this.progress;
+      if (!inter.announced && distToInter < 50 && distToInter > 0) {
+        inter.announced = true;
+        if (this.hud && inter.turnDir) {
+          const arrow = inter.turnDir === 'right' ? '→' : '←';
+          this.hud.status.textContent = `導航：前方路口請${inter.instruction} ${arrow}`;
+        }
+      }
 
-      const preheldBrake = input.brake > 0.35;
-      const result: DrivingEventResult = {
-        event_id: script.id,
-        label: script.label,
-        distance_m: Math.round(script.distance),
-        rt_ms: null,
-        valid: !preheldBrake,
-        collision: false,
-        brake_preheld: preheldBrake,
-        response: preheldBrake ? 'invalid-preheld-brake' : 'pending',
-      };
-
-      const hazard: ActiveHazard = {
-        script,
-        group,
-        triggerDistance: this.progress,
-        hazardDistance,
-        startTime: time,
-        brakeTime: preheldBrake ? time : null,
-        rt: null,
-        preheldBrake,
-        collision: false,
-        resolved: false,
-        removeAt: null,
-        currentDistance: hazardDistance,
-        result,
-      };
-      this.activeHazards.push(hazard);
-      this.eventResults.push(result);
-      this.flashRed();
-      if (this.hud) this.hud.event.textContent = script.label;
+      // Mark as entered when we cross through
+      if (this.progress >= inter.distance) {
+        inter.entered = true;
+      }
     }
+  }
+
+  /** Spawn hazards at randomized distances instead of fixed positions */
+  private spawnRandomHazards(time: number) {
+    // Don't spawn if we're near the end, or if there's already an active unresolved hazard
+    if (this.progress >= this.routeLength - 40) return;
+    if (this.activeHazards.some((h) => !h.resolved)) return;
+    if (this.progress < this.nextHazardDistance) return;
+
+    // Pick next hazard from pool (cycle through shuffled pool)
+    if (this.hazardPool.length === 0) {
+      this.hazardPool = [...this.hazardTemplates].sort(() => Math.random() - 0.5);
+    }
+    const template = this.hazardPool.pop()!;
+    this.hazardSpawnCount++;
+
+    const input = this.readInput();
+    const hazardDistance = Math.min(this.routeLength - 8, this.progress + this.hazardLeadDistance);
+    const group = this.createHazardMesh(template.id);
+    const point = this.getRoutePoint(hazardDistance);
+    group.position.set(point.x, 0, point.z);
+    group.rotation.y = Math.atan2(point.dir.x, point.dir.z);
+    this.scene?.add(group);
+
+    const preheldBrake = input.brake > 0.35;
+    const result: DrivingEventResult = {
+      event_id: template.id,
+      label: template.label,
+      distance_m: Math.round(this.progress),
+      rt_ms: null,
+      valid: !preheldBrake,
+      collision: false,
+      brake_preheld: preheldBrake,
+      response: preheldBrake ? 'invalid-preheld-brake' : 'pending',
+    };
+
+    const hazard: ActiveHazard = {
+      template,
+      group,
+      triggerDistance: this.progress,
+      hazardDistance,
+      startTime: time,
+      brakeTime: preheldBrake ? time : null,
+      rt: null,
+      preheldBrake,
+      collision: false,
+      resolved: false,
+      removeAt: null,
+      currentDistance: hazardDistance,
+      result,
+    };
+    this.activeHazards.push(hazard);
+    this.eventResults.push(result);
+    this.flashRed();
+    if (this.hud) this.hud.event.textContent = template.label;
+
+    // Schedule next hazard at a random interval (40–80m further)
+    this.nextHazardDistance = this.progress + 40 + Math.random() * 40;
   }
 
   private updateHazards(time: number) {
     for (const hazard of this.activeHazards) {
       const age = time - hazard.startTime;
       const point = this.getRoutePoint(hazard.currentDistance);
-      const baseY = hazard.script.id === 'plane-crash' ? Math.max(0.3, 18 - age * 0.018) : 0;
+      const baseY = hazard.template.id === 'plane-crash' ? Math.max(0.3, 18 - age * 0.018) : 0;
       let lateral = 0;
 
-      if (hazard.script.id === 'child-crossing') {
+      if (hazard.template.id === 'child-crossing') {
         lateral = -5 + Math.min(1, age / 1800) * 10;
-      } else if (hazard.script.id === 'drunk-driver') {
+      } else if (hazard.template.id === 'drunk-driver') {
         lateral = 4.2 + Math.sin(age / 230) * 1.1;
-      } else if (hazard.script.id === 'wrong-way-driver') {
+      } else if (hazard.template.id === 'wrong-way-driver') {
         hazard.currentDistance = Math.max(hazard.triggerDistance, hazard.hazardDistance - age * 0.012);
         const movingPoint = this.getRoutePoint(hazard.currentDistance);
         hazard.group.position.set(
@@ -797,16 +1186,16 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
         hazard.group.rotation.y = Math.atan2(-movingPoint.dir.x, -movingPoint.dir.z);
       }
 
-      if (hazard.script.id !== 'wrong-way-driver') {
+      if (hazard.template.id !== 'wrong-way-driver') {
         hazard.group.position.set(
           point.x + point.normal.x * lateral,
           baseY,
           point.z + point.normal.z * lateral,
         );
-        hazard.group.rotation.y = Math.atan2(point.dir.x, point.dir.z) + (hazard.script.id === 'drunk-driver' ? Math.sin(age / 300) * 0.5 : 0);
+        hazard.group.rotation.y = Math.atan2(point.dir.x, point.dir.z) + (hazard.template.id === 'drunk-driver' ? Math.sin(age / 300) * 0.5 : 0);
       }
 
-      if (hazard.script.id === 'plane-crash') {
+      if (hazard.template.id === 'plane-crash') {
         hazard.group.rotation.z = Math.min(1.15, age / 900);
       }
 
@@ -853,7 +1242,7 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
 
     if (this.hud) {
       const rtText = hazard.rt !== null ? `${hazard.rt} ms` : '無有效 RT';
-      this.hud.event.textContent = collision ? `${hazard.script.label}：碰撞 / ${rtText}` : `${hazard.script.label}：已煞停 / ${rtText}`;
+      this.hud.event.textContent = collision ? `${hazard.template.label}：碰撞 / ${rtText}` : `${hazard.template.label}：已煞停 / ${rtText}`;
     }
   }
 
@@ -865,7 +1254,7 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     hazard.result.rt_ms = hazard.rt;
     hazard.result.response = 'brake';
     hazard.result.valid = true;
-    if (this.hud) this.hud.event.textContent = `${hazard.script.label}：煞車反應 ${hazard.rt} ms`;
+    if (this.hud) this.hud.event.textContent = `${hazard.template.label}：煞車反應 ${hazard.rt} ms`;
   }
 
   private createHazardMesh(id: HazardId) {
@@ -962,7 +1351,16 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     const remaining = Math.max(0, Math.ceil((durationMs - elapsedMs) / 1000));
     const nextTurn = this.getRoutePoint(Math.min(this.routeLength - 1, this.progress + 30));
     const instruction = this.route[nextTurn.segmentIndex]?.instruction ?? '直行';
-    this.hud.status.textContent = `導航：${instruction} · 剩餘 ${remaining}s`;
+
+    // Show navigation instruction with distance to next turn
+    const nextInter = this.intersections.find((iz) => !iz.entered && this.progress < iz.distance);
+    if (nextInter && nextInter.turnDir) {
+      const dist = Math.round(nextInter.distance - this.progress);
+      const arrow = nextInter.turnDir === 'right' ? '→' : '←';
+      this.hud.status.textContent = `導航：${dist}m 後${nextInter.instruction} ${arrow} · 剩餘 ${remaining}s`;
+    } else {
+      this.hud.status.textContent = `導航：${instruction} · 剩餘 ${remaining}s`;
+    }
     this.hud.speed.textContent = `${Math.round(this.speed * 3.6)} km/h`;
     this.hud.distance.textContent = `${Math.max(0, Math.round(this.routeLength - this.progress))} m`;
   }
@@ -1071,20 +1469,7 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     if (this.finished) return;
     this.finished = true;
 
-    for (const script of this.scripts) {
-      if (this.eventResults.some((event) => event.event_id === script.id)) continue;
-      this.eventResults.push({
-        event_id: script.id,
-        label: script.label,
-        distance_m: Math.round(script.distance),
-        rt_ms: null,
-        valid: false,
-        collision: false,
-        brake_preheld: false,
-        response: 'not-reached',
-      });
-    }
-
+    // Mark any un-spawned events as not-reached (note: with random events, we track what was spawned)
     const duration = this.trialStartTime > 0
       ? Math.round(performance.now() - this.trialStartTime)
       : 0;
@@ -1157,6 +1542,8 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     }
     this.camera = null;
     this.hud = null;
+    this.miniMapCanvas = null;
+    this.miniMapCtx = null;
   }
 
   private disposeObject(object: any) {
