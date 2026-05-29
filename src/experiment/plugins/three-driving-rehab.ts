@@ -50,8 +50,6 @@ interface RouteSegment {
   start: Vec2;
   dir: Vec2;
   length: number;
-  instruction: string;
-  turnDir?: 'left' | 'right' | null;
 }
 
 interface RoutePoint {
@@ -101,7 +99,19 @@ interface ActiveHazard {
   resolved: boolean;
   removeAt: number | null;
   currentDistance: number;
+  currentLateral: number;
   result: DrivingEventResult;
+}
+
+interface CollisionFootprint {
+  halfWidth: number;
+  halfLength: number;
+}
+
+interface CollisionBox2D extends CollisionFootprint {
+  centerX: number;
+  centerZ: number;
+  angle: number;
 }
 
 /** Intersection node for free turning */
@@ -192,14 +202,17 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
   } | null = null;
 
   private readonly roadWidth = 12;
+  private readonly laneOffset = 1.5;
+  private readonly vehicleHalfWidth = 1.05;
+  private readonly vehicleHalfLength = 2.2;
 
   // Extended route with more segments for free driving
   private readonly route: RouteSegment[] = [
-    { start: { x: 0, z: 0 }, dir: { x: 0, z: 1 }, length: 110, instruction: '直行', turnDir: null },
-    { start: { x: 0, z: 110 }, dir: { x: 1, z: 0 }, length: 120, instruction: '右轉', turnDir: 'right' },
-    { start: { x: 120, z: 110 }, dir: { x: 0, z: 1 }, length: 100, instruction: '直行', turnDir: null },
-    { start: { x: 120, z: 210 }, dir: { x: -1, z: 0 }, length: 100, instruction: '左轉', turnDir: 'left' },
-    { start: { x: 20, z: 210 }, dir: { x: 0, z: 1 }, length: 135, instruction: '直行抵達目的地', turnDir: null },
+    { start: { x: 0, z: 0 }, dir: { x: 0, z: 1 }, length: 110 },
+    { start: { x: 0, z: 110 }, dir: { x: 1, z: 0 }, length: 120 },
+    { start: { x: 120, z: 110 }, dir: { x: 0, z: 1 }, length: 100 },
+    { start: { x: 120, z: 210 }, dir: { x: -1, z: 0 }, length: 100 },
+    { start: { x: 20, z: 210 }, dir: { x: 0, z: 1 }, length: 135 },
   ];
 
   /** Hazard templates – drawn randomly */
@@ -312,11 +325,12 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     for (let i = 0; i < this.route.length; i++) {
       cumulativeDist += this.route[i].length;
       if (i < this.route.length - 1) {
+        const turnDir = this.getRouteTurn(this.route[i].dir, this.route[i + 1].dir);
         this.intersections.push({
           distance: cumulativeDist,
           segmentIndex: i,
-          instruction: this.route[i + 1].instruction,
-          turnDir: this.route[i + 1].turnDir ?? null,
+          instruction: this.getTurnInstruction(turnDir),
+          turnDir,
           entered: false,
           announced: false,
         });
@@ -1141,9 +1155,9 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     this.vehicleSpeed -= rollingDrag * dt;
     this.vehicleSpeed = Math.max(0, Math.min(maxSpeed, this.vehicleSpeed));
 
-    // Heading update – steering changes heading based on speed
+    // Positive steering is screen-right in the first-person camera.
     const speedFactor = Math.max(0.15, this.vehicleSpeed / maxSpeed);
-    this.vehicleHeading += input.steering * turnRate * speedFactor * dt;
+    this.vehicleHeading -= input.steering * turnRate * speedFactor * dt;
 
     // Move forward in heading direction
     // heading=0 → moving in +Z, heading=PI/2 → moving in +X
@@ -1268,6 +1282,7 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
       resolved: false,
       removeAt: null,
       currentDistance: hazardDistance,
+      currentLateral: 0,
       result,
     };
     this.activeHazards.push(hazard);
@@ -1301,10 +1316,12 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
           0,
           movingPoint.z - movingPoint.normal.z * 1.6,
         );
+        hazard.currentLateral = -1.6;
         hazard.group.rotation.y = Math.atan2(-movingPoint.dir.x, -movingPoint.dir.z);
       }
 
       if (hazard.template.id !== 'wrong-way-driver') {
+        hazard.currentLateral = lateral;
         hazard.group.position.set(
           point.x + point.normal.x * lateral,
           baseY,
@@ -1318,17 +1335,25 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
       }
 
       const distanceToHazard = hazard.currentDistance - this.progress;
-      const safeBrake = hazard.brakeTime !== null && this.vehicleSpeed < 2.4 && distanceToHazard > 2;
-      const collisionNow = !hazard.resolved && distanceToHazard <= 4 && this.vehicleSpeed > 2.4;
+      const collisionNow = !hazard.resolved && this.isHazardColliding(hazard);
+      const safeBrake = hazard.brakeTime !== null && this.vehicleSpeed < 2.4 && !collisionNow && distanceToHazard > -1;
+      const passedHazard = !hazard.resolved && !collisionNow && this.hasPassedHazard(hazard);
 
-      if (safeBrake) {
-        this.resolveHazard(hazard, time, false, hazard.preheldBrake ? 'invalid-preheld-brake' : 'brake');
-      } else if (collisionNow) {
+      if (collisionNow) {
         this.resolveHazard(hazard, time, true, hazard.brakeTime ? 'collision-after-brake' : 'collision-no-brake');
+      } else if (safeBrake) {
+        this.resolveHazard(hazard, time, false, hazard.preheldBrake ? 'invalid-preheld-brake' : 'brake');
+      } else if (passedHazard) {
+        const response = hazard.preheldBrake
+          ? 'invalid-preheld-brake'
+          : hazard.brakeTime
+            ? 'dodge-after-brake'
+            : 'dodge';
+        this.resolveHazard(hazard, time, false, response);
       }
 
-      if (!hazard.resolved && age > timeoutMs) {
-        this.resolveHazard(hazard, time, true, hazard.brakeTime ? 'timeout-after-brake' : 'timeout-no-brake');
+      if (!hazard.resolved && age > timeoutMs && hazard.brakeTime !== null && this.vehicleSpeed < 2.4 && !collisionNow) {
+        this.resolveHazard(hazard, time, false, hazard.preheldBrake ? 'invalid-preheld-brake' : 'brake');
       }
 
       if (hazard.removeAt !== null && time >= hazard.removeAt) {
@@ -1348,7 +1373,7 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     hazard.result.collision = collision;
     hazard.result.response = response;
     hazard.result.rt_ms = hazard.rt;
-    hazard.result.valid = !hazard.preheldBrake && hazard.rt !== null;
+    hazard.result.valid = !hazard.preheldBrake && (hazard.rt !== null || response === 'dodge');
     hazard.removeAt = time + 950;
 
     if (collision) {
@@ -1360,8 +1385,89 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
 
     if (this.hud) {
       const rtText = hazard.rt !== null ? `${hazard.rt} ms` : '無有效 RT';
-      this.hud.event.textContent = collision ? `${hazard.template.label}：碰撞 / ${rtText}` : `${hazard.template.label}：已煞停 / ${rtText}`;
+      const outcome = collision
+        ? '碰撞'
+        : response === 'dodge' || response === 'dodge-after-brake'
+          ? '閃避通過'
+          : '已煞停';
+      this.hud.event.textContent = `${hazard.template.label}：${outcome} / ${rtText}`;
     }
+  }
+
+  private isHazardColliding(hazard: ActiveHazard): boolean {
+    if (hazard.template.id === 'plane-crash' && hazard.group.position.y > 1.6) return false;
+    return this.boxesOverlap(this.getVehicleCollisionBox(), this.getHazardCollisionBox(hazard));
+  }
+
+  private hasPassedHazard(hazard: ActiveHazard): boolean {
+    const vehicleBox = this.getVehicleCollisionBox();
+    const hazardBox = this.getHazardCollisionBox(hazard);
+    const passDistance = vehicleBox.halfLength + hazardBox.halfLength + 1.2;
+    return this.progress - hazard.currentDistance > passDistance;
+  }
+
+  private getVehicleCollisionBox(): CollisionBox2D {
+    const right = this.getVisualRightVector(this.vehicleHeading);
+    return {
+      centerX: this.vehicleX + right.x * this.laneOffset,
+      centerZ: this.vehicleZ + right.z * this.laneOffset,
+      angle: this.vehicleHeading,
+      halfWidth: this.vehicleHalfWidth,
+      halfLength: this.vehicleHalfLength,
+    };
+  }
+
+  private getHazardCollisionBox(hazard: ActiveHazard): CollisionBox2D {
+    const footprint = this.getHazardFootprint(hazard.template.id);
+    return {
+      centerX: hazard.group.position.x,
+      centerZ: hazard.group.position.z,
+      angle: hazard.group.rotation.y || 0,
+      ...footprint,
+    };
+  }
+
+  private getHazardFootprint(id: HazardId): CollisionFootprint {
+    switch (id) {
+      case 'child-crossing':
+        return { halfWidth: 0.45, halfLength: 0.45 };
+      case 'elder-stopped':
+        return { halfWidth: 0.55, halfLength: 0.55 };
+      case 'plane-crash':
+        return { halfWidth: 4.8, halfLength: 4.2 };
+      case 'drunk-driver':
+      case 'wrong-way-driver':
+        return { halfWidth: 1.35, halfLength: 2.25 };
+      default:
+        return { halfWidth: 1, halfLength: 1 };
+    }
+  }
+
+  private boxesOverlap(a: CollisionBox2D, b: CollisionBox2D): boolean {
+    const axes = [
+      this.getBoxWidthAxis(a.angle),
+      this.getForwardVector(a.angle),
+      this.getBoxWidthAxis(b.angle),
+      this.getForwardVector(b.angle),
+    ];
+
+    for (const axis of axes) {
+      const centerDelta = Math.abs((a.centerX - b.centerX) * axis.x + (a.centerZ - b.centerZ) * axis.z);
+      const radiusA = this.getProjectedRadius(a, axis);
+      const radiusB = this.getProjectedRadius(b, axis);
+      if (centerDelta > radiusA + radiusB) return false;
+    }
+
+    return true;
+  }
+
+  private getProjectedRadius(box: CollisionBox2D, axis: Vec2): number {
+    const widthAxis = this.getBoxWidthAxis(box.angle);
+    const lengthAxis = this.getForwardVector(box.angle);
+    return (
+      box.halfWidth * Math.abs(widthAxis.x * axis.x + widthAxis.z * axis.z)
+      + box.halfLength * Math.abs(lengthAxis.x * axis.x + lengthAxis.z * axis.z)
+    );
   }
 
   private handleBrakePressed(time: number) {
@@ -1457,22 +1563,19 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     if (!this.camera) return;
 
     const cabinSway = steering * 0.35;
-    // Camera sits at vehicle position, shifted slightly right for right-lane driving
-    // In heading coordinates: right = perpendicular to heading
-    const rightX = Math.cos(this.vehicleHeading);  // perpendicular right in X
-    const rightZ = -Math.sin(this.vehicleHeading); // perpendicular right in Z
+    const right = this.getVisualRightVector(this.vehicleHeading);
+    const forward = this.getForwardVector(this.vehicleHeading);
 
     // Right-lane offset: shift camera ~1.5m to the right of road center
-    const laneOffset = 1.5;
-    const camX = this.vehicleX + rightX * (laneOffset + cabinSway);
-    const camZ = this.vehicleZ + rightZ * (laneOffset + cabinSway);
+    const camX = this.vehicleX + right.x * (this.laneOffset + cabinSway);
+    const camZ = this.vehicleZ + right.z * (this.laneOffset + cabinSway);
 
     this.camera.position.set(camX, 2.15, camZ);
 
     // Look ahead in heading direction
     const lookDist = 35;
-    const lookX = this.vehicleX + Math.sin(this.vehicleHeading) * lookDist + rightX * laneOffset;
-    const lookZ = this.vehicleZ + Math.cos(this.vehicleHeading) * lookDist + rightZ * laneOffset;
+    const lookX = this.vehicleX + forward.x * lookDist + right.x * this.laneOffset;
+    const lookZ = this.vehicleZ + forward.z * lookDist + right.z * this.laneOffset;
     this.camera.lookAt(lookX, 1.65, lookZ);
   }
 
@@ -1541,6 +1644,18 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     return Math.max(0, Math.min(1, (1 - value) / 2));
   }
 
+  private getForwardVector(angle: number): Vec2 {
+    return { x: Math.sin(angle), z: Math.cos(angle) };
+  }
+
+  private getVisualRightVector(angle: number): Vec2 {
+    return { x: -Math.cos(angle), z: Math.sin(angle) };
+  }
+
+  private getBoxWidthAxis(angle: number): Vec2 {
+    return { x: Math.cos(angle), z: -Math.sin(angle) };
+  }
+
   /* ================================================================
    * ROUTE HELPERS (used for hazard placement, minimap, etc.)
    * ================================================================ */
@@ -1600,6 +1715,18 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     return { x: dir.x / length, z: dir.z / length };
   }
 
+  private getRouteTurn(from: Vec2, to: Vec2): 'left' | 'right' | null {
+    const signedTurn = from.z * to.x - from.x * to.z;
+    if (Math.abs(signedTurn) < 0.1) return null;
+    return signedTurn > 0 ? 'left' : 'right';
+  }
+
+  private getTurnInstruction(turnDir: 'left' | 'right' | null): string {
+    if (turnDir === 'left') return '左轉';
+    if (turnDir === 'right') return '右轉';
+    return '直行';
+  }
+
   /* ================================================================
    * TRIAL FINISH & CLEANUP
    * ================================================================ */
@@ -1610,8 +1737,9 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     const duration = this.trialStartTime > 0
       ? Math.round(performance.now() - this.trialStartTime)
       : 0;
-    const validRts = this.eventResults
-      .filter((event) => event.valid && event.rt_ms !== null)
+    const validEvents = this.eventResults.filter((event) => event.valid);
+    const validRts = validEvents
+      .filter((event) => event.rt_ms !== null)
       .map((event) => event.rt_ms as number)
       .sort((a, b) => a - b);
     const averageRt = validRts.length
@@ -1639,7 +1767,7 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
       duration_ms: duration > 0 ? duration : trial.duration_ms,
       average_rt: averageRt,
       median_rt: medianRt,
-      valid_event_count: validRts.length,
+      valid_event_count: validEvents.length,
       collisions,
       lane_deviations: this.laneDeviationCount,
       average_fps: averageFps,
