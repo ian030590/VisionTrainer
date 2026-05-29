@@ -39,7 +39,12 @@ const info = {
     },
     choices: {
       type: ParameterType.KEYS,
-      default: ['ArrowRight', 'ArrowUpRight', 'ArrowUp', 'ArrowUpLeft', 'ArrowLeft', 'ArrowDownLeft', 'ArrowDown', 'ArrowDownRight'],
+      default: [
+        'ArrowRight', 'ArrowUpRight', 'ArrowUp', 'ArrowUpLeft', 
+        'ArrowLeft', 'ArrowDownLeft', 'ArrowDown', 'ArrowDownRight',
+        '7', '9', '1', '3', '8', '2', '4', '6',
+        'Home', 'PageUp', 'End', 'PageDown'
+      ],
     },
   },
   data: {
@@ -94,7 +99,8 @@ class PixiContrastSensitivityPlugin implements JsPsychPlugin<Info> {
     this.jsPsych.pluginAPI.setTimeout(() => {
       cross.destroy();
 
-      const size = (trial.stroke_px || 10) * 10;
+      const isGrating = trial.optotype === 'grating';
+      const size = isGrating ? Math.max(this.app!.screen.width, this.app!.screen.height) * 1.5 : (trial.stroke_px || 10) * 10;
       const canvas = document.createElement('canvas');
       canvas.width = size;
       canvas.height = size;
@@ -148,10 +154,10 @@ class PixiContrastSensitivityPlugin implements JsPsychPlugin<Info> {
       const keys = ['ArrowRight', 'ArrowUp', 'ArrowLeft', 'ArrowDown'];
       expectedKey = keys[trial.direction! / 2];
     } else if (trial.optotype === 'grating') {
-      const isUp = key === 'ArrowUp' || key === 'ArrowDown';
-      const isRight = key === 'ArrowRight' || key === 'ArrowLeft';
-      const isUpRight = key === 'ArrowUpRight' || key === 'ArrowDownLeft';
-      const isDownRight = key === 'ArrowDownRight' || key === 'ArrowUpLeft';
+      const isUp = key === 'ArrowUp' || key === 'ArrowDown' || key === '8' || key === '2';
+      const isRight = key === 'ArrowRight' || key === 'ArrowLeft' || key === '4' || key === '6';
+      const isUpRight = key === 'ArrowUpRight' || key === 'ArrowDownLeft' || key === '9' || key === '1' || key === 'PageUp' || key === 'End';
+      const isDownRight = key === 'ArrowDownRight' || key === 'ArrowUpLeft' || key === '3' || key === '7' || key === 'PageDown' || key === 'Home';
       
       let userDirection = -1;
       if (isUp) userDirection = 0;
@@ -162,8 +168,40 @@ class PixiContrastSensitivityPlugin implements JsPsychPlugin<Info> {
       isCorrect = (userDirection === trial.direction);
     }
     
-    if (trial.optotype !== 'grating') {
-      isCorrect = (key.toLowerCase() === expectedKey.toLowerCase());
+    if (trial.optotype === 'landolt') {
+      const isUpRight = key === 'ArrowUpRight' || key === '9' || key === 'PageUp';
+      const isUpLeft = key === 'ArrowUpLeft' || key === '7' || key === 'Home';
+      const isDownRight = key === 'ArrowDownRight' || key === '3' || key === 'PageDown';
+      const isDownLeft = key === 'ArrowDownLeft' || key === '1' || key === 'End';
+      const isUp = key === 'ArrowUp' || key === '8';
+      const isDown = key === 'ArrowDown' || key === '2';
+      const isLeft = key === 'ArrowLeft' || key === '4';
+      const isRight = key === 'ArrowRight' || key === '6';
+      
+      let userDirection = -1;
+      if (isRight) userDirection = 0;
+      else if (isUpRight) userDirection = 1;
+      else if (isUp) userDirection = 2;
+      else if (isUpLeft) userDirection = 3;
+      else if (isLeft) userDirection = 4;
+      else if (isDownLeft) userDirection = 5;
+      else if (isDown) userDirection = 6;
+      else if (isDownRight) userDirection = 7;
+      
+      isCorrect = (userDirection === trial.direction);
+    } else if (trial.optotype === 'tumblingE') {
+      const isUp = key === 'ArrowUp' || key === '8';
+      const isDown = key === 'ArrowDown' || key === '2';
+      const isLeft = key === 'ArrowLeft' || key === '4';
+      const isRight = key === 'ArrowRight' || key === '6';
+      
+      let userDirection = -1;
+      if (isRight) userDirection = 0;
+      else if (isUp) userDirection = 2;
+      else if (isLeft) userDirection = 4;
+      else if (isDown) userDirection = 6;
+      
+      isCorrect = (userDirection === trial.direction);
     }
 
     this.jsPsych.finishTrial({

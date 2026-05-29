@@ -404,8 +404,8 @@ export function drawContrastGrating(
   size: number,
   direction: number, // 0, 2, 4, 6 (0=vertical, 2=diagonal, 4=horizontal, 6=diagonal)
   contrast: number, // 0 to 1
-  backColorHex: string // e.g. '#808080' for background
-) {
+  backColorHex: string, // e.g. '#808080' for background
+  periodPx: number = 40 // Default width of one cycle in pixels
   ctx.save();
   ctx.translate(cx, cy);
 
@@ -436,7 +436,6 @@ export function drawContrastGrating(
   const bgG = parseInt(backColorHex.slice(3, 5), 16) || 128;
   const bgB = parseInt(backColorHex.slice(5, 7), 16) || 128;
 
-  const periodPx = size / 4; // 4 cycles across the mask
   const trigFactor = (2 * Math.PI) / periodPx;
   
   // Calculate sinusoid values in a 1D array to save time
@@ -445,25 +444,19 @@ export function drawContrastGrating(
     sinVals[x] = Math.sin(x * trigFactor);
   }
 
-  let i = 0;
-  for (let y = 0; y < s2; y++) {
-    for (let x = 0; x < s2; x++) {
-      // 0 = mean luminance. sine goes from -1 to 1.
-      // value = meanLuminance * (1 + contrast * sin(x))
-      // Since it's web sRGB, we should do it in linear space ideally, but simple approximation works for standard tests.
-      // We will modulate luminance
-      const modulation = contrast * sinVals[x];
-      // assuming bgR is the mean
-      const rVal = Math.min(255, Math.max(0, bgR * (1 + modulation)));
-      const gVal = Math.min(255, Math.max(0, bgG * (1 + modulation)));
-      const bVal = Math.min(255, Math.max(0, bgB * (1 + modulation)));
-
-      data[i++] = rVal;
-      data[i++] = gVal;
-      data[i++] = bVal;
-      data[i++] = 255; // alpha
-    }
+  const rowData = new Uint8ClampedArray(s2 * 4);
+  for (let x = 0; x < s2; x++) {
+    const modulation = contrast * sinVals[x];
+    rowData[x * 4] = Math.min(255, Math.max(0, bgR * (1 + modulation)));
+    rowData[x * 4 + 1] = Math.min(255, Math.max(0, bgG * (1 + modulation)));
+    rowData[x * 4 + 2] = Math.min(255, Math.max(0, bgB * (1 + modulation)));
+    rowData[x * 4 + 3] = 255;
   }
+
+  for (let y = 0; y < s2; y++) {
+    data.set(rowData, y * s2 * 4);
+  }
+  
   tempCtx.putImageData(imgData, 0, 0);
 
   ctx.drawImage(tempCanvas, -s2 / 2, -s2 / 2);
