@@ -195,6 +195,10 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
   private keydownListener: ((event: KeyboardEvent) => void) | null = null;
   private keyupListener: ((event: KeyboardEvent) => void) | null = null;
   private resizeListener: (() => void) | null = null;
+  private gamepadConnectedListener: ((event: GamepadEvent) => void) | null = null;
+  private gamepadDisconnectedListener: ((event: GamepadEvent) => void) | null = null;
+  private gamepadConnected = false;
+  private gameOverOverlay: HTMLDivElement | null = null;
 
   private hud: {
     status: HTMLDivElement;
@@ -268,6 +272,7 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     this.attachKeyboardListeners(() => {
       void startDriving();
     }, trial, display_element);
+    this.attachGamepadListeners();
     this.startCalibrationPreview(overlay);
 
     const startButton = overlay.querySelector<HTMLButtonElement>('[data-driving-start]');
@@ -322,6 +327,8 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     this.keyState = { left: false, right: false, up: false, down: false };
     this.miniMapCanvas = null;
     this.miniMapCtx = null;
+    this.gamepadConnected = Array.from(navigator.getGamepads?.() ?? []).some(Boolean);
+    this.gameOverOverlay = null;
 
     // Difficulty
     const diffKey = (trial as any)?.driving_difficulty ?? 'beginner';
@@ -436,7 +443,7 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
         const device = document.createElement('div');
         device.style.fontSize = '12px';
         device.style.color = 'rgba(255,255,255,0.50)';
-        device.textContent = input.gamepadName ? `已偵測方向盤/控制器：${input.gamepadName}` : '未偵測到方向盤，將使用鍵盤控制。';
+        device.textContent = this.getInputDeviceText(input);
         inputBars.appendChild(device);
       }
       requestAnimationFrame(update);
@@ -482,6 +489,19 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     };
     window.addEventListener('keydown', this.keydownListener);
     window.addEventListener('keyup', this.keyupListener);
+  }
+
+  private attachGamepadListeners() {
+    this.gamepadConnectedListener = (event: GamepadEvent) => {
+      this.gamepadConnected = true;
+      if (this.hud?.event) this.hud.event.textContent = `已連接控制器：${event.gamepad.id}`;
+    };
+    this.gamepadDisconnectedListener = () => {
+      this.gamepadConnected = Array.from(navigator.getGamepads?.() ?? []).some(Boolean);
+      if (this.hud?.event && !this.gamepadConnected) this.hud.event.textContent = '控制器已中斷，改用鍵盤控制';
+    };
+    window.addEventListener('gamepadconnected', this.gamepadConnectedListener);
+    window.addEventListener('gamepaddisconnected', this.gamepadDisconnectedListener);
   }
 
   private initScene(root: HTMLDivElement) {
@@ -1143,11 +1163,57 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
       return;
     }
     if (elapsed >= (trial.duration_ms ?? 90_000)) {
-      this.finishTrial(trial, display_element, 'timeout');
+      this.showGameOverOverlay(trial, display_element);
       return;
     }
 
     this.raf = requestAnimationFrame((nextTime) => this.loop(nextTime, trial, display_element));
+  }
+
+  private showGameOverOverlay(trial: TrialType<Info>, display_element: HTMLElement) {
+    if (this.gameOverOverlay) return;
+    this.detachGlobalListeners();
+
+    const root = display_element.querySelector<HTMLDivElement>('.driving-rehab-root') ?? display_element;
+    const overlay = document.createElement('div');
+    overlay.tabIndex = 0;
+    Object.assign(overlay.style, {
+      position: 'absolute',
+      inset: '0',
+      zIndex: '30',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: 'rgba(2, 6, 23, 0.72)',
+      color: '#fff',
+      cursor: 'pointer',
+      pointerEvents: 'auto',
+      textAlign: 'center',
+      fontFamily: 'Inter, Noto Sans TC, sans-serif',
+    });
+    overlay.innerHTML = `
+      <div style="display:grid; gap:14px; justify-items:center; padding:32px;">
+        <div style="font-size:clamp(54px, 10vw, 112px); line-height:0.9; font-weight:900; letter-spacing:0; color:#f87171; text-shadow:0 10px 40px rgba(248,113,113,0.32);">
+          GAME OVER
+        </div>
+        <div style="font-size:18px; font-weight:700; color:rgba(255,255,255,0.88);">
+          任務時間已到，尚未抵達終點
+        </div>
+        <div style="font-size:14px; color:rgba(255,255,255,0.58);">
+          點擊畫面任一處查看成績
+        </div>
+      </div>
+    `;
+
+    const finishTimeout = () => {
+      overlay.removeEventListener('pointerdown', finishTimeout);
+      this.gameOverOverlay = null;
+      this.finishTrial(trial, display_element, 'timeout');
+    };
+    overlay.addEventListener('pointerdown', finishTimeout);
+    root.appendChild(overlay);
+    this.gameOverOverlay = overlay;
+    overlay.focus();
   }
 
   /* ================================================================
@@ -1656,6 +1722,7 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
 
     const gamepads = navigator.getGamepads?.() ?? [];
     const gamepad = Array.from(gamepads).find((pad): pad is Gamepad => Boolean(pad));
+    this.gamepadConnected = Boolean(gamepad);
     if (gamepad) {
       gamepadName = gamepad.id;
       const axisSteering = Math.abs(gamepad.axes[0] ?? 0) > 0.08 ? gamepad.axes[0] : 0;
@@ -1674,6 +1741,13 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
       brake: Math.max(0, Math.min(1, brake)),
       gamepadName,
     };
+  }
+
+  private getInputDeviceText(input: DrivingInput): string {
+    if (!('getGamepads' in navigator)) return '此瀏覽器不支援 Gamepad API，將使用鍵盤控制。';
+    if (input.gamepadName) return `Gamepad API 已接入：${input.gamepadName}`;
+    if (this.gamepadConnected) return 'Gamepad API 已接入，等待控制器輸入。';
+    return 'Gamepad API 已啟用；未偵測到方向盤/控制器，將使用鍵盤控制。';
   }
 
   private normalizePedalAxis(value: number): number {
@@ -1840,10 +1914,20 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
       window.removeEventListener('resize', this.resizeListener);
       this.resizeListener = null;
     }
+    if (this.gamepadConnectedListener) {
+      window.removeEventListener('gamepadconnected', this.gamepadConnectedListener);
+      this.gamepadConnectedListener = null;
+    }
+    if (this.gamepadDisconnectedListener) {
+      window.removeEventListener('gamepaddisconnected', this.gamepadDisconnectedListener);
+      this.gamepadDisconnectedListener = null;
+    }
   }
 
   private cleanupRenderResources() {
     cancelAnimationFrame(this.raf);
+    this.gameOverOverlay?.remove();
+    this.gameOverOverlay = null;
     if (this.scene) {
       this.disposeObject(this.scene);
       this.scene.clear?.();

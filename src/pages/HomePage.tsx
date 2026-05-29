@@ -359,6 +359,7 @@ export function HomePage() {
   const calibrated = isCalibrated();
   const roundsPresets = [3, 5, 10, 15];
   const durationPresets = [30, 60, 90, 120];
+  const drivingDurationPresets = [10, 20, 30, 40];
   const targetShapeOptions: { key: OculomotorTargetShape; label: string }[] = [
     { key: 'circle', label: t('home.shape.circle') },
     { key: 'star', label: t('home.shape.star') },
@@ -1301,7 +1302,7 @@ export function HomePage() {
             <div className="config-section">
               <div className="config-label">{t('home.config.drivingDuration')}</div>
               <div className="rounds-selector">
-                {durationPresets.map((duration) => (
+                {drivingDurationPresets.map((duration) => (
                   <button
                     key={duration}
                     className={`rounds-btn ${drivingDurationSec === duration ? 'active' : ''}`}
@@ -1316,14 +1317,14 @@ export function HomePage() {
                 <input
                   className="rounds-custom-input"
                   type="number"
-                  min="30"
-                  max="300"
+                  min="10"
+                  max="100"
                   value={drivingDurationSec}
                   onClick={(e) => e.stopPropagation()}
                   onChange={(e) => {
                     const value = parseInt(e.target.value, 10);
                     if (Number.isFinite(value)) {
-                      setDrivingDurationSec(Math.max(30, Math.min(300, value)));
+                      setDrivingDurationSec(Math.max(10, Math.min(100, value)));
                     }
                   }}
                 />
