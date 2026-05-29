@@ -54,6 +54,7 @@ export interface AppSettings {
   readingStoryId: string;
   drivingDurationSec: number;
   drivingRedFlashEnabled: boolean;
+  drivingDifficulty: 'beginner' | 'intermediate' | 'advanced';
 }
 
 interface SettingMeta<T> {
@@ -101,6 +102,7 @@ const META: { [K in keyof AppSettings]: SettingMeta<AppSettings[K]> } = {
   readingStoryId: { dflt: 'en_story_01' },
   drivingDurationSec: { dflt: 90, min: 30, max: 300 },
   drivingRedFlashEnabled: { dflt: true },
+  drivingDifficulty: { dflt: 'beginner' },
 };
 
 function storageKey(name: string): string {

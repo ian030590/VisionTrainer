@@ -54,6 +54,7 @@ export function buildTimeline(
     driving?: {
       durationSec?: number;
       redFlashEnabled?: boolean;
+      difficulty?: 'beginner' | 'intermediate' | 'advanced';
     };
   },
 ): object[] {
@@ -79,17 +80,20 @@ function buildDrivingRehabTimeline(
     driving?: {
       durationSec?: number;
       redFlashEnabled?: boolean;
+      difficulty?: 'beginner' | 'intermediate' | 'advanced';
     };
   },
 ): object[] {
   const durationSec = overrides?.driving?.durationSec ?? getSetting('drivingDurationSec');
   const redFlashEnabled = overrides?.driving?.redFlashEnabled ?? getSetting('drivingRedFlashEnabled');
+  const drivingDifficulty = overrides?.driving?.difficulty ?? getSetting('drivingDifficulty');
 
   return [
     {
       type: ThreeDrivingRehabPlugin,
       duration_ms: Math.round(durationSec * 1000),
       red_flash_enabled: redFlashEnabled,
+      driving_difficulty: drivingDifficulty,
     },
   ];
 }

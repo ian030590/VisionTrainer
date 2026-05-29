@@ -92,6 +92,7 @@ export function TrainingPage() {
   const drivingRedFlashEnabled = requestedDrivingFlash === null
     ? getSetting('drivingRedFlashEnabled')
     : requestedDrivingFlash === 'true';
+  const drivingDifficulty = (searchParams.get('drivingDifficulty') as any) || getSetting('drivingDifficulty');
 
   const [phase, setPhase] = useState<Phase>('running');
   const [results, setResults] = useState<TrialData[]>([]);
@@ -166,6 +167,7 @@ export function TrainingPage() {
         driving: {
           durationSec: drivingDurationSec,
           redFlashEnabled: drivingRedFlashEnabled,
+          difficulty: drivingDifficulty,
         },
       });
       jsPsych.run(timeline as any);
@@ -196,6 +198,7 @@ export function TrainingPage() {
     oculomotorCustomTargetImage,
     drivingDurationSec,
     drivingRedFlashEnabled,
+    drivingDifficulty,
   ]);
 
   const downloadCSV = useCallback(() => {

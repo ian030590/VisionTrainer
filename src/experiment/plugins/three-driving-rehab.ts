@@ -6,7 +6,7 @@ type ThreeModule = typeof import('three');
 
 const info = {
   name: 'three-driving-rehab',
-  version: '2.0.0',
+  version: '3.0.0',
   parameters: {
     duration_ms: {
       type: ParameterType.INT,
@@ -15,6 +15,11 @@ const info = {
     red_flash_enabled: {
       type: ParameterType.BOOL,
       default: true,
+    },
+    /** 'beginner' | 'intermediate' | 'advanced' – controls hazard reaction window */
+    driving_difficulty: {
+      type: ParameterType.STRING,
+      default: 'beginner',
     },
   },
   data: {
@@ -101,13 +106,27 @@ interface ActiveHazard {
 
 /** Intersection node for free turning */
 interface IntersectionZone {
-  distance: number; // distance along route where intersection center is
+  distance: number;
   segmentIndex: number;
   instruction: string;
   turnDir: 'left' | 'right' | null;
   entered: boolean;
   announced: boolean;
 }
+
+/** Difficulty preset – controls hazard timing */
+interface DifficultyPreset {
+  hazardTimeoutMs: number;
+  hazardLeadDistance: number;
+  minHazardInterval: number;
+  maxHazardInterval: number;
+}
+
+const DIFFICULTY_PRESETS: Record<string, DifficultyPreset> = {
+  beginner:     { hazardTimeoutMs: 5200, hazardLeadDistance: 40, minHazardInterval: 50, maxHazardInterval: 90 },
+  intermediate: { hazardTimeoutMs: 3200, hazardLeadDistance: 30, minHazardInterval: 35, maxHazardInterval: 65 },
+  advanced:     { hazardTimeoutMs: 1800, hazardLeadDistance: 22, minHazardInterval: 25, maxHazardInterval: 50 },
+};
 
 class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
   static info = info;
@@ -121,16 +140,21 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
   private routeLength = 0;
   private lastFrameTime = 0;
   private trialStartTime = 0;
-  private progress = 0;
-  private speed = 0;
-  private lateralOffset = 0;
-  private laneDeviationCount = 0;
-  private laneDeviationActive = false;
-  private lastBrakePressed = false;
   private fpsSamples: number[] = [];
   private activeHazards: ActiveHazard[] = [];
   private eventResults: DrivingEventResult[] = [];
   private hazardSpawnCount = 0;
+  private lastBrakePressed = false;
+
+  // ── Free-steering vehicle state ──
+  private vehicleX = 0;
+  private vehicleZ = 0;
+  private vehicleHeading = 0; // radians, 0 = +Z direction
+  private vehicleSpeed = 0;
+  private progress = 0;        // projected distance along route (for hazards/HUD)
+  private lateralOffset = 0;   // signed distance from route center (+ = right)
+  private laneDeviationCount = 0;
+  private laneDeviationActive = false;
 
   // Random event scheduling
   private nextHazardDistance = 0;
@@ -138,7 +162,9 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
 
   // Intersection / turning state
   private intersections: IntersectionZone[] = [];
-  private currentSteeringAngle = 0;  // for smooth camera rotation
+
+  // Difficulty
+  private difficultyPreset: DifficultyPreset = DIFFICULTY_PRESETS.beginner;
 
   // Mini-map
   private miniMapCanvas: HTMLCanvasElement | null = null;
@@ -166,7 +192,6 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
   } | null = null;
 
   private readonly roadWidth = 12;
-  private readonly hazardLeadDistance = 34;
 
   // Extended route with more segments for free driving
   private readonly route: RouteSegment[] = [
@@ -177,7 +202,7 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     { start: { x: 20, z: 210 }, dir: { x: 0, z: 1 }, length: 135, instruction: '直行抵達目的地', turnDir: null },
   ];
 
-  /** Hazard templates – no fixed distance, pool to draw from randomly */
+  /** Hazard templates – drawn randomly */
   private readonly hazardTemplates: HazardTemplate[] = [
     { id: 'child-crossing', label: '小孩突然衝出馬路' },
     { id: 'plane-crash', label: '飛機墜落於前方道路' },
@@ -192,7 +217,7 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
 
   trial(display_element: HTMLElement, trial: TrialType<Info>) {
     display_element.innerHTML = '';
-    this.resetTrialState();
+    this.resetTrialState(trial);
     SoundManager.init();
 
     const root = document.createElement('div');
@@ -249,11 +274,14 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     });
   }
 
-  private resetTrialState() {
+  private resetTrialState(trial?: TrialType<Info>) {
     this.cleanupRenderResources();
     this.finished = false;
+    this.vehicleX = 0;
+    this.vehicleZ = 2; // start a bit ahead of the route origin
+    this.vehicleHeading = 0; // facing +Z
+    this.vehicleSpeed = 0;
     this.progress = 0;
-    this.speed = 0;
     this.lateralOffset = 0;
     this.trialStartTime = 0;
     this.lastFrameTime = 0;
@@ -264,10 +292,13 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     this.activeHazards = [];
     this.eventResults = [];
     this.hazardSpawnCount = 0;
-    this.currentSteeringAngle = 0;
     this.keyState = { left: false, right: false, up: false, down: false };
     this.miniMapCanvas = null;
     this.miniMapCtx = null;
+
+    // Difficulty
+    const diffKey = (trial as any)?.driving_difficulty ?? 'beginner';
+    this.difficultyPreset = DIFFICULTY_PRESETS[diffKey] ?? DIFFICULTY_PRESETS.beginner;
 
     // Initialize hazard pool (shuffle order for randomness)
     this.hazardPool = [...this.hazardTemplates].sort(() => Math.random() - 0.5);
@@ -293,6 +324,9 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     }
   }
 
+  /* ================================================================
+   * CALIBRATION OVERLAY – redesigned: info items are NOT styled as buttons
+   * ================================================================ */
   private createCalibrationOverlay(root: HTMLDivElement): HTMLDivElement {
     const overlay = document.createElement('div');
     Object.assign(overlay.style, {
@@ -306,23 +340,51 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
       background: 'linear-gradient(135deg, rgba(6, 22, 36, 0.96), rgba(20, 38, 52, 0.96))',
     });
 
+    const diffKey = (this as any).difficultyPreset === DIFFICULTY_PRESETS.advanced ? '高級' :
+                    (this as any).difficultyPreset === DIFFICULTY_PRESETS.intermediate ? '中級' : '初級';
+
     overlay.innerHTML = `
-      <div style="width:min(760px, 100%); border:1px solid rgba(255,255,255,0.18); border-radius:24px; padding:32px; background:rgba(255,255,255,0.08); box-shadow:0 30px 90px rgba(0,0,0,0.36);">
-        <div style="font-size:13px; letter-spacing:2px; text-transform:uppercase; color:#7dd3fc; font-weight:700; margin-bottom:8px;">Driving Cognitive Rehab Simulator</div>
-        <h1 style="font-size:34px; line-height:1.15; margin:0 0 12px;">駕駛認知復健模擬器</h1>
-        <p style="font-size:16px; line-height:1.7; color:rgba(255,255,255,0.78); margin:0 0 24px;">
-          將貨物由 A 點送至 B 點。請依照右下角的<b>導航小地圖</b>指示方向前進，在路口自行<b>轉動方向盤</b>轉彎。<br>
-          駕駛途中會<b>隨機出現突發事件</b>，請立即踩煞車反應。
+      <div style="width:min(760px, 100%); border:1px solid rgba(255,255,255,0.18); border-radius:24px; padding:40px 36px 32px; background:rgba(255,255,255,0.06); box-shadow:0 30px 90px rgba(0,0,0,0.36);">
+
+        <div style="font-size:13px; letter-spacing:2px; text-transform:uppercase; color:#7dd3fc; font-weight:700; margin-bottom:6px;">Driving Cognitive Rehab Simulator</div>
+        <h1 style="font-size:34px; line-height:1.15; margin:0 0 16px; font-weight:800;">駕駛認知復健模擬器</h1>
+
+        <p style="font-size:15px; line-height:1.85; color:rgba(255,255,255,0.75); margin:0 0 28px;">
+          將貨物由 A 點送至 B 點。請依照右下角的<b style="color:#7dd3fc;">導航小地圖</b>指示方向，自行操控方向盤在路口轉彎。<br>
+          駕駛途中會<b style="color:#fbbf24;">隨機出現突發事件</b>，請立即踩煞車反應。
+          難度：<b style="color:#38bdf8;">${diffKey}</b>
         </p>
-        <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; margin-bottom:22px;">
-          <div style="padding:14px; border-radius:14px; background:rgba(255,255,255,0.08);"><b>方向</b><br><span style="color:rgba(255,255,255,0.68);">← / → 或方向盤</span></div>
-          <div style="padding:14px; border-radius:14px; background:rgba(255,255,255,0.08);"><b>油門</b><br><span style="color:rgba(255,255,255,0.68);">↑ 或油門踏板</span></div>
-          <div style="padding:14px; border-radius:14px; background:rgba(255,255,255,0.08);"><b>緊急煞車</b><br><span style="color:rgba(255,255,255,0.68);">↓ 或煞車踏板</span></div>
+
+        <!-- Controls info — styled as plain info, NOT as clickable buttons -->
+        <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:14px; margin-bottom:28px;">
+          <div style="padding:16px 14px; border-radius:14px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-size:11px; letter-spacing:1px; text-transform:uppercase; color:#7dd3fc; font-weight:700; margin-bottom:6px;">方向 / 轉彎</div>
+            <div style="font-size:14px; color:rgba(255,255,255,0.62);">← / → 或方向盤</div>
+          </div>
+          <div style="padding:16px 14px; border-radius:14px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-size:11px; letter-spacing:1px; text-transform:uppercase; color:#7dd3fc; font-weight:700; margin-bottom:6px;">油門</div>
+            <div style="font-size:14px; color:rgba(255,255,255,0.62);">↑ 或油門踏板</div>
+          </div>
+          <div style="padding:16px 14px; border-radius:14px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-size:11px; letter-spacing:1px; text-transform:uppercase; color:#7dd3fc; font-weight:700; margin-bottom:6px;">緊急煞車</div>
+            <div style="font-size:14px; color:rgba(255,255,255,0.62);">↓ 或煞車踏板</div>
+          </div>
         </div>
-        <div data-driving-input-bars style="display:grid; gap:10px; margin-bottom:18px;"></div>
-        <div data-driving-ready style="font-size:13px; color:rgba(255,255,255,0.68); margin-bottom:20px;">正在動態載入 3D 資源...</div>
-        <button data-driving-start style="width:100%; min-height:56px; border:0; border-radius:16px; background:#38bdf8; color:#062338; font-size:18px; font-weight:800; cursor:pointer;">開始送貨任務</button>
-        <div style="margin-top:14px; text-align:center; font-size:12px; color:rgba(255,255,255,0.55);">Enter 開始，Esc 可提前結束並返回結果頁。</div>
+
+        <div data-driving-input-bars style="display:grid; gap:10px; margin-bottom:22px;"></div>
+        <div data-driving-ready style="font-size:13px; color:rgba(255,255,255,0.55); margin-bottom:22px;">正在動態載入 3D 資源...</div>
+
+        <button data-driving-start style="
+          width:100%; min-height:58px; border:0; border-radius:16px;
+          background:linear-gradient(135deg, #38bdf8, #0ea5e9);
+          color:#062338; font-size:18px; font-weight:800; cursor:pointer;
+          box-shadow:0 4px 20px rgba(56, 189, 248, 0.35);
+          transition: transform 0.12s, box-shadow 0.12s;
+        " onmouseenter="this.style.transform='scale(1.02)'; this.style.boxShadow='0 6px 28px rgba(56, 189, 248, 0.45)';"
+           onmouseleave="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 20px rgba(56, 189, 248, 0.35)';"
+        >開始送貨任務</button>
+
+        <div style="margin-top:14px; text-align:center; font-size:12px; color:rgba(255,255,255,0.42);">Enter 開始 · Esc 可提前結束並返回結果頁</div>
       </div>
     `;
 
@@ -345,7 +407,7 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
         inputBars.appendChild(this.createInputBar('煞車', input.brake, 0, 1));
         const device = document.createElement('div');
         device.style.fontSize = '12px';
-        device.style.color = 'rgba(255,255,255,0.62)';
+        device.style.color = 'rgba(255,255,255,0.50)';
         device.textContent = input.gamepadName ? `已偵測方向盤/控制器：${input.gamepadName}` : '未偵測到方向盤，將使用鍵盤控制。';
         inputBars.appendChild(device);
       }
@@ -358,10 +420,10 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     const wrapper = document.createElement('div');
     const normalized = Math.max(0, Math.min(1, (value - min) / (max - min)));
     wrapper.innerHTML = `
-      <div style="display:flex; justify-content:space-between; font-size:12px; color:rgba(255,255,255,0.72); margin-bottom:4px;">
+      <div style="display:flex; justify-content:space-between; font-size:12px; color:rgba(255,255,255,0.60); margin-bottom:4px;">
         <span>${label}</span><span>${value.toFixed(2)}</span>
       </div>
-      <div style="height:8px; border-radius:999px; background:rgba(255,255,255,0.14); overflow:hidden;">
+      <div style="height:6px; border-radius:999px; background:rgba(255,255,255,0.10); overflow:hidden;">
         <div style="height:100%; width:${normalized * 100}%; background:#38bdf8; border-radius:999px;"></div>
       </div>
     `;
@@ -521,7 +583,6 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
       color: '#7dd3fc',
       letterSpacing: '0.5px',
     });
-    // Navigation icon (SVG inline)
     titleBar.innerHTML = `
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
         <polygon points="3 11 22 2 13 21 11 13 3 11"/>
@@ -568,12 +629,11 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     const w = canvas.width;
     const h = canvas.height;
 
-    // Clear
     ctx.clearRect(0, 0, w, h);
     ctx.fillStyle = 'rgba(12, 25, 38, 1)';
     ctx.fillRect(0, 0, w, h);
 
-    // Compute bounding box of route
+    // Compute bounding box
     let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
     for (const seg of this.route) {
       const endX = seg.start.x + seg.dir.x * seg.length;
@@ -588,7 +648,6 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     const rangeX = maxX - minX || 1;
     const rangeZ = maxZ - minZ || 1;
     const scale = Math.min((w - padding * 2) / rangeX, (h - padding * 2) / rangeZ);
-
     const offsetX = (w - rangeX * scale) / 2;
     const offsetZ = (h - rangeZ * scale) / 2;
 
@@ -597,7 +656,6 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
       sy: offsetZ + (pz - minZ) * scale,
     });
 
-    // Draw route roads
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
@@ -631,7 +689,7 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     }
     ctx.stroke();
 
-    // Already-traveled portion (bright)
+    // Already-traveled portion
     ctx.strokeStyle = 'rgba(56, 189, 248, 0.45)';
     ctx.lineWidth = 5;
     ctx.beginPath();
@@ -648,7 +706,6 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
       }
       const segEnd = traveled + seg.length;
       if (this.progress <= segEnd) {
-        // Partial segment
         const localD = Math.max(0, this.progress - traveled);
         const px = seg.start.x + seg.dir.x * localD;
         const pz = seg.start.z + seg.dir.z * localD;
@@ -665,7 +722,7 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     }
     ctx.stroke();
 
-    // Draw intersection dots
+    // Intersection dots
     for (const inter of this.intersections) {
       const pt = this.getRoutePoint(inter.distance);
       const s = toScreen(pt.x, pt.z);
@@ -675,7 +732,7 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
       ctx.fill();
     }
 
-    // Draw start marker (A)
+    // Start marker (A)
     const startPt = toScreen(this.route[0].start.x, this.route[0].start.z);
     ctx.fillStyle = '#34d399';
     ctx.beginPath();
@@ -687,7 +744,7 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     ctx.textBaseline = 'middle';
     ctx.fillText('A', startPt.sx, startPt.sy);
 
-    // Draw destination marker (B)
+    // Destination marker (B)
     const destPt = this.getRoutePoint(this.routeLength - 2);
     const destScreen = toScreen(destPt.x, destPt.z);
     ctx.fillStyle = '#f87171';
@@ -697,9 +754,8 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     ctx.fillStyle = '#fff';
     ctx.fillText('B', destScreen.sx, destScreen.sy);
 
-    // Draw current position (animated pulse)
-    const currentPt = this.getRoutePoint(this.progress);
-    const cs = toScreen(currentPt.x, currentPt.z);
+    // Current position (use actual vehicle XZ, not route-projected)
+    const cs = toScreen(this.vehicleX, this.vehicleZ);
     const pulse = 0.5 + 0.5 * Math.sin(performance.now() / 300);
 
     // Pulse ring
@@ -715,36 +771,37 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     ctx.arc(cs.sx, cs.sy, 4, 0, Math.PI * 2);
     ctx.fill();
 
-    // Direction arrow from current position
-    const aheadPt = this.getRoutePoint(Math.min(this.routeLength, this.progress + 20));
-    const as = toScreen(aheadPt.x, aheadPt.z);
-    const dx = as.sx - cs.sx;
-    const dy = as.sy - cs.sy;
-    const len = Math.hypot(dx, dy) || 1;
-    const ndx = dx / len;
-    const ndy = dy / len;
+    // Direction arrow from vehicle heading
     const arrowLen = 12;
+    const ndx = Math.sin(this.vehicleHeading);
+    const ndy = Math.cos(this.vehicleHeading);
+    // Map world to screen: +X → +sx, +Z → +sy
+    const screenDx = ndx * scale;
+    const screenDy = ndy * scale;
+    const screenLen = Math.hypot(screenDx, screenDy) || 1;
+    const normDx = screenDx / screenLen;
+    const normDy = screenDy / screenLen;
 
     ctx.strokeStyle = '#38bdf8';
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(cs.sx, cs.sy);
-    ctx.lineTo(cs.sx + ndx * arrowLen, cs.sy + ndy * arrowLen);
+    ctx.lineTo(cs.sx + normDx * arrowLen, cs.sy + normDy * arrowLen);
     ctx.stroke();
 
     // Arrowhead
     const headLen = 5;
-    const headAngle = Math.atan2(ndy, ndx);
+    const headAngle = Math.atan2(normDy, normDx);
     ctx.fillStyle = '#38bdf8';
     ctx.beginPath();
-    ctx.moveTo(cs.sx + ndx * arrowLen, cs.sy + ndy * arrowLen);
+    ctx.moveTo(cs.sx + normDx * arrowLen, cs.sy + normDy * arrowLen);
     ctx.lineTo(
-      cs.sx + ndx * arrowLen - headLen * Math.cos(headAngle - 0.5),
-      cs.sy + ndy * arrowLen - headLen * Math.sin(headAngle - 0.5),
+      cs.sx + normDx * arrowLen - headLen * Math.cos(headAngle - 0.5),
+      cs.sy + normDy * arrowLen - headLen * Math.sin(headAngle - 0.5),
     );
     ctx.lineTo(
-      cs.sx + ndx * arrowLen - headLen * Math.cos(headAngle + 0.5),
-      cs.sy + ndy * arrowLen - headLen * Math.sin(headAngle + 0.5),
+      cs.sx + normDx * arrowLen - headLen * Math.cos(headAngle + 0.5),
+      cs.sy + normDy * arrowLen - headLen * Math.sin(headAngle + 0.5),
     );
     ctx.closePath();
     ctx.fill();
@@ -800,10 +857,11 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
       borderRadius: '50% 50% 0 0 / 16% 16% 0 0',
     });
 
+    // Steering wheel offset slightly left for left-hand drive (Taiwan)
     const wheel = document.createElement('div');
     Object.assign(wheel.style, {
       position: 'absolute',
-      left: '50%',
+      left: 'calc(50% - 30px)',
       bottom: '4%',
       width: '220px',
       height: '110px',
@@ -840,6 +898,9 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     return cockpit;
   }
 
+  /* ================================================================
+   * WORLD BUILDING
+   * ================================================================ */
   private buildWorld() {
     const THREE = this.requireThree();
     if (!this.scene) return;
@@ -849,7 +910,6 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     const laneMat = new THREE.MeshBasicMaterial({ color: 0xf4e86d });
     const grassMat = new THREE.MeshBasicMaterial({ color: 0x6f9a63 });
 
-    // Wider ground to cover the extended route
     const ground = new THREE.Mesh(new THREE.PlaneGeometry(620, 620), grassMat);
     ground.rotation.x = -Math.PI / 2;
     ground.position.set(60, -0.02, 200);
@@ -867,6 +927,7 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
       road.rotation.y = angle;
       this.scene.add(road);
 
+      // Sidewalks
       const leftSidewalk = new THREE.Mesh(new THREE.BoxGeometry(3, 0.08, segment.length), sidewalkMat);
       leftSidewalk.position.set(
         mid.x - segment.dir.z * (this.roadWidth / 2 + 1.5),
@@ -885,6 +946,7 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
       rightSidewalk.rotation.y = angle;
       this.scene.add(rightSidewalk);
 
+      // Center lane markings (yellow dashed center line)
       for (let d = 12; d < segment.length; d += 18) {
         const center = {
           x: segment.start.x + segment.dir.x * d,
@@ -897,7 +959,7 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
       }
     }
 
-    // Intersection cross-roads at each intersection zone
+    // Intersection cross-roads
     for (const inter of this.intersections) {
       const point = this.getRoutePoint(inter.distance);
       const cross = new THREE.Mesh(new THREE.BoxGeometry(76, 0.035, this.roadWidth), roadMat);
@@ -936,7 +998,7 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     }
   }
 
-  /** Add physical road signs at intersections so player knows to turn */
+  /** Add physical road signs at intersections */
   private addTurnSignage() {
     const THREE = this.requireThree();
     if (!this.scene) return;
@@ -944,10 +1006,8 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     for (const inter of this.intersections) {
       if (!inter.turnDir) continue;
 
-      // Place sign 20m before intersection
       const signDist = Math.max(5, inter.distance - 20);
       const point = this.getRoutePoint(signDist);
-
       const group = new THREE.Group();
 
       // Post
@@ -957,13 +1017,12 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
       group.add(post);
 
       // Sign board
-      const signColor = inter.turnDir === 'right' ? 0x2563eb : 0x2563eb;
-      const signMat = new THREE.MeshBasicMaterial({ color: signColor });
+      const signMat = new THREE.MeshBasicMaterial({ color: 0x2563eb });
       const sign = new THREE.Mesh(new THREE.BoxGeometry(2.8, 1.8, 0.12), signMat);
       sign.position.y = 4.2;
       group.add(sign);
 
-      // Arrow on sign (using a canvas texture)
+      // Arrow on sign
       const arrowLabel = inter.turnDir === 'right' ? '→' : '←';
       const texture = this.createSignTexture(arrowLabel);
       const arrowMat = new THREE.MeshBasicMaterial({ map: texture, transparent: true, depthWrite: false });
@@ -971,7 +1030,7 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
       arrowPlane.position.set(0, 4.2, 0.07);
       group.add(arrowPlane);
 
-      // Position to the right side of road
+      // Place on right side of road (Taiwan drives on right)
       group.position.set(
         point.x + point.normal.x * (this.roadWidth / 2 + 1),
         0,
@@ -1017,6 +1076,9 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     this.scene.add(group);
   }
 
+  /* ================================================================
+   * MAIN LOOP
+   * ================================================================ */
   private loop(time: number, trial: TrialType<Info>, display_element: HTMLElement) {
     if (this.finished || !this.renderer || !this.scene || !this.camera) return;
     if (!display_element.isConnected) {
@@ -1037,11 +1099,11 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     }
     this.lastBrakePressed = brakePressed;
 
-    this.updateVehicle(input, dt);
+    this.updateVehicleFree(input, dt);
     this.updateIntersections();
     this.spawnRandomHazards(time);
     this.updateHazards(time);
-    this.updateCamera(input.steering);
+    this.updateCameraFree(input.steering);
     this.updateHud(trial.duration_ms ?? 90_000, elapsed);
     this.updateMiniMap();
 
@@ -1060,28 +1122,84 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     this.raf = requestAnimationFrame((nextTime) => this.loop(nextTime, trial, display_element));
   }
 
-  private updateVehicle(input: DrivingInput, dt: number) {
+  /* ================================================================
+   * FREE-STEERING VEHICLE PHYSICS
+   * Vehicle has world position (x, z) and heading angle.
+   * Steering changes heading; vehicle moves in heading direction.
+   * "progress" and "lateralOffset" are projected from world pos.
+   * ================================================================ */
+  private updateVehicleFree(input: DrivingInput, dt: number) {
     const throttleAccel = 7.5;
     const brakeDecel = 20;
     const rollingDrag = 1.7;
     const maxSpeed = 18;
+    const turnRate = 1.6; // radians/sec at full speed
 
-    this.speed += input.throttle * throttleAccel * dt;
-    this.speed -= input.brake * brakeDecel * dt;
-    this.speed -= rollingDrag * dt;
-    this.speed = Math.max(0, Math.min(maxSpeed, this.speed));
+    // Speed update
+    this.vehicleSpeed += input.throttle * throttleAccel * dt;
+    this.vehicleSpeed -= input.brake * brakeDecel * dt;
+    this.vehicleSpeed -= rollingDrag * dt;
+    this.vehicleSpeed = Math.max(0, Math.min(maxSpeed, this.vehicleSpeed));
 
-    const steerScale = 5.6 * Math.max(0.25, this.speed / maxSpeed);
-    this.lateralOffset += input.steering * steerScale * dt;
-    this.lateralOffset *= 1 - Math.min(0.12, dt * 2.2);
-    this.lateralOffset = Math.max(-5.8, Math.min(5.8, this.lateralOffset));
-    this.progress += this.speed * dt;
+    // Heading update – steering changes heading based on speed
+    const speedFactor = Math.max(0.15, this.vehicleSpeed / maxSpeed);
+    this.vehicleHeading += input.steering * turnRate * speedFactor * dt;
 
-    const deviating = Math.abs(this.lateralOffset) > 3.5;
+    // Move forward in heading direction
+    // heading=0 → moving in +Z, heading=PI/2 → moving in +X
+    this.vehicleX += Math.sin(this.vehicleHeading) * this.vehicleSpeed * dt;
+    this.vehicleZ += Math.cos(this.vehicleHeading) * this.vehicleSpeed * dt;
+
+    // Project vehicle position onto the route to compute progress & lateral offset
+    const proj = this.projectOntoRoute(this.vehicleX, this.vehicleZ);
+    this.progress = proj.distance;
+    this.lateralOffset = proj.lateral;
+
+    // Lane deviation check – deviation is being too far from route center
+    const deviating = Math.abs(this.lateralOffset) > 5.0;
     if (deviating && !this.laneDeviationActive) {
       this.laneDeviationCount += 1;
     }
     this.laneDeviationActive = deviating;
+  }
+
+  /** Project a world point onto the nearest point on the route.
+   *  Returns the route distance and signed lateral offset (+ = right of road). */
+  private projectOntoRoute(wx: number, wz: number): { distance: number; lateral: number } {
+    let bestDist = Infinity;
+    let bestRouteD = 0;
+    let bestLateral = 0;
+    let traveled = 0;
+
+    for (const segment of this.route) {
+      // Vector from segment start to world point
+      const dx = wx - segment.start.x;
+      const dz = wz - segment.start.z;
+
+      // Project onto segment direction
+      const dot = dx * segment.dir.x + dz * segment.dir.z;
+      const clampedT = Math.max(0, Math.min(segment.length, dot));
+
+      // Closest point on this segment
+      const closestX = segment.start.x + segment.dir.x * clampedT;
+      const closestZ = segment.start.z + segment.dir.z * clampedT;
+
+      const distSq = (wx - closestX) ** 2 + (wz - closestZ) ** 2;
+      if (distSq < bestDist) {
+        bestDist = distSq;
+        bestRouteD = traveled + clampedT;
+
+        // Lateral offset: cross product to get signed distance
+        // normal = (-dir.z, dir.x) → positive on the left side
+        // We want + = right for Taiwan driving, so negate
+        const normal = { x: -segment.dir.z, z: segment.dir.x };
+        bestLateral = (wx - closestX) * normal.x + (wz - closestZ) * normal.z;
+      }
+
+      traveled += segment.length;
+    }
+
+    return { distance: bestRouteD, lateral: bestLateral };
   }
 
   /** Update intersection crossing detection */
@@ -1089,7 +1207,6 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     for (const inter of this.intersections) {
       if (inter.entered) continue;
 
-      // Announce upcoming intersection
       const distToInter = inter.distance - this.progress;
       if (!inter.announced && distToInter < 50 && distToInter > 0) {
         inter.announced = true;
@@ -1099,21 +1216,19 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
         }
       }
 
-      // Mark as entered when we cross through
       if (this.progress >= inter.distance) {
         inter.entered = true;
       }
     }
   }
 
-  /** Spawn hazards at randomized distances instead of fixed positions */
+  /** Spawn hazards at randomized distances */
   private spawnRandomHazards(time: number) {
-    // Don't spawn if we're near the end, or if there's already an active unresolved hazard
     if (this.progress >= this.routeLength - 40) return;
     if (this.activeHazards.some((h) => !h.resolved)) return;
     if (this.progress < this.nextHazardDistance) return;
 
-    // Pick next hazard from pool (cycle through shuffled pool)
+    // Pick next hazard from pool
     if (this.hazardPool.length === 0) {
       this.hazardPool = [...this.hazardTemplates].sort(() => Math.random() - 0.5);
     }
@@ -1121,7 +1236,7 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     this.hazardSpawnCount++;
 
     const input = this.readInput();
-    const hazardDistance = Math.min(this.routeLength - 8, this.progress + this.hazardLeadDistance);
+    const hazardDistance = Math.min(this.routeLength - 8, this.progress + this.difficultyPreset.hazardLeadDistance);
     const group = this.createHazardMesh(template.id);
     const point = this.getRoutePoint(hazardDistance);
     group.position.set(point.x, 0, point.z);
@@ -1160,11 +1275,14 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     this.flashRed();
     if (this.hud) this.hud.event.textContent = template.label;
 
-    // Schedule next hazard at a random interval (40–80m further)
-    this.nextHazardDistance = this.progress + 40 + Math.random() * 40;
+    // Schedule next hazard
+    const { minHazardInterval, maxHazardInterval } = this.difficultyPreset;
+    this.nextHazardDistance = this.progress + minHazardInterval + Math.random() * (maxHazardInterval - minHazardInterval);
   }
 
   private updateHazards(time: number) {
+    const timeoutMs = this.difficultyPreset.hazardTimeoutMs;
+
     for (const hazard of this.activeHazards) {
       const age = time - hazard.startTime;
       const point = this.getRoutePoint(hazard.currentDistance);
@@ -1200,8 +1318,8 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
       }
 
       const distanceToHazard = hazard.currentDistance - this.progress;
-      const safeBrake = hazard.brakeTime !== null && this.speed < 2.4 && distanceToHazard > 2;
-      const collisionNow = !hazard.resolved && distanceToHazard <= 4 && this.speed > 2.4;
+      const safeBrake = hazard.brakeTime !== null && this.vehicleSpeed < 2.4 && distanceToHazard > 2;
+      const collisionNow = !hazard.resolved && distanceToHazard <= 4 && this.vehicleSpeed > 2.4;
 
       if (safeBrake) {
         this.resolveHazard(hazard, time, false, hazard.preheldBrake ? 'invalid-preheld-brake' : 'brake');
@@ -1209,7 +1327,7 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
         this.resolveHazard(hazard, time, true, hazard.brakeTime ? 'collision-after-brake' : 'collision-no-brake');
       }
 
-      if (!hazard.resolved && age > 5200) {
+      if (!hazard.resolved && age > timeoutMs) {
         this.resolveHazard(hazard, time, true, hazard.brakeTime ? 'timeout-after-brake' : 'timeout-no-brake');
       }
 
@@ -1235,7 +1353,7 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
 
     if (collision) {
       SoundManager.playIncorrect();
-      this.speed = Math.min(this.speed, 2.5);
+      this.vehicleSpeed = Math.min(this.vehicleSpeed, 2.5);
     } else {
       SoundManager.playCorrect();
     }
@@ -1257,6 +1375,9 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     if (this.hud) this.hud.event.textContent = `${hazard.template.label}：煞車反應 ${hazard.rt} ms`;
   }
 
+  /* ================================================================
+   * HAZARD MESHES
+   * ================================================================ */
   private createHazardMesh(id: HazardId) {
     switch (id) {
       case 'child-crossing':
@@ -1328,29 +1449,36 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     return group;
   }
 
-  private updateCamera(steering: number) {
+  /* ================================================================
+   * CAMERA – follows vehicle world position & heading
+   * Camera positioned slightly RIGHT of vehicle center (right-lane Taiwan driving)
+   * ================================================================ */
+  private updateCameraFree(steering: number) {
     if (!this.camera) return;
-    const point = this.getRoutePoint(this.progress);
-    const look = this.getRoutePoint(Math.min(this.routeLength, this.progress + 35));
-    const cabinSway = steering * 0.45;
 
-    this.camera.position.set(
-      point.x + point.normal.x * (this.lateralOffset + cabinSway),
-      2.15,
-      point.z + point.normal.z * (this.lateralOffset + cabinSway),
-    );
-    this.camera.lookAt(
-      look.x + look.normal.x * this.lateralOffset,
-      1.65,
-      look.z + look.normal.z * this.lateralOffset,
-    );
+    const cabinSway = steering * 0.35;
+    // Camera sits at vehicle position, shifted slightly right for right-lane driving
+    // In heading coordinates: right = perpendicular to heading
+    const rightX = Math.cos(this.vehicleHeading);  // perpendicular right in X
+    const rightZ = -Math.sin(this.vehicleHeading); // perpendicular right in Z
+
+    // Right-lane offset: shift camera ~1.5m to the right of road center
+    const laneOffset = 1.5;
+    const camX = this.vehicleX + rightX * (laneOffset + cabinSway);
+    const camZ = this.vehicleZ + rightZ * (laneOffset + cabinSway);
+
+    this.camera.position.set(camX, 2.15, camZ);
+
+    // Look ahead in heading direction
+    const lookDist = 35;
+    const lookX = this.vehicleX + Math.sin(this.vehicleHeading) * lookDist + rightX * laneOffset;
+    const lookZ = this.vehicleZ + Math.cos(this.vehicleHeading) * lookDist + rightZ * laneOffset;
+    this.camera.lookAt(lookX, 1.65, lookZ);
   }
 
   private updateHud(durationMs: number, elapsedMs: number) {
     if (!this.hud) return;
     const remaining = Math.max(0, Math.ceil((durationMs - elapsedMs) / 1000));
-    const nextTurn = this.getRoutePoint(Math.min(this.routeLength - 1, this.progress + 30));
-    const instruction = this.route[nextTurn.segmentIndex]?.instruction ?? '直行';
 
     // Show navigation instruction with distance to next turn
     const nextInter = this.intersections.find((iz) => !iz.entered && this.progress < iz.distance);
@@ -1359,9 +1487,10 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
       const arrow = nextInter.turnDir === 'right' ? '→' : '←';
       this.hud.status.textContent = `導航：${dist}m 後${nextInter.instruction} ${arrow} · 剩餘 ${remaining}s`;
     } else {
+      const instruction = '直行';
       this.hud.status.textContent = `導航：${instruction} · 剩餘 ${remaining}s`;
     }
-    this.hud.speed.textContent = `${Math.round(this.speed * 3.6)} km/h`;
+    this.hud.speed.textContent = `${Math.round(this.vehicleSpeed * 3.6)} km/h`;
     this.hud.distance.textContent = `${Math.max(0, Math.round(this.routeLength - this.progress))} m`;
   }
 
@@ -1373,6 +1502,9 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     }, 120);
   }
 
+  /* ================================================================
+   * INPUT
+   * ================================================================ */
   private readInput(): DrivingInput {
     let steering = 0;
     let throttle = this.keyState.up ? 1 : 0;
@@ -1409,6 +1541,9 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     return Math.max(0, Math.min(1, (1 - value) / 2));
   }
 
+  /* ================================================================
+   * ROUTE HELPERS (used for hazard placement, minimap, etc.)
+   * ================================================================ */
   private getRoutePoint(distance: number): RoutePoint {
     const clamped = Math.max(0, Math.min(this.routeLength, distance));
     let traveled = 0;
@@ -1465,11 +1600,13 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     return { x: dir.x / length, z: dir.z / length };
   }
 
+  /* ================================================================
+   * TRIAL FINISH & CLEANUP
+   * ================================================================ */
   private finishTrial(trial: TrialType<Info>, display_element: HTMLElement, response: string) {
     if (this.finished) return;
     this.finished = true;
 
-    // Mark any un-spawned events as not-reached (note: with random events, we track what was spawned)
     const duration = this.trialStartTime > 0
       ? Math.round(performance.now() - this.trialStartTime)
       : 0;

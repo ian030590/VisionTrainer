@@ -86,6 +86,7 @@ export function HomePage() {
   const [readingContrast, setReadingContrast] = useState(() => getSetting('readingContrast'));
   const [drivingDurationSec, setDrivingDurationSec] = useState(() => getSetting('drivingDurationSec'));
   const [drivingRedFlashEnabled, setDrivingRedFlashEnabled] = useState(() => getSetting('drivingRedFlashEnabled'));
+  const [drivingDifficulty, setDrivingDifficulty] = useState<'beginner' | 'intermediate' | 'advanced'>(() => getSetting('drivingDifficulty'));
   const [prewarmed, setPrewarmed] = useState(() => pixiAppManager.ready);
 
   const refreshUsers = useCallback(() => {
@@ -232,6 +233,10 @@ export function HomePage() {
     setSetting('drivingRedFlashEnabled', drivingRedFlashEnabled);
   }, [drivingRedFlashEnabled]);
 
+  useEffect(() => {
+    setSetting('drivingDifficulty', drivingDifficulty);
+  }, [drivingDifficulty]);
+
 
   // ── Handlers ──
   const handleCardClick = (moduleId: string) => {
@@ -284,7 +289,7 @@ export function HomePage() {
     }
 
     if (expandedModule === 'driving-rehab') {
-      navigate(`/training?module=driving-rehab&duration=${drivingDurationSec}&redFlash=${drivingRedFlashEnabled}`);
+      navigate(`/training?module=driving-rehab&duration=${drivingDurationSec}&redFlash=${drivingRedFlashEnabled}&drivingDifficulty=${drivingDifficulty}`);
       return;
     }
 
@@ -1272,15 +1277,29 @@ export function HomePage() {
           <div className="module-config-panel config-modal-panel" onClick={(e) => e.stopPropagation()}>
             <div className="config-section">
               <div className="config-label">{t('home.config.drivingMission')}</div>
+              <div className="color-settings-row">
+                <div className="color-field"><span>{t('home.config.drivingRoute')}</span><strong style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-tertiary)' }}>{t('home.config.drivingRouteDesc')}</strong></div>
+                <div className="color-field"><span>{t('home.config.drivingEvents')}</span><strong style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-tertiary)' }}>{t('home.config.drivingEventsDesc')}</strong></div>
+              </div>
+            </div>
+
+            <div className="config-section">
+              <div className="config-label">事件反應難度</div>
               <div className="difficulty-selector">
-                <div className="diff-btn" style={{ cursor: 'default', alignItems: 'stretch' }}>
-                  <span className="diff-btn-label">{t('home.config.drivingRoute')}</span>
-                  <span className="diff-btn-desc">{t('home.config.drivingRouteDesc')}</span>
-                </div>
-                <div className="diff-btn" style={{ cursor: 'default', alignItems: 'stretch' }}>
-                  <span className="diff-btn-label">{t('home.config.drivingEvents')}</span>
-                  <span className="diff-btn-desc">{t('home.config.drivingEventsDesc')}</span>
-                </div>
+                {(['beginner', 'intermediate', 'advanced'] as const).map((level) => {
+                  const labels: Record<string, string> = { beginner: '初級', intermediate: '中級', advanced: '高級' };
+                  const descs: Record<string, string> = { beginner: '反應窗口 5.2 秒', intermediate: '反應窗口 3.2 秒', advanced: '反應窗口 1.8 秒' };
+                  return (
+                    <button
+                      key={level}
+                      className={`diff-btn ${drivingDifficulty === level ? 'active' : ''}`}
+                      onClick={(e) => { e.stopPropagation(); setDrivingDifficulty(level); }}
+                    >
+                      <span className="diff-btn-label">{labels[level]}</span>
+                      <span className="diff-btn-desc">{descs[level]}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -1365,6 +1384,7 @@ export function HomePage() {
             <div className="config-summary">
               {t('home.config.user')} <strong>{activeUser}</strong> ·{' '}
               {t('home.config.durationLabel')} <strong>{drivingDurationSec}s</strong> ·{' '}
+              難度 <strong>{drivingDifficulty === 'beginner' ? '初級' : drivingDifficulty === 'intermediate' ? '中級' : '高級'}</strong> ·{' '}
               {t('home.config.drivingRedFlash')} <strong>{drivingRedFlashEnabled ? t('common.on') : t('common.off')}</strong>
             </div>
           </div>
