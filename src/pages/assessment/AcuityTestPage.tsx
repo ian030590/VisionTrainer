@@ -712,10 +712,10 @@ export function AcuityTestPage() {
         </div>
 
         <div className="acuity-result-meta">
-          <span>{t('assess.config.test')}: <b>{getTestTitle(testType, t)}</b></span>
+          <span>{t('assess.config.test')} <b>{getTestTitle(testType, t)}</b></span>
           <span>{t('acuity.decimalAcuity')}: <b style={{ color: 'var(--accent)' }}>{decimalAcuity}</b></span>
           <span>{t('acuity.csv.accuracy')}: <b style={{ color: 'var(--accent)' }}>{correctCount}/{records.length}</b></span>
-          <span>{t('assess.config.user')}: <b>{userName}</b></span>
+          <span>{t('assess.config.user')} <b>{userName}</b></span>
           {testType === 'gratings' && (
             <span>{t('assess.plMethodTitle')}: <b>{responseMode === 'webgazer' ? t('assess.wgMode') : t('assess.kbMode')}</b></span>
           )}

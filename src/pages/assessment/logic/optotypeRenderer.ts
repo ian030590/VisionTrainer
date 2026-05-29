@@ -417,7 +417,8 @@ export function drawContrastGrating(
   ctx.clip();
   
   // rotation
-  const angle = (-direction * 22.5 * Math.PI) / 180;
+  // direction: 0=Horizontal(Right), 1=/(UpRight), 2=Vertical(Up), 3=\(UpLeft)
+  const angle = (-(direction - 2) * 45 * Math.PI) / 180;
   ctx.rotate(angle);
 
   // draw sinusoidal grating using ImageData

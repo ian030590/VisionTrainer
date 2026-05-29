@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useT } from '../../i18n';
 import { initJsPsych } from 'jspsych';
 import type { JsPsych } from 'jspsych';
@@ -40,6 +40,9 @@ export function ContrastTestPage() {
   const [resultLogCSW, setResultLogCSW] = useState<number>(0);
   const [trialRecords, setTrialRecords] = useState<ContrastTrialRecord[]>([]);
 
+  const [searchParams] = useSearchParams();
+  const totalTrials = parseInt(searchParams.get('trials') || '18', 10);
+  
   const userName = getActiveUser() || t('exp.unknownUser');
 
   useEffect(() => {
@@ -59,7 +62,6 @@ export function ContrastTestPage() {
       jsPsychRef.current = jsPsych;
 
       const pest = new BestPEST(4); // 4 alternatives for grating
-      const totalTrials = 18;
       let currentTrial = 0;
       let appliedStim = 0.5;
 
@@ -84,7 +86,7 @@ export function ContrastTestPage() {
       };
 
       const getDirection = () => {
-        currentDirection = [0, 2, 4, 6][Math.floor(Math.random() * 4)];
+        currentDirection = [0, 1, 2, 3][Math.floor(Math.random() * 4)];
         return currentDirection;
       };
 
@@ -193,9 +195,9 @@ export function ContrastTestPage() {
            </div>
 
            <div className="acuity-result-meta">
-             <span>{t('assess.config.test') || 'Test'}: <b>{t('assess.contrast.resultsTitle') || 'Contrast Sensitivity'}</b></span>
+             <span>{t('assess.config.test') || 'Test'} <b>{t('assess.contrast.resultsTitle') || 'Contrast Sensitivity'}</b></span>
              <span>{t('acuity.csv.accuracy') || 'Accuracy'}: <b style={{ color: 'var(--accent)' }}>{correctCount}/{trialRecords.length}</b></span>
-             <span>{t('assess.config.user') || 'User'}: <b>{userName}</b></span>
+             <span>{t('assess.config.user') || 'User'} <b>{userName}</b></span>
            </div>
 
            <table className="results-table">

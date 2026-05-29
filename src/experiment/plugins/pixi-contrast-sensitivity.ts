@@ -155,18 +155,28 @@ class PixiContrastSensitivityPlugin implements JsPsychPlugin<Info> {
       expectedKey = keys[trial.direction! / 2];
     } else if (trial.optotype === 'grating') {
       const k = key.toLowerCase();
-      const isUp = k === 'arrowup' || k === 'arrowdown' || k === '8' || k === '2';
-      const isRight = k === 'arrowright' || k === 'arrowleft' || k === '4' || k === '6';
-      const isUpRight = k === 'arrowupright' || k === 'arrowdownleft' || k === '9' || k === '1' || k === 'pageup' || k === 'end';
-      const isDownRight = k === 'arrowdownright' || k === 'arrowupleft' || k === '3' || k === '7' || k === 'pagedown' || k === 'home';
+      const isUpRight = k === 'arrowupright' || k === '9' || k === 'pageup';
+      const isUpLeft = k === 'arrowupleft' || k === '7' || k === 'home';
+      const isDownRight = k === 'arrowdownright' || k === '3' || k === 'pagedown';
+      const isDownLeft = k === 'arrowdownleft' || k === '1' || k === 'end';
+      const isUp = k === 'arrowup' || k === '8';
+      const isDown = k === 'arrowdown' || k === '2';
+      const isLeft = k === 'arrowleft' || k === '4';
+      const isRight = k === 'arrowright' || k === '6';
       
       let userDirection = -1;
-      if (isUp) userDirection = 0;
-      else if (isUpRight) userDirection = 2;
-      else if (isRight) userDirection = 4;
-      else if (isDownRight) userDirection = 6;
+      if (isRight) userDirection = 0;
+      else if (isUpRight) userDirection = 1;
+      else if (isUp) userDirection = 2;
+      else if (isUpLeft) userDirection = 3;
+      else if (isLeft) userDirection = 4;
+      else if (isDownLeft) userDirection = 5;
+      else if (isDown) userDirection = 6;
+      else if (isDownRight) userDirection = 7;
       
-      isCorrect = (userDirection === trial.direction);
+      if (userDirection !== -1) {
+        isCorrect = (userDirection % 4 === trial.direction);
+      }
     }
     
     if (trial.optotype === 'landolt') {
