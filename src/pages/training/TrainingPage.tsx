@@ -415,9 +415,10 @@ function EyegameSubPage() {
 
   // Load eyegame assets on mount
   useEffect(() => {
+    const baseUrl = import.meta.env.BASE_URL;
     const cssFiles = [
-      '/eyegame/eyes/res/eyegame.css',
-      '/eyegame/eyes/res/chrome.css',
+      `${baseUrl}eyegame/eyes/res/eyegame.css`,
+      `${baseUrl}eyegame/eyes/res/chrome.css`,
     ];
     const links: HTMLLinkElement[] = [];
     cssFiles.forEach((href) => {
@@ -429,7 +430,7 @@ function EyegameSubPage() {
     });
 
     const script = document.createElement('script');
-    script.src = '/eyegame/eyes/res/eyegame.js';
+    script.src = `${baseUrl}eyegame/eyes/res/eyegame.js`;
     script.async = true;
     document.body.appendChild(script);
 
