@@ -105,6 +105,9 @@ interface ActiveHazard {
   removeAt: number | null;
   currentDistance: number;
   currentLateral: number;
+  targetLateral: number;
+  crossingStartLateral: number;
+  crossingEndLateral: number;
   result: DrivingEventResult;
 }
 
@@ -1371,7 +1374,11 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     const hazardDistance = Math.min(this.routeLength - 8, this.progress + this.difficultyPreset.hazardLeadDistance);
     const group = this.createHazardMesh(template.id);
     const point = this.getRoutePoint(hazardDistance);
-    group.position.set(point.x, 0, point.z);
+    const targetLateral = this.getCurrentVehicleLaneLateral();
+    const crossingSide = targetLateral >= 0 ? 1 : -1;
+    const crossingStartLateral = crossingSide * (this.roadWidth / 2 + 0.8);
+    const crossingEndLateral = -crossingSide * (this.roadWidth / 2 + 0.8);
+    group.position.set(point.x + point.normal.x * targetLateral, 0, point.z + point.normal.z * targetLateral);
     group.rotation.y = Math.atan2(point.dir.x, point.dir.z);
     this.scene?.add(group);
 
@@ -1400,7 +1407,10 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
       resolved: false,
       removeAt: null,
       currentDistance: hazardDistance,
-      currentLateral: 0,
+      currentLateral: targetLateral,
+      targetLateral,
+      crossingStartLateral,
+      crossingEndLateral,
       result,
     };
     this.activeHazards.push(hazard);
@@ -1423,18 +1433,18 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
       let lateral = 0;
 
       if (hazard.template.id === 'child-crossing') {
-        lateral = -5 + Math.min(1, age / 1800) * 10;
+        lateral = this.lerp(hazard.crossingStartLateral, hazard.crossingEndLateral, Math.min(1, age / 1800));
       } else if (hazard.template.id === 'drunk-driver') {
-        lateral = 4.2 + Math.sin(age / 230) * 1.1;
+        lateral = hazard.targetLateral;
       } else if (hazard.template.id === 'wrong-way-driver') {
         hazard.currentDistance = Math.max(hazard.triggerDistance, hazard.hazardDistance - age * 0.012);
         const movingPoint = this.getRoutePoint(hazard.currentDistance);
         hazard.group.position.set(
-          movingPoint.x - movingPoint.normal.x * 1.6,
+          movingPoint.x + movingPoint.normal.x * hazard.targetLateral,
           0,
-          movingPoint.z - movingPoint.normal.z * 1.6,
+          movingPoint.z + movingPoint.normal.z * hazard.targetLateral,
         );
-        hazard.currentLateral = -1.6;
+        hazard.currentLateral = hazard.targetLateral;
         hazard.group.rotation.y = Math.atan2(-movingPoint.dir.x, -movingPoint.dir.z);
       }
 
@@ -1533,6 +1543,13 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
       halfWidth: this.vehicleHalfWidth,
       halfLength: this.vehicleHalfLength,
     };
+  }
+
+  private getCurrentVehicleLaneLateral(): number {
+    const vehicleBox = this.getVehicleCollisionBox();
+    const projected = this.projectOntoRoute(vehicleBox.centerX, vehicleBox.centerZ);
+    const maxLaneLateral = this.roadWidth / 2 - this.vehicleHalfWidth;
+    return this.clamp(projected.lateral, -maxLaneLateral, maxLaneLateral);
   }
 
   private getHazardCollisionBox(hazard: ActiveHazard): CollisionBox2D {
