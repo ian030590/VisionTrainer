@@ -269,6 +269,13 @@ interface CollisionBox2D extends CollisionFootprint {
   angle: number;
 }
 
+interface VehicleResetPose {
+  x: number;
+  z: number;
+  progress: number;
+  lateral: number;
+}
+
 /** Intersection node for free turning */
 interface IntersectionZone {
   distance: number;
@@ -323,6 +330,12 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
   private lateralOffset = 0;   // signed distance from route center (+ = right)
   private laneDeviationCount = 0;
   private laneDeviationActive = false;
+  private laneDepartureStartTime: number | null = null;
+  private lastInLanePose: VehicleResetPose | null = null;
+  private laneDeparturePose: VehicleResetPose | null = null;
+  private laneResetActive = false;
+  private laneResetBlackoutTimer: number | null = null;
+  private laneResetClearTimer: number | null = null;
   private cameraRoll = 0;
   private cameraFov = 68;
 
@@ -364,9 +377,13 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     distance: HTMLDivElement;
     event: HTMLDivElement;
     redFlash: HTMLDivElement;
+    blackout?: HTMLDivElement;
     inputBars?: HTMLDivElement;
     miniMapWrapper?: HTMLDivElement;
   } | null = null;
+
+  private roadCollisionBoxes: CollisionBox2D[] = [];
+  private buildingCollisionBoxes: CollisionBox2D[] = [];
 
   private readonly roadWidth = 12;
   private readonly laneOffset = 1.5;
@@ -376,6 +393,14 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
   private readonly maxVehicleSpeed = 18;
   private readonly baseCameraFov = 68;
   private readonly maxCameraFov = 76;
+  private readonly sidewalkWidth = 3;
+  private readonly buildingRoadGap = 1.2;
+  private readonly buildingRoadMargin = 0.35;
+  private readonly buildingIntersectionClearance = 24;
+  private readonly laneDeviationLimit = 5.0;
+  private readonly laneDeviationGraceMs = 1500;
+  private readonly laneResetBlackoutMs = 180;
+  private readonly laneResetHoldMs = 220;
 
   // Extended route with more segments for free driving
   private readonly route: RouteSegment[] = [
@@ -477,11 +502,18 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     this.lastFrameTime = 0;
     this.laneDeviationCount = 0;
     this.laneDeviationActive = false;
+    this.laneDepartureStartTime = null;
+    this.lastInLanePose = { x: this.vehicleX, z: this.vehicleZ, progress: this.progress, lateral: this.lateralOffset };
+    this.laneDeparturePose = null;
+    this.laneResetActive = false;
+    this.clearLaneResetTimers();
     this.lastBrakePressed = false;
     this.fpsSamples = [];
     this.activeHazards = [];
     this.eventResults = [];
     this.hazardSpawnCount = 0;
+    this.roadCollisionBoxes = [];
+    this.buildingCollisionBoxes = [];
     this.keyState = { left: false, right: false, up: false, down: false };
     this.miniMapCanvas = null;
     this.miniMapCtx = null;
@@ -769,14 +801,25 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
       boxShadow: redFlashEnabled ? 'inset 0 0 0 22px rgba(255, 46, 46, 0.86), inset 0 0 80px rgba(255, 0, 0, 0.42)' : 'none',
     });
 
+    const blackout = document.createElement('div');
+    Object.assign(blackout.style, {
+      position: 'absolute',
+      inset: '0',
+      zIndex: '25',
+      opacity: '0',
+      pointerEvents: 'none',
+      background: '#000',
+      transition: `opacity ${this.laneResetBlackoutMs}ms ease`,
+    });
+
     // Create mini-map
     const miniMapWrapper = this.createMiniMap();
 
     const cockpit = this.createCockpitMask();
-    hud.append(redFlash, cockpit, top, event, miniMapWrapper);
+    hud.append(redFlash, cockpit, top, event, miniMapWrapper, blackout);
     root.appendChild(hud);
 
-    this.hud = { status, speed, distance, event, redFlash, miniMapWrapper };
+    this.hud = { status, speed, distance, event, redFlash, blackout, miniMapWrapper };
   }
 
   /** Create the GPS-style mini-map navigation panel */
@@ -1135,6 +1178,9 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     const THREE = this.requireThree();
     if (!this.scene) return;
 
+    this.roadCollisionBoxes = [];
+    this.buildingCollisionBoxes = [];
+
     const roadMat = new THREE.MeshBasicMaterial({ color: 0x2f3438 });
     const sidewalkMat = new THREE.MeshBasicMaterial({ color: 0xb8b0a2 });
     const laneMat = new THREE.MeshBasicMaterial({ color: 0xf4e86d });
@@ -1156,22 +1202,29 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
       road.position.set(mid.x, 0, mid.z);
       road.rotation.y = angle;
       this.scene.add(road);
+      this.roadCollisionBoxes.push({
+        centerX: mid.x,
+        centerZ: mid.z,
+        angle,
+        halfWidth: this.roadWidth / 2,
+        halfLength: segment.length / 2,
+      });
 
       // Sidewalks
-      const leftSidewalk = new THREE.Mesh(new THREE.BoxGeometry(3, 0.08, segment.length), sidewalkMat);
+      const leftSidewalk = new THREE.Mesh(new THREE.BoxGeometry(this.sidewalkWidth, 0.08, segment.length), sidewalkMat);
       leftSidewalk.position.set(
-        mid.x - segment.dir.z * (this.roadWidth / 2 + 1.5),
+        mid.x - segment.dir.z * (this.roadWidth / 2 + this.sidewalkWidth / 2),
         0.01,
-        mid.z + segment.dir.x * (this.roadWidth / 2 + 1.5),
+        mid.z + segment.dir.x * (this.roadWidth / 2 + this.sidewalkWidth / 2),
       );
       leftSidewalk.rotation.y = angle;
       this.scene.add(leftSidewalk);
 
-      const rightSidewalk = new THREE.Mesh(new THREE.BoxGeometry(3, 0.08, segment.length), sidewalkMat);
+      const rightSidewalk = new THREE.Mesh(new THREE.BoxGeometry(this.sidewalkWidth, 0.08, segment.length), sidewalkMat);
       rightSidewalk.position.set(
-        mid.x + segment.dir.z * (this.roadWidth / 2 + 1.5),
+        mid.x + segment.dir.z * (this.roadWidth / 2 + this.sidewalkWidth / 2),
         0.01,
-        mid.z - segment.dir.x * (this.roadWidth / 2 + 1.5),
+        mid.z - segment.dir.x * (this.roadWidth / 2 + this.sidewalkWidth / 2),
       );
       rightSidewalk.rotation.y = angle;
       this.scene.add(rightSidewalk);
@@ -1194,8 +1247,16 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
       const point = this.getRoutePoint(inter.distance);
       const cross = new THREE.Mesh(new THREE.BoxGeometry(76, 0.035, this.roadWidth), roadMat);
       cross.position.set(point.x, 0.025, point.z);
-      cross.rotation.y = Math.atan2(point.normal.x, point.normal.z);
+      const crossAngle = Math.atan2(point.normal.x, point.normal.z);
+      cross.rotation.y = crossAngle;
       this.scene.add(cross);
+      this.roadCollisionBoxes.push({
+        centerX: point.x,
+        centerZ: point.z,
+        angle: crossAngle,
+        halfWidth: 38,
+        halfLength: this.roadWidth / 2,
+      });
     }
 
     this.addBuildings();
@@ -1214,18 +1275,48 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
         const height = 7 + ((d * (side + 3)) % 13);
         const width = 8 + (d % 5);
         const depth = 8 + ((d + 3) % 6);
+        if (this.isNearIntersection(d, this.buildingIntersectionClearance + depth / 2)) continue;
+
+        const angle = Math.atan2(point.dir.x, point.dir.z);
+        const setback = this.roadWidth / 2 + this.sidewalkWidth + this.buildingRoadGap + width / 2 + (d % 8);
+        const centerX = point.x + point.normal.x * side * setback;
+        const centerZ = point.z + point.normal.z * side * setback;
+        const collisionBox: CollisionBox2D = {
+          centerX,
+          centerZ,
+          angle,
+          halfWidth: width / 2,
+          halfLength: depth / 2,
+        };
+        if (!this.isBuildingFootprintClear(collisionBox)) continue;
+
         const color = colors[Math.floor((d + side * 7) % colors.length)];
         const material = new THREE.MeshBasicMaterial({ color });
         const building = new THREE.Mesh(new THREE.BoxGeometry(width, height, depth), material);
-        building.position.set(
-          point.x + point.normal.x * side * (this.roadWidth / 2 + 9 + (d % 8)),
-          height / 2,
-          point.z + point.normal.z * side * (this.roadWidth / 2 + 9 + (d % 8)),
-        );
-        building.rotation.y = Math.atan2(point.dir.x, point.dir.z);
+        building.position.set(centerX, height / 2, centerZ);
+        building.rotation.y = angle;
         this.scene.add(building);
+        this.buildingCollisionBoxes.push(collisionBox);
       }
     }
+  }
+
+  private isNearIntersection(distance: number, clearance: number): boolean {
+    return this.intersections.some((intersection) => Math.abs(distance - intersection.distance) < clearance);
+  }
+
+  private isBuildingFootprintClear(box: CollisionBox2D): boolean {
+    return !this.roadCollisionBoxes.some((roadBox) => (
+      this.boxesOverlap(box, this.expandCollisionBox(roadBox, this.buildingRoadMargin))
+    ));
+  }
+
+  private expandCollisionBox(box: CollisionBox2D, margin: number): CollisionBox2D {
+    return {
+      ...box,
+      halfWidth: box.halfWidth + margin,
+      halfLength: box.halfLength + margin,
+    };
   }
 
   /** Add physical road signs at intersections */
@@ -1324,15 +1415,20 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     const elapsed = time - this.trialStartTime;
     const input = this.readInput();
     const brakePressed = input.brake > 0.35;
-    if (brakePressed && !this.lastBrakePressed) {
+    if (!this.laneResetActive && brakePressed && !this.lastBrakePressed) {
       this.handleBrakePressed(time);
     }
     this.lastBrakePressed = brakePressed;
 
-    this.updateVehicleFree(input, dt);
-    this.updateIntersections();
-    this.spawnRandomHazards(time);
-    this.updateHazards(time);
+    if (!this.laneResetActive) {
+      this.updateVehicleFree(input, dt, time);
+      this.updateIntersections();
+      this.spawnRandomHazards(time);
+      this.updateHazards(time);
+    } else {
+      this.vehicleSpeed = 0;
+      this.lastYawRate = 0;
+    }
     this.updateCameraFree(dt);
     this.updateHud(trial.duration_ms ?? 90_000, elapsed);
     this.updateMiniMap();
@@ -1402,10 +1498,13 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
    * Steering changes heading; vehicle moves in heading direction.
    * "progress" and "lateralOffset" are projected from world pos.
    * ================================================================ */
-  private updateVehicleFree(input: DrivingInput, dt: number) {
+  private updateVehicleFree(input: DrivingInput, dt: number, time: number) {
     const throttleAccel = 7.5;
     const brakeDecel = 20;
     const rollingDrag = 1.7;
+    const previousX = this.vehicleX;
+    const previousZ = this.vehicleZ;
+    const previousHeading = this.vehicleHeading;
 
     // Speed update
     this.vehicleSpeed += input.throttle * throttleAccel * dt;
@@ -1434,17 +1533,108 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     this.vehicleX += forward.x * this.vehicleSpeed * dt;
     this.vehicleZ += forward.z * this.vehicleSpeed * dt;
 
+    if (this.isVehicleCollidingWithBuilding()) {
+      this.vehicleX = previousX;
+      this.vehicleZ = previousZ;
+      this.vehicleHeading = previousHeading;
+      this.vehicleSpeed = 0;
+      this.frontWheelAngle = 0;
+      this.steeringInput = 0;
+      this.lastYawRate = 0;
+    }
+
     // Project vehicle position onto the route to compute progress & lateral offset
-    const proj = this.projectOntoRoute(this.vehicleX, this.vehicleZ);
+    const vehicleBox = this.getVehicleCollisionBox();
+    const proj = this.projectOntoRoute(vehicleBox.centerX, vehicleBox.centerZ);
     this.progress = proj.distance;
     this.lateralOffset = proj.lateral;
 
     // Lane deviation check – deviation is being too far from route center
-    const deviating = Math.abs(this.lateralOffset) > 5.0;
-    if (deviating && !this.laneDeviationActive) {
-      this.laneDeviationCount += 1;
+    this.updateLaneDepartureState(Math.abs(this.lateralOffset) > this.laneDeviationLimit, time);
+  }
+
+  private updateLaneDepartureState(deviating: boolean, time: number) {
+    const currentPose = this.getCurrentResetPose();
+
+    if (deviating) {
+      if (!this.laneDeviationActive) {
+        this.laneDeviationCount += 1;
+        this.laneDepartureStartTime = time;
+        this.laneDeparturePose = this.lastInLanePose ?? currentPose;
+      }
+      this.laneDeviationActive = true;
+      if (this.laneDepartureStartTime !== null && time - this.laneDepartureStartTime >= this.laneDeviationGraceMs) {
+        this.triggerLaneReset();
+      }
+      return;
     }
-    this.laneDeviationActive = deviating;
+
+    this.lastInLanePose = currentPose;
+    this.laneDepartureStartTime = null;
+    this.laneDeparturePose = null;
+    this.laneDeviationActive = false;
+  }
+
+  private getCurrentResetPose(): VehicleResetPose {
+    return {
+      x: this.vehicleX,
+      z: this.vehicleZ,
+      progress: this.progress,
+      lateral: this.lateralOffset,
+    };
+  }
+
+  private triggerLaneReset() {
+    if (this.laneResetActive) return;
+
+    const resetPose = this.laneDeparturePose ?? this.lastInLanePose ?? this.getCurrentResetPose();
+    this.laneResetActive = true;
+    this.vehicleSpeed = 0;
+    this.frontWheelAngle = 0;
+    this.steeringInput = 0;
+    this.lastYawRate = 0;
+
+    if (this.hud?.blackout) this.hud.blackout.style.opacity = '1';
+
+    this.laneResetBlackoutTimer = window.setTimeout(() => {
+      this.laneResetBlackoutTimer = null;
+      this.applyLaneResetPose(resetPose);
+      this.laneResetClearTimer = window.setTimeout(() => {
+        this.laneResetClearTimer = null;
+        if (this.hud?.blackout) this.hud.blackout.style.opacity = '0';
+        this.laneResetActive = false;
+        this.laneDepartureStartTime = null;
+        this.laneDeparturePose = null;
+        this.laneDeviationActive = false;
+        this.lastInLanePose = this.getCurrentResetPose();
+      }, this.laneResetHoldMs);
+    }, this.laneResetBlackoutMs);
+  }
+
+  private applyLaneResetPose(pose: VehicleResetPose) {
+    const routePoint = this.getRoutePoint(pose.progress);
+    const safeLateral = this.clamp(
+      pose.lateral,
+      -this.laneDeviationLimit + this.vehicleHalfWidth,
+      this.laneDeviationLimit - this.vehicleHalfWidth,
+    );
+    const resetHeading = this.getRouteHeading(pose.progress);
+    const visualRight = this.getVisualRightVector(resetHeading);
+    const vehicleCenterX = routePoint.x + routePoint.normal.x * safeLateral;
+    const vehicleCenterZ = routePoint.z + routePoint.normal.z * safeLateral;
+
+    this.vehicleX = vehicleCenterX - visualRight.x * this.laneOffset;
+    this.vehicleZ = vehicleCenterZ - visualRight.z * this.laneOffset;
+    this.vehicleHeading = resetHeading;
+    this.vehicleSpeed = 0;
+    this.frontWheelAngle = 0;
+    this.steeringInput = 0;
+    this.lastYawRate = 0;
+
+    const vehicleBox = this.getVehicleCollisionBox();
+    const projected = this.projectOntoRoute(vehicleBox.centerX, vehicleBox.centerZ);
+    this.progress = projected.distance;
+    this.lateralOffset = projected.lateral;
   }
 
   /** Project a world point onto the nearest point on the route.
@@ -1674,6 +1864,12 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
         rtText,
       });
     }
+  }
+
+  private isVehicleCollidingWithBuilding(): boolean {
+    if (this.buildingCollisionBoxes.length === 0) return false;
+    const vehicleBox = this.getVehicleCollisionBox();
+    return this.buildingCollisionBoxes.some((buildingBox) => this.boxesOverlap(vehicleBox, buildingBox));
   }
 
   private isHazardColliding(hazard: ActiveHazard): boolean {
@@ -2036,6 +2232,11 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
   /* ================================================================
    * ROUTE HELPERS (used for hazard placement, minimap, etc.)
    * ================================================================ */
+  private getRouteHeading(distance: number): number {
+    const point = this.getRoutePoint(distance);
+    return Math.atan2(point.dir.x, point.dir.z);
+  }
+
   private getRoutePoint(distance: number): RoutePoint {
     const clamped = Math.max(0, Math.min(this.routeLength, distance));
     let traveled = 0;
@@ -2177,8 +2378,20 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     }
   }
 
+  private clearLaneResetTimers() {
+    if (this.laneResetBlackoutTimer !== null) {
+      window.clearTimeout(this.laneResetBlackoutTimer);
+      this.laneResetBlackoutTimer = null;
+    }
+    if (this.laneResetClearTimer !== null) {
+      window.clearTimeout(this.laneResetClearTimer);
+      this.laneResetClearTimer = null;
+    }
+  }
+
   private cleanupRenderResources() {
     cancelAnimationFrame(this.raf);
+    this.clearLaneResetTimers();
     this.gameOverOverlay?.remove();
     this.gameOverOverlay = null;
     if (this.scene) {
