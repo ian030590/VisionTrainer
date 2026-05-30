@@ -90,13 +90,13 @@ export function HomePage() {
     }
   };
 
-  // ── Warm up PixiJS when module panel expands ──
+  // Warm up the selected training engine when a module panel expands.
   useEffect(() => {
     if (!expandedModule) return;
     if (expandedModule === 'driving-rehab') {
       setPrewarmed(false);
       let cancelled = false;
-      import('three')
+      import('../experiment/plugins/three-driving-rehab')
         .then(() => {
           if (!cancelled) setPrewarmed(true);
         })

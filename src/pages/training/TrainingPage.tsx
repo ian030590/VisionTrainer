@@ -5,9 +5,6 @@ import type { JsPsych } from 'jspsych';
 import WebGazerExtension from '@jspsych/extension-webgazer';
 import { useT } from '../../i18n';
 import { buildTimeline } from '../../experiment/timeline';
-import PixiMovingCardPlugin from '../../experiment/plugins/pixi-moving-card';
-import PixiOculomotorTrainingPlugin from '../../experiment/plugins/pixi-oculomotor-training';
-import ThreeDrivingRehabPlugin from '../../experiment/plugins/three-driving-rehab';
 import {
   DRIVING_DURATION_MIN_SEC,
   getActiveUser,
@@ -24,10 +21,6 @@ import type { OculomotorTargetShape } from './oculomotor/types';
 import { getRandomStory } from './reading/stories';
 import { TrainingResults } from './results/TrainingResults';
 import type { TrialData } from './types';
-
-void PixiMovingCardPlugin;
-void PixiOculomotorTrainingPlugin;
-void ThreeDrivingRehabPlugin;
 
 type Phase = 'running' | 'results';
 
@@ -91,6 +84,8 @@ export function TrainingPage() {
 
     const container = containerRef.current;
 
+    let cancelled = false;
+
     const setupExperiment = async () => {
       const storyData = moduleId === 'reading-training'
         ? getRandomStory(lang) || undefined
@@ -108,8 +103,7 @@ export function TrainingPage() {
         },
       });
 
-      jsPsychRef.current = jsPsych;
-      jsPsych.run(buildTimeline(moduleId, {
+      const timeline = await buildTimeline(moduleId, {
         difficulty,
         totalRounds,
         oculomotor: {
@@ -143,12 +137,17 @@ export function TrainingPage() {
           controlMode: drivingControlMode,
           language: lang,
         },
-      }) as any);
+      });
+
+      if (cancelled) return;
+      jsPsychRef.current = jsPsych;
+      jsPsych.run(timeline as any);
     };
 
-    setupExperiment();
+    void setupExperiment();
 
     return () => {
+      cancelled = true;
       SoundManager.destroy();
       if (jsPsychRef.current) {
         jsPsychRef.current = null;

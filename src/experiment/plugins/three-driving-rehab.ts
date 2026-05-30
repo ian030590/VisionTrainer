@@ -1,10 +1,27 @@
 import { JsPsych, ParameterType } from 'jspsych';
 import type { JsPsychPlugin, TrialType } from 'jspsych';
 import { SoundManager } from '../../utils/soundManager';
-
-type ThreeModule = typeof import('three');
-type DrivingControlMode = 'arrow' | 'wasd' | 'wheel';
-type DrivingLanguage = 'zh' | 'en';
+import { DIFFICULTY_PRESETS, HAZARD_TEMPLATES } from './driving/driving-hazards';
+import { DRIVING_ROUTE } from './driving/driving-route';
+import { THREE, type ThreeModule } from './driving/driving-scene';
+import { DRIVING_TEXT, type DrivingText } from './driving/driving-text';
+import type {
+  ActiveHazard,
+  CollisionBox2D,
+  CollisionFootprint,
+  DifficultyPreset,
+  DrivingControlMode,
+  DrivingEventResult,
+  DrivingInput,
+  DrivingLanguage,
+  HazardId,
+  HazardTemplate,
+  IntersectionZone,
+  RoutePoint,
+  RouteSegment,
+  Vec2,
+  VehicleResetPose,
+} from './driving/types';
 
 const info = {
   name: 'three-driving-rehab',
@@ -51,259 +68,9 @@ const info = {
 
 type Info = typeof info;
 
-interface Vec2 {
-  x: number;
-  z: number;
-}
-
-interface RouteSegment {
-  start: Vec2;
-  dir: Vec2;
-  length: number;
-}
-
-interface RoutePoint {
-  x: number;
-  z: number;
-  dir: Vec2;
-  normal: Vec2;
-  segmentIndex: number;
-  localDistance: number;
-}
-
-interface DrivingInput {
-  steering: number;
-  throttle: number;
-  brake: number;
-  gamepadName: string;
-}
-
-type HazardId = 'child-crossing' | 'plane-crash' | 'drunk-driver' | 'elder-stopped' | 'wrong-way-driver';
-
-const DRIVING_TEXT = {
-  zh: {
-    eyebrow: '駕駛認知復健模擬器',
-    title: '駕駛認知復健模擬器',
-    introA: '將貨物由 A 點送至 B 點。請依照右下角的',
-    routeMap: '導航小地圖',
-    introB: '指示方向，自行操控方向盤在路口轉彎。',
-    hazardIntroA: '駕駛途中會',
-    randomHazards: '隨機出現突發事件',
-    hazardIntroB: '，請立即踩煞車反應。',
-    difficultyLabel: '難度',
-    difficultyBeginner: '初級',
-    difficultyIntermediate: '中級',
-    difficultyAdvanced: '高級',
-    steering: '方向 / 轉彎',
-    throttle: '油門',
-    brake: '煞車',
-    emergencyBrake: '緊急煞車',
-    arrowSteerHint: '← / →',
-    arrowThrottleHint: '↑',
-    arrowBrakeHint: '↓',
-    wasdSteerHint: 'A / D',
-    wasdThrottleHint: 'W',
-    wasdBrakeHint: 'S',
-    wheelSteerHint: '方向盤',
-    wheelThrottleHint: '油門踏板',
-    wheelBrakeHint: '煞車踏板',
-    loading3d: '正在動態載入 3D 資源...',
-    readyLoaded: '3D 資源已載入。請確認輸入訊號後開始任務。',
-    loadingButton: '載入中...',
-    startMission: '開始送貨任務',
-    startHint: 'Enter 開始 · Esc 可提前結束並返回結果頁',
-    controllerConnected: '已連接控制器：{id}',
-    controllerDisconnected: '控制器已中斷，改用鍵盤控制',
-    taskDelivery: '任務：A 點送貨至 B 點',
-    watchRoad: '保持車道並注意突發事件',
-    navigation: '導航',
-    straight: '直行',
-    straightToDestination: '直行抵達目的地',
-    turnAfterMeters: '{dist}m 後{instruction}',
-    upcomingTurn: '導航：前方路口請{instruction} {arrow}',
-    navTurn: '導航：{dist}m 後{instruction} {arrow} · 剩餘 {remaining}s',
-    navStraight: '導航：直行 · 剩餘 {remaining}s',
-    timeUp: '時間已到',
-    timeoutMessage: '任務時間已到，尚未抵達終點',
-    timeoutHint: '點擊畫面任一處查看成績',
-    noValidRt: '無有效 RT',
-    collision: '碰撞',
-    dodged: '閃避通過',
-    stopped: '已煞停',
-    brakeReaction: '{label}：煞車反應 {rt} ms',
-    hazardResult: '{label}：{outcome} / {rtText}',
-    controlArrow: '目前控制方式：方向鍵',
-    controlWasd: '目前控制方式：WASD',
-    gamepadUnsupported: '此瀏覽器不支援 Gamepad API，將使用鍵盤控制。',
-    gamepadConnected: 'Gamepad API 已接入：{id}',
-    gamepadWaiting: 'Gamepad API 已接入，等待控制器輸入。',
-    wheelWaiting: '等待 USB 外接方向盤輸入。',
-    turnLeft: '左轉',
-    turnRight: '右轉',
-    deliveryTarget: 'A 點送貨至 B 點',
-    hazardLabels: {
-      'child-crossing': '小孩突然衝出馬路',
-      'plane-crash': '飛機墜落於前方道路',
-      'drunk-driver': '醉酒駕駛車輛開上分隔島',
-      'elder-stopped': '老人走到路中間停下',
-      'wrong-way-driver': '毒駕車輛逆向衝來',
-    },
-  },
-  en: {
-    eyebrow: 'Driving Cognitive Rehab Simulator',
-    title: 'Driving Cognitive Rehab Simulator',
-    introA: 'Deliver the cargo from point A to point B. Follow the',
-    routeMap: 'navigation mini-map',
-    introB: 'at the lower right and steer through intersections.',
-    hazardIntroA: 'Unexpected',
-    randomHazards: 'hazards will appear at random',
-    hazardIntroB: '; brake immediately when they occur.',
-    difficultyLabel: 'Difficulty',
-    difficultyBeginner: 'Beginner',
-    difficultyIntermediate: 'Intermediate',
-    difficultyAdvanced: 'Advanced',
-    steering: 'Steering / Turn',
-    throttle: 'Throttle',
-    brake: 'Brake',
-    emergencyBrake: 'Emergency Brake',
-    arrowSteerHint: '← / →',
-    arrowThrottleHint: '↑',
-    arrowBrakeHint: '↓',
-    wasdSteerHint: 'A / D',
-    wasdThrottleHint: 'W',
-    wasdBrakeHint: 'S',
-    wheelSteerHint: 'Steering wheel',
-    wheelThrottleHint: 'Throttle pedal',
-    wheelBrakeHint: 'Brake pedal',
-    loading3d: 'Loading 3D assets...',
-    readyLoaded: '3D assets loaded. Confirm input signal, then start the mission.',
-    loadingButton: 'Loading...',
-    startMission: 'Start Delivery Mission',
-    startHint: 'Enter to start · Esc to finish early and return to results',
-    controllerConnected: 'Controller connected: {id}',
-    controllerDisconnected: 'Controller disconnected; using keyboard control',
-    taskDelivery: 'Task: deliver from point A to point B',
-    watchRoad: 'Stay in lane and watch for hazards',
-    navigation: 'Navigation',
-    straight: 'Straight',
-    straightToDestination: 'Straight to destination',
-    turnAfterMeters: 'in {dist}m {instruction}',
-    upcomingTurn: 'Navigation: {instruction} at the upcoming intersection {arrow}',
-    navTurn: 'Navigation: {instruction} in {dist}m {arrow} · {remaining}s left',
-    navStraight: 'Navigation: straight · {remaining}s left',
-    timeUp: 'TIME UP',
-    timeoutMessage: 'Mission time has ended before reaching the destination',
-    timeoutHint: 'Click anywhere to view results',
-    noValidRt: 'No valid RT',
-    collision: 'Collision',
-    dodged: 'Dodged',
-    stopped: 'Stopped',
-    brakeReaction: '{label}: brake reaction {rt} ms',
-    hazardResult: '{label}: {outcome} / {rtText}',
-    controlArrow: 'Control mode: Arrow keys',
-    controlWasd: 'Control mode: WASD',
-    gamepadUnsupported: 'This browser does not support the Gamepad API; keyboard control will be used.',
-    gamepadConnected: 'Gamepad API connected: {id}',
-    gamepadWaiting: 'Gamepad API connected; waiting for controller input.',
-    wheelWaiting: 'Waiting for USB steering wheel input.',
-    turnLeft: 'turn left',
-    turnRight: 'turn right',
-    deliveryTarget: 'Delivery from point A to point B',
-    hazardLabels: {
-      'child-crossing': 'Child suddenly runs into the road',
-      'plane-crash': 'Plane crashes onto the road ahead',
-      'drunk-driver': 'Drunk driver vehicle mounts the median',
-      'elder-stopped': 'Older pedestrian stops in the road',
-      'wrong-way-driver': 'Drug-impaired driver approaches the wrong way',
-    },
-  },
-} as const;
-
-type DrivingText = {
-  [K in keyof typeof DRIVING_TEXT.zh]: K extends 'hazardLabels' ? Record<HazardId, string> : string;
-};
-
-interface HazardTemplate {
-  id: HazardId;
-}
-
-interface DrivingEventResult {
-  event_id: HazardId;
-  label: string;
-  distance_m: number;
-  rt_ms: number | null;
-  valid: boolean;
-  collision: boolean;
-  brake_preheld: boolean;
-  response: string;
-}
-
-interface ActiveHazard {
-  template: HazardTemplate;
-  group: any;
-  triggerDistance: number;
-  hazardDistance: number;
-  startTime: number;
-  brakeTime: number | null;
-  rt: number | null;
-  preheldBrake: boolean;
-  collision: boolean;
-  resolved: boolean;
-  removeAt: number | null;
-  currentDistance: number;
-  currentLateral: number;
-  targetLateral: number;
-  crossingStartLateral: number;
-  crossingEndLateral: number;
-  result: DrivingEventResult;
-}
-
-interface CollisionFootprint {
-  halfWidth: number;
-  halfLength: number;
-}
-
-interface CollisionBox2D extends CollisionFootprint {
-  centerX: number;
-  centerZ: number;
-  angle: number;
-}
-
-interface VehicleResetPose {
-  x: number;
-  z: number;
-  progress: number;
-  lateral: number;
-}
-
-/** Intersection node for free turning */
-interface IntersectionZone {
-  distance: number;
-  segmentIndex: number;
-  instruction: string;
-  turnDir: 'left' | 'right' | null;
-  entered: boolean;
-  announced: boolean;
-}
-
-/** Difficulty preset – controls hazard timing */
-interface DifficultyPreset {
-  hazardTimeoutMs: number;
-  hazardLeadDistance: number;
-  minHazardInterval: number;
-  maxHazardInterval: number;
-}
-
-const DIFFICULTY_PRESETS: Record<string, DifficultyPreset> = {
-  beginner:     { hazardTimeoutMs: 5200, hazardLeadDistance: 40, minHazardInterval: 50, maxHazardInterval: 90 },
-  intermediate: { hazardTimeoutMs: 3200, hazardLeadDistance: 30, minHazardInterval: 35, maxHazardInterval: 65 },
-  advanced:     { hazardTimeoutMs: 1800, hazardLeadDistance: 22, minHazardInterval: 25, maxHazardInterval: 50 },
-};
-
 class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
   static info = info;
 
-  private three: ThreeModule | null = null;
   private renderer: any = null;
   private scene: any = null;
   private camera: any = null;
@@ -402,23 +169,8 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
   private readonly laneResetBlackoutMs = 180;
   private readonly laneResetHoldMs = 220;
 
-  // Extended route with more segments for free driving
-  private readonly route: RouteSegment[] = [
-    { start: { x: 0, z: 0 }, dir: { x: 0, z: 1 }, length: 110 },
-    { start: { x: 0, z: 110 }, dir: { x: 1, z: 0 }, length: 120 },
-    { start: { x: 120, z: 110 }, dir: { x: 0, z: 1 }, length: 100 },
-    { start: { x: 120, z: 210 }, dir: { x: -1, z: 0 }, length: 100 },
-    { start: { x: 20, z: 210 }, dir: { x: 0, z: 1 }, length: 135 },
-  ];
-
-  /** Hazard templates – drawn randomly */
-  private readonly hazardTemplates: HazardTemplate[] = [
-    { id: 'child-crossing' },
-    { id: 'plane-crash' },
-    { id: 'drunk-driver' },
-    { id: 'elder-stopped' },
-    { id: 'wrong-way-driver' },
-  ];
+  private readonly route: RouteSegment[] = [...DRIVING_ROUTE];
+  private readonly hazardTemplates: HazardTemplate[] = [...HAZARD_TEMPLATES];
 
   constructor(private jsPsych: JsPsych) {
     this.routeLength = this.route.reduce((sum, segment) => sum + segment.length, 0);
@@ -446,11 +198,8 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     root.focus();
 
     const overlay = this.createCalibrationOverlay(root);
-    const threePromise = import('three').then((three) => {
-      this.three = three;
-      const ready = overlay.querySelector<HTMLDivElement>('[data-driving-ready]');
-      if (ready) ready.textContent = this.text.readyLoaded;
-    });
+    const ready = overlay.querySelector<HTMLDivElement>('[data-driving-ready]');
+    if (ready) ready.textContent = this.text.readyLoaded;
 
     this.attachKeyboardListeners(() => {
       void startDriving();
@@ -464,8 +213,6 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
       startButton?.setAttribute('disabled', 'true');
       startButton && (startButton.textContent = this.text.loadingButton);
       try {
-        await threePromise;
-        if (!this.three) throw new Error('Three.js failed to load.');
         overlay.remove();
         this.initScene(root);
         this.initHud(root, trial.red_flash_enabled ?? true);
@@ -2430,10 +2177,7 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
   }
 
   private requireThree(): ThreeModule {
-    if (!this.three) {
-      throw new Error('Three.js module is not loaded.');
-    }
-    return this.three;
+    return THREE;
   }
 }
 

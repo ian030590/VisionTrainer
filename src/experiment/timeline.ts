@@ -5,7 +5,6 @@
 import PixiMovingCardPlugin from './plugins/pixi-moving-card';
 import PixiOculomotorTrainingPlugin from './plugins/pixi-oculomotor-training';
 import PixiGaborPatchingPlugin from './plugins/pixi-gabor-patching';
-import ThreeDrivingRehabPlugin from './plugins/three-driving-rehab';
 import WebgazerInitCameraPlugin from '@jspsych/plugin-webgazer-init-camera';
 import WebgazerCalibratePlugin from '@jspsych/plugin-webgazer-calibrate';
 import HtmlButtonResponsePlugin from '@jspsych/plugin-html-button-response';
@@ -23,7 +22,7 @@ type AppLanguage = 'zh' | 'en';
  * Build a jsPsych timeline for the given module.
  * Each trial = one round of the training game.
  */
-export function buildTimeline(
+export async function buildTimeline(
   moduleId: string,
   overrides?: {
     difficulty?: string;
@@ -62,7 +61,7 @@ export function buildTimeline(
       language?: AppLanguage;
     };
   },
-): object[] {
+): Promise<object[]> {
   switch (moduleId) {
     case 'moving-card':
       return buildMovingCardTimeline(overrides);
@@ -80,7 +79,7 @@ export function buildTimeline(
   }
 }
 
-function buildDrivingRehabTimeline(
+async function buildDrivingRehabTimeline(
   overrides?: {
     driving?: {
       durationSec?: number;
@@ -90,7 +89,9 @@ function buildDrivingRehabTimeline(
       language?: AppLanguage;
     };
   },
-): object[] {
+): Promise<object[]> {
+  const { default: ThreeDrivingRehabPlugin } = await import('./plugins/three-driving-rehab');
+
   const durationSec = Math.max(
     DRIVING_DURATION_MIN_SEC,
     overrides?.driving?.durationSec ?? getSetting('drivingDurationSec'),

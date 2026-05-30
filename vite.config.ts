@@ -7,5 +7,14 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     assetsDir: 'assets',
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('/node_modules/three/') || id.includes('\\node_modules\\three\\')) {
+            return 'three-runtime';
+          }
+        },
+      },
+    },
   },
 });
