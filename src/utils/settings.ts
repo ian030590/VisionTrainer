@@ -14,6 +14,10 @@ export const STORAGE_PREFIX = 'vision_trainer_';
 
 import type { OculomotorPattern, OculomotorTargetShape } from '../pages/training/oculomotor/types';
 
+export const DRIVING_DURATION_MIN_SEC = 80;
+export const DRIVING_DURATION_MAX_SEC = 240;
+export type DrivingControlMode = 'arrow' | 'wasd' | 'wheel';
+
 // ── Settings ──
 export interface AppSettings {
   distanceInCM: number;
@@ -55,6 +59,7 @@ export interface AppSettings {
   drivingDurationSec: number;
   drivingRedFlashEnabled: boolean;
   drivingDifficulty: 'beginner' | 'intermediate' | 'advanced';
+  drivingControlMode: DrivingControlMode;
 }
 
 interface SettingMeta<T> {
@@ -100,9 +105,10 @@ const META: { [K in keyof AppSettings]: SettingMeta<AppSettings[K]> } = {
   readingCrowding: { dflt: 1, min: 1, max: 5 },
   readingContrast: { dflt: 0.0, min: 0.0, max: 2.0 },
   readingStoryId: { dflt: 'en_story_01' },
-  drivingDurationSec: { dflt: 30, min: 10, max: 100 },
+  drivingDurationSec: { dflt: DRIVING_DURATION_MIN_SEC, min: DRIVING_DURATION_MIN_SEC, max: DRIVING_DURATION_MAX_SEC },
   drivingRedFlashEnabled: { dflt: true },
   drivingDifficulty: { dflt: 'beginner' },
+  drivingControlMode: { dflt: 'arrow' },
 };
 
 function storageKey(name: string): string {
@@ -128,6 +134,10 @@ export function getSetting<K extends keyof AppSettings>(key: K): AppSettings[K] 
 
 export function setSetting<K extends keyof AppSettings>(key: K, value: AppSettings[K]): void {
   localStorage.setItem(storageKey(key), String(value));
+}
+
+export function isDrivingControlMode(value: unknown): value is DrivingControlMode {
+  return value === 'arrow' || value === 'wasd' || value === 'wheel';
 }
 
 export function isCalibrated(): boolean {

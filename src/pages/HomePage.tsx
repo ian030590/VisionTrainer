@@ -10,6 +10,8 @@ import {
   getSetting,
   setSetting,
   isCalibrated,
+  DRIVING_DURATION_MIN_SEC,
+  DRIVING_DURATION_MAX_SEC,
 } from '../utils/settings';
 import { pixiAppManager } from '../utils/pixiPool';
 import { SoundManager } from '../utils/soundManager';
@@ -18,6 +20,7 @@ import {
   oculomotorPatterns,
 } from './training/oculomotor/presets';
 import type { OculomotorMode, OculomotorPattern, OculomotorTargetShape } from './training/oculomotor/types';
+import type { DrivingControlMode } from '../utils/settings';
 
 export function HomePage() {
   const { t } = useT();
@@ -87,6 +90,7 @@ export function HomePage() {
   const [drivingDurationSec, setDrivingDurationSec] = useState(() => getSetting('drivingDurationSec'));
   const [drivingRedFlashEnabled, setDrivingRedFlashEnabled] = useState(() => getSetting('drivingRedFlashEnabled'));
   const [drivingDifficulty, setDrivingDifficulty] = useState<'beginner' | 'intermediate' | 'advanced'>(() => getSetting('drivingDifficulty'));
+  const [drivingControlMode, setDrivingControlMode] = useState<DrivingControlMode>(() => getSetting('drivingControlMode'));
   const [prewarmed, setPrewarmed] = useState(() => pixiAppManager.ready);
 
   const refreshUsers = useCallback(() => {
@@ -237,6 +241,10 @@ export function HomePage() {
     setSetting('drivingDifficulty', drivingDifficulty);
   }, [drivingDifficulty]);
 
+  useEffect(() => {
+    setSetting('drivingControlMode', drivingControlMode);
+  }, [drivingControlMode]);
+
 
   // ── Handlers ──
   const handleCardClick = (moduleId: string) => {
@@ -284,7 +292,7 @@ export function HomePage() {
     }
 
     if (expandedModule === 'driving-rehab') {
-      navigate(`/training?module=driving-rehab&duration=${drivingDurationSec}&redFlash=${drivingRedFlashEnabled}&drivingDifficulty=${drivingDifficulty}`);
+      navigate(`/training?module=driving-rehab&duration=${drivingDurationSec}&redFlash=${drivingRedFlashEnabled}&drivingDifficulty=${drivingDifficulty}&controlMode=${drivingControlMode}`);
       return;
     }
 
@@ -359,7 +367,7 @@ export function HomePage() {
   const calibrated = isCalibrated();
   const roundsPresets = [3, 5, 10, 15];
   const durationPresets = [30, 60, 90, 120];
-  const drivingDurationPresets = [10, 20, 30, 40];
+  const drivingDurationPresets = [80, 100, 120, 140];
   const targetShapeOptions: { key: OculomotorTargetShape; label: string }[] = [
     { key: 'circle', label: t('home.shape.circle') },
     { key: 'star', label: t('home.shape.star') },
@@ -377,6 +385,11 @@ export function HomePage() {
     { key: 'beginner', label: t('home.diff.beginner'), desc: t('home.diff.gaborBeginnerDesc' as any) },
     { key: 'intermediate', label: t('home.diff.intermediate'), desc: t('home.diff.gaborIntermediateDesc' as any) },
     { key: 'advanced', label: t('home.diff.advanced'), desc: t('home.diff.gaborAdvancedDesc' as any) },
+  ];
+  const drivingControlOptions: { key: DrivingControlMode; label: string }[] = [
+    { key: 'arrow', label: t('home.config.drivingControlArrow' as any) },
+    { key: 'wasd', label: t('home.config.drivingControlWasd' as any) },
+    { key: 'wheel', label: t('home.config.drivingControlWheel' as any) },
   ];
 
   return (
@@ -1272,14 +1285,6 @@ export function HomePage() {
         <div className="config-modal-overlay fade-in" onClick={() => setExpandedModule(null)}>
           <div className="module-config-panel config-modal-panel" onClick={(e) => e.stopPropagation()}>
             <div className="config-section">
-              <div className="config-label">{t('home.config.drivingMission')}</div>
-              <div className="color-settings-row">
-                <div className="color-field"><span>{t('home.config.drivingRoute')}</span><strong style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-tertiary)' }}>{t('home.config.drivingRouteDesc')}</strong></div>
-                <div className="color-field"><span>{t('home.config.drivingEvents')}</span><strong style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-tertiary)' }}>{t('home.config.drivingEventsDesc')}</strong></div>
-              </div>
-            </div>
-
-            <div className="config-section">
               <div className="config-label">事件反應難度</div>
               <div className="difficulty-selector">
                 {(['beginner', 'intermediate', 'advanced'] as const).map((level) => {
@@ -1317,14 +1322,14 @@ export function HomePage() {
                 <input
                   className="rounds-custom-input"
                   type="number"
-                  min="10"
-                  max="100"
+                  min={DRIVING_DURATION_MIN_SEC}
+                  max={DRIVING_DURATION_MAX_SEC}
                   value={drivingDurationSec}
                   onClick={(e) => e.stopPropagation()}
                   onChange={(e) => {
                     const value = parseInt(e.target.value, 10);
                     if (Number.isFinite(value)) {
-                      setDrivingDurationSec(Math.max(10, Math.min(100, value)));
+                      setDrivingDurationSec(Math.max(DRIVING_DURATION_MIN_SEC, Math.min(DRIVING_DURATION_MAX_SEC, value)));
                     }
                   }}
                 />
@@ -1350,11 +1355,19 @@ export function HomePage() {
 
             <div className="config-section">
               <div className="config-label">{t('home.config.drivingControls')}</div>
-              <div className="color-settings-row">
-                <div className="color-field"><span>{t('home.config.drivingSteer')}</span><strong>← / →</strong></div>
-                <div className="color-field"><span>{t('home.config.drivingThrottle')}</span><strong>↑</strong></div>
-                <div className="color-field"><span>{t('home.config.drivingBrake')}</span><strong>↓</strong></div>
-                <div className="color-field"><span>{t('home.config.drivingWheel')}</span><strong>Gamepad API</strong></div>
+              <div className="difficulty-selector">
+                {drivingControlOptions.map((option) => (
+                  <button
+                    key={option.key}
+                    className={`diff-btn ${drivingControlMode === option.key ? 'active' : ''}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDrivingControlMode(option.key);
+                    }}
+                  >
+                    <span className="diff-btn-label">{option.label}</span>
+                  </button>
+                ))}
               </div>
             </div>
 

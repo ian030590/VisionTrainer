@@ -8,7 +8,12 @@ import { buildTimeline } from '../../experiment/timeline';
 import PixiMovingCardPlugin from '../../experiment/plugins/pixi-moving-card';
 import PixiOculomotorTrainingPlugin from '../../experiment/plugins/pixi-oculomotor-training';
 import ThreeDrivingRehabPlugin from '../../experiment/plugins/three-driving-rehab';
-import { getActiveUser, getSetting } from '../../utils/settings';
+import {
+  DRIVING_DURATION_MIN_SEC,
+  getActiveUser,
+  getSetting,
+  isDrivingControlMode,
+} from '../../utils/settings';
 import { downloadTrainingCsv } from './exportCsv';
 import {
   isOculomotorMode,
@@ -53,13 +58,22 @@ export function TrainingPage() {
   const oculomotorBackgroundColor = searchParams.get('backgroundColor') || getSetting('oculomotorBackgroundColor');
   const oculomotorCustomTargetImage = getSetting('oculomotorCustomTargetImage');
   const enableWebGazer = getSetting('oculomotorEnableWebgazer');
-  const drivingDurationSec = parseInt(searchParams.get('duration') || '', 10)
-    || getSetting('drivingDurationSec');
+  const requestedDrivingDurationSec = parseInt(searchParams.get('duration') || '', 10);
+  const drivingDurationSec = Math.max(
+    DRIVING_DURATION_MIN_SEC,
+    Number.isFinite(requestedDrivingDurationSec)
+      ? requestedDrivingDurationSec
+      : getSetting('drivingDurationSec'),
+  );
   const requestedDrivingFlash = searchParams.get('redFlash');
   const drivingRedFlashEnabled = requestedDrivingFlash === null
     ? getSetting('drivingRedFlashEnabled')
     : requestedDrivingFlash === 'true';
   const drivingDifficulty = (searchParams.get('drivingDifficulty') as any) || getSetting('drivingDifficulty');
+  const requestedDrivingControlMode = searchParams.get('controlMode');
+  const drivingControlMode = isDrivingControlMode(requestedDrivingControlMode)
+    ? requestedDrivingControlMode
+    : getSetting('drivingControlMode');
   const gaborDurationSec = parseInt(searchParams.get('duration') || '', 10) || 60;
   const gaborMaxSpots = parseInt(searchParams.get('maxSpots') || '', 10) || 10;
 
@@ -124,6 +138,7 @@ export function TrainingPage() {
           durationSec: drivingDurationSec,
           redFlashEnabled: drivingRedFlashEnabled,
           difficulty: drivingDifficulty,
+          controlMode: drivingControlMode,
         },
       }) as any);
     };
@@ -156,6 +171,7 @@ export function TrainingPage() {
     drivingDurationSec,
     drivingRedFlashEnabled,
     drivingDifficulty,
+    drivingControlMode,
     lang,
   ]);
 

@@ -106,6 +106,9 @@ export const en: Record<TranslationKey, string> = {
   'home.config.drivingThrottle': 'Throttle',
   'home.config.drivingBrake': 'Emergency brake',
   'home.config.drivingWheel': 'Wheel support',
+  'home.config.drivingControlArrow': 'Arrow keys',
+  'home.config.drivingControlWasd': 'WASD',
+  'home.config.drivingControlWheel': 'USB steering wheel',
 
   // SettingsPage
   'settings.tab.general': 'General',

@@ -10,11 +10,12 @@ import WebgazerInitCameraPlugin from '@jspsych/plugin-webgazer-init-camera';
 import WebgazerCalibratePlugin from '@jspsych/plugin-webgazer-calibrate';
 import HtmlButtonResponsePlugin from '@jspsych/plugin-html-button-response';
 import PixiReadingTrainingPlugin from './plugins/pixi-reading-training';
-import { getSetting } from '../utils/settings';
+import { DRIVING_DURATION_MIN_SEC, getSetting } from '../utils/settings';
 import { generateRandomLetters } from '../utils/mathUtils';
 import { pixelFromDegree, pixelFromMillimeter } from '../utils/spatialUtils';
 import type { OculomotorMode, OculomotorPattern, OculomotorTargetShape } from '../pages/training/oculomotor/types';
 import type { ReadingStory } from '../pages/training/reading/types';
+import type { DrivingControlMode } from '../utils/settings';
 
 /**
  * Build a jsPsych timeline for the given module.
@@ -55,6 +56,7 @@ export function buildTimeline(
       durationSec?: number;
       redFlashEnabled?: boolean;
       difficulty?: 'beginner' | 'intermediate' | 'advanced';
+      controlMode?: DrivingControlMode;
     };
   },
 ): object[] {
@@ -81,12 +83,17 @@ function buildDrivingRehabTimeline(
       durationSec?: number;
       redFlashEnabled?: boolean;
       difficulty?: 'beginner' | 'intermediate' | 'advanced';
+      controlMode?: DrivingControlMode;
     };
   },
 ): object[] {
-  const durationSec = overrides?.driving?.durationSec ?? getSetting('drivingDurationSec');
+  const durationSec = Math.max(
+    DRIVING_DURATION_MIN_SEC,
+    overrides?.driving?.durationSec ?? getSetting('drivingDurationSec'),
+  );
   const redFlashEnabled = overrides?.driving?.redFlashEnabled ?? getSetting('drivingRedFlashEnabled');
   const drivingDifficulty = overrides?.driving?.difficulty ?? getSetting('drivingDifficulty');
+  const drivingControlMode = overrides?.driving?.controlMode ?? getSetting('drivingControlMode');
 
   return [
     {
@@ -94,6 +101,7 @@ function buildDrivingRehabTimeline(
       duration_ms: Math.round(durationSec * 1000),
       red_flash_enabled: redFlashEnabled,
       driving_difficulty: drivingDifficulty,
+      control_mode: drivingControlMode,
     },
   ];
 }

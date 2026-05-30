@@ -104,6 +104,9 @@ export const zh = {
   'home.config.drivingThrottle': '油門前進',
   'home.config.drivingBrake': '緊急煞車',
   'home.config.drivingWheel': '方向盤支援',
+  'home.config.drivingControlArrow': '方向鍵',
+  'home.config.drivingControlWasd': 'WASD',
+  'home.config.drivingControlWheel': 'USB外接方向盤',
 
   // SettingsPage
   'settings.tab.general': '一般設定',

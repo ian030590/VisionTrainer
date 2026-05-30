@@ -3,6 +3,7 @@ import type { JsPsychPlugin, TrialType } from 'jspsych';
 import { SoundManager } from '../../utils/soundManager';
 
 type ThreeModule = typeof import('three');
+type DrivingControlMode = 'arrow' | 'wasd' | 'wheel';
 
 const info = {
   name: 'three-driving-rehab',
@@ -20,6 +21,10 @@ const info = {
     driving_difficulty: {
       type: ParameterType.STRING,
       default: 'beginner',
+    },
+    control_mode: {
+      type: ParameterType.STRING,
+      default: 'arrow',
     },
   },
   data: {
@@ -198,6 +203,7 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
   private gamepadConnectedListener: ((event: GamepadEvent) => void) | null = null;
   private gamepadDisconnectedListener: ((event: GamepadEvent) => void) | null = null;
   private gamepadConnected = false;
+  private controlMode: DrivingControlMode = 'arrow';
   private gameOverOverlay: HTMLDivElement | null = null;
 
   private hud: {
@@ -328,6 +334,7 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     this.miniMapCanvas = null;
     this.miniMapCtx = null;
     this.gamepadConnected = Array.from(navigator.getGamepads?.() ?? []).some(Boolean);
+    this.controlMode = this.getControlMode((trial as any)?.control_mode);
     this.gameOverOverlay = null;
 
     // Difficulty
@@ -471,24 +478,45 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     display_element: HTMLElement,
   ) {
     this.keydownListener = (event: KeyboardEvent) => {
-      if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space'].includes(event.code)) {
+      if (this.shouldPreventKeyDefault(event.code)) {
         event.preventDefault();
       }
-      if (event.code === 'ArrowLeft') this.keyState.left = true;
-      if (event.code === 'ArrowRight') this.keyState.right = true;
-      if (event.code === 'ArrowUp') this.keyState.up = true;
-      if (event.code === 'ArrowDown') this.keyState.down = true;
+      this.setKeyboardInput(event.code, true);
       if (event.code === 'Enter' || event.code === 'Space') onStart();
       if (event.code === 'Escape') this.finishTrial(trial, display_element, 'aborted');
     };
     this.keyupListener = (event: KeyboardEvent) => {
-      if (event.code === 'ArrowLeft') this.keyState.left = false;
-      if (event.code === 'ArrowRight') this.keyState.right = false;
-      if (event.code === 'ArrowUp') this.keyState.up = false;
-      if (event.code === 'ArrowDown') this.keyState.down = false;
+      this.setKeyboardInput(event.code, false);
     };
     window.addEventListener('keydown', this.keydownListener);
     window.addEventListener('keyup', this.keyupListener);
+  }
+
+  private shouldPreventKeyDefault(code: string): boolean {
+    if (code === 'Space') return true;
+    if (this.controlMode === 'arrow') {
+      return ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(code);
+    }
+    if (this.controlMode === 'wasd') {
+      return ['KeyA', 'KeyD', 'KeyW', 'KeyS'].includes(code);
+    }
+    return false;
+  }
+
+  private setKeyboardInput(code: string, pressed: boolean) {
+    if (this.controlMode === 'arrow') {
+      if (code === 'ArrowLeft') this.keyState.left = pressed;
+      if (code === 'ArrowRight') this.keyState.right = pressed;
+      if (code === 'ArrowUp') this.keyState.up = pressed;
+      if (code === 'ArrowDown') this.keyState.down = pressed;
+      return;
+    }
+    if (this.controlMode === 'wasd') {
+      if (code === 'KeyA') this.keyState.left = pressed;
+      if (code === 'KeyD') this.keyState.right = pressed;
+      if (code === 'KeyW') this.keyState.up = pressed;
+      if (code === 'KeyS') this.keyState.down = pressed;
+    }
   }
 
   private attachGamepadListeners() {
@@ -1723,7 +1751,7 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     const gamepads = navigator.getGamepads?.() ?? [];
     const gamepad = Array.from(gamepads).find((pad): pad is Gamepad => Boolean(pad));
     this.gamepadConnected = Boolean(gamepad);
-    if (gamepad) {
+    if (this.controlMode === 'wheel' && gamepad) {
       gamepadName = gamepad.id;
       const axisSteering = Math.abs(gamepad.axes[0] ?? 0) > 0.08 ? gamepad.axes[0] : 0;
       const throttleButton = Math.max(gamepad.buttons[7]?.value ?? 0, gamepad.buttons[0]?.value ?? 0);
@@ -1744,10 +1772,16 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
   }
 
   private getInputDeviceText(input: DrivingInput): string {
+    if (this.controlMode === 'arrow') return '目前控制方式：方向鍵';
+    if (this.controlMode === 'wasd') return '目前控制方式：WASD';
     if (!('getGamepads' in navigator)) return '此瀏覽器不支援 Gamepad API，將使用鍵盤控制。';
     if (input.gamepadName) return `Gamepad API 已接入：${input.gamepadName}`;
     if (this.gamepadConnected) return 'Gamepad API 已接入，等待控制器輸入。';
-    return 'Gamepad API 已啟用；未偵測到方向盤/控制器，將使用鍵盤控制。';
+    return '等待 USB 外接方向盤輸入。';
+  }
+
+  private getControlMode(value: unknown): DrivingControlMode {
+    return value === 'wasd' || value === 'wheel' ? value : 'arrow';
   }
 
   private normalizePedalAxis(value: number): number {
