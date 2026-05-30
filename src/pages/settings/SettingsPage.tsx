@@ -9,6 +9,8 @@ import {
   getSetting,
   setSetting,
   isCalibrated,
+  markDisplayCalibrated,
+  clearDisplayCalibration,
   getMMPerPixel,
   CAL_BAR_LENGTH_PX,
   CARD_WIDTH_MM,
@@ -99,6 +101,7 @@ function GeneralTab({ refresh }: { refresh: () => void }) {
           const num = parseInt(val, 10);
           if (!isNaN(num) && num >= 10 && num <= 500) {
             setSetting('distanceInCM', num);
+            markDisplayCalibrated();
             refresh();
           }
         }}
@@ -189,6 +192,7 @@ function RulerCalibration({ refresh }: { refresh: () => void }) {
       const pxPerMM = rulerBarPx / val;
       const newCalBarMM = CAL_BAR_LENGTH_PX / pxPerMM;
       setSetting('calBarLengthInMM', newCalBarMM);
+      markDisplayCalibrated();
       refresh();
     }
   };
@@ -226,6 +230,7 @@ function CardCalibration({ refresh }: { refresh: () => void }) {
   const handleAdjust = (factor: number) => {
     const current = getSetting('calBarLengthInMM');
     setSetting('calBarLengthInMM', current * factor);
+    markDisplayCalibrated();
     refresh();
   };
 
@@ -260,7 +265,7 @@ function CardCalibration({ refresh }: { refresh: () => void }) {
       <button
         className="btn btn-danger btn-sm"
         style={{ marginTop: 16 }}
-        onClick={() => { setSetting('calBarLengthInMM', 149); refresh(); }}
+        onClick={() => { setSetting('calBarLengthInMM', 149); clearDisplayCalibration(); refresh(); }}
       >
         {t('settings.cal.resetBtn')}
       </button>

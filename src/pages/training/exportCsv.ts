@@ -1,4 +1,5 @@
 import { getSetting } from '../../utils/settings';
+import { downloadCsvFile } from '../../utils/downloadFile';
 import type { TFunction, TrialData } from './types';
 
 interface DownloadTrainingCsvArgs {
@@ -92,11 +93,8 @@ export function downloadTrainingCsv({
     ...rows.map((row) => row.join(',')),
   ].join('\n');
 
-  const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${prefix ? prefix + '_' : ''}${userName}_${moduleId}_${dateStr}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
+  downloadCsvFile(
+    csvContent,
+    `${prefix ? prefix + '_' : ''}${userName}_${moduleId}_${dateStr}.csv`,
+  );
 }

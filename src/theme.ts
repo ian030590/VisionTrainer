@@ -24,24 +24,10 @@ export const pixiColors = {
   calibrationBox: 0x005EB8,
 } as const;
 
-/** CSS color strings for React components */
-export const cssColors = {
-  bg:           '#F2F4F3',
-  bgPanel:      '#F9F9FC',
-  bgCard:       '#FFFFFF',
-  bgCardHover:  '#F9F9FC',
-  accent:       '#005EB8',
-  accentDark:   '#00478D',
-  accentHover:  '#005DB6',
-  success:      '#8BA88E',
-  error:        '#BA1A1A',
-  warning:      '#D29922',
-  textPrimary:  '#1A1C1E',
-  textSecondary:'#424752',
-  textMuted:    '#727783',
-  border:       '#C2C6D4',
-  borderHover:  '#727783',
-} as const;
+/** CSS color strings for React components, derived from PixiJS hex tokens. */
+export const cssColors = Object.fromEntries(
+  Object.entries(pixiColors).map(([key, value]) => [key, hexToCSS(value)]),
+) as { readonly [K in keyof typeof pixiColors]: string };
 
 /** Typography tokens */
 export const typography = {
@@ -65,7 +51,7 @@ export const spacing = {
 
 /** Border radius tokens */
 export const radii = {
-  radiusS:  4,
+  radiusS:  8,
   radiusM:  8,  // standard elements
   radiusL:  16, // cards and primary buttons
   radiusXL: 24,

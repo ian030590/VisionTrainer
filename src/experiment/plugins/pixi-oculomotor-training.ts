@@ -8,7 +8,12 @@ import { JsPsych, ParameterType } from 'jspsych';
 import type { JsPsychPlugin, TrialType } from 'jspsych';
 import { Application, Graphics, Sprite, Text, Texture } from 'pixi.js';
 import { pixiColors, typography } from '../../theme';
-import { pixiAppManager } from '../../utils/pixiPool';
+import {
+  attachPixiTrialCanvas,
+  cleanupPixiTrial,
+  createPixiTrialContainer,
+  runPixiTrial,
+} from '../../utils/pixiPool';
 import { pixelFromDegree } from '../../utils/spatialUtils';
 import { createRng } from '../../pages/training/oculomotor/random';
 import { sampleOculomotorPatternInto } from '../../pages/training/oculomotor/patterns';
@@ -253,10 +258,7 @@ class PixiOculomotorTrainingPlugin implements JsPsychPlugin<Info> {
 
   trial(display_element: HTMLElement, trial: TrialType<Info>): void {
     const self = this;
-    const wrapper = document.createElement('div');
-    wrapper.style.cssText = 'width:100%;height:100%;position:absolute;top:0;left:0;overflow:hidden;';
-    display_element.innerHTML = '';
-    display_element.appendChild(wrapper);
+    const wrapper = createPixiTrialContainer(display_element);
 
     const mode = trial.mode as OculomotorMode;
     const pattern = trial.pattern as OculomotorPattern;
@@ -275,8 +277,6 @@ class PixiOculomotorTrainingPlugin implements JsPsychPlugin<Info> {
     const customAudio = typeof trial.audio === 'string' ? trial.audio : '';
     const bounceJitter = Math.max(0, trial.bounce_jitter as number);
     const rng = createRng(Math.floor(Math.random() * 2_147_483_646) + 1);
-    const manager = pixiAppManager;
-
     let ended = false;
     let paused = false;
     let pauseStartedAt = 0;
@@ -297,8 +297,7 @@ class PixiOculomotorTrainingPlugin implements JsPsychPlugin<Info> {
     const aoiRadiusPx = pixelFromDegree(5);
 
     const runWithApp = (app: Application) => {
-      manager.clearStage();
-      manager.attachTo(wrapper);
+      attachPixiTrialCanvas(wrapper);
 
       const startTime = performance.now();
       const bgGfx = new Graphics();
@@ -511,9 +510,7 @@ class PixiOculomotorTrainingPlugin implements JsPsychPlugin<Info> {
           audioElement.pause();
           audioElement.currentTime = 0;
         }
-        manager.clearStage();
-        manager.detachCanvas();
-        display_element.innerHTML = '';
+        cleanupPixiTrial(display_element);
 
         const elapsed = Math.min(durationMs, Math.round(getElapsedMs()));
         const averageFps = frameCount > 0 ? fpsAccumulator / frameCount : 0;
@@ -758,14 +755,7 @@ class PixiOculomotorTrainingPlugin implements JsPsychPlugin<Info> {
       app.ticker.add(tick);
     };
 
-    if (manager.ready) {
-      runWithApp(manager.getApp()!);
-    } else {
-      manager.ensureReady().then(runWithApp).catch((err) => {
-        console.error('PixiJS init failed:', err);
-        display_element.innerHTML = `<div style="color:red;padding:20px;">PixiJS 初始化失敗: ${err.message}</div>`;
-      });
-    }
+    runPixiTrial(display_element, runWithApp);
   }
 }
 

@@ -51,6 +51,7 @@ export interface AppSettings {
   oculomotorBounceJitter: number;
   preferentialLookingInputMode: 'keyboard' | 'webgazer';
   webGazerCalibrationAt: string;
+  displayCalibrationAt: string;
   oculomotorEnableWebgazer: boolean;
   readingWPS: number;
   readingCrowding: number;
@@ -100,6 +101,7 @@ const META: { [K in keyof AppSettings]: SettingMeta<AppSettings[K]> } = {
   oculomotorBounceJitter: { dflt: 0, min: 0, max: 100 },
   preferentialLookingInputMode: { dflt: 'keyboard' },
   webGazerCalibrationAt: { dflt: '' },
+  displayCalibrationAt: { dflt: '' },
   oculomotorEnableWebgazer: { dflt: false },
   readingWPS: { dflt: 4, min: 1, max: 20 },
   readingCrowding: { dflt: 1, min: 1, max: 5 },
@@ -114,6 +116,8 @@ const META: { [K in keyof AppSettings]: SettingMeta<AppSettings[K]> } = {
 function storageKey(name: string): string {
   return STORAGE_PREFIX + name;
 }
+
+export const ACTIVE_USER_CHANGED_EVENT = 'vision-trainer-active-user-changed';
 
 export function getSetting<K extends keyof AppSettings>(key: K): AppSettings[K] {
   const raw = localStorage.getItem(storageKey(key));
@@ -142,14 +146,23 @@ export function isDrivingControlMode(value: unknown): value is DrivingControlMod
 
 export function isCalibrated(): boolean {
   return (
+    getSetting('displayCalibrationAt') !== '' ||
     getSetting('distanceInCM') !== DEFAULT_DISTANCE_CM ||
     getSetting('calBarLengthInMM') !== DEFAULT_CAL_BAR_LENGTH_MM
   );
 }
 
+export function markDisplayCalibrated(): void {
+  setSetting('displayCalibrationAt', new Date().toISOString());
+}
+
+export function clearDisplayCalibration(): void {
+  setSetting('displayCalibrationAt', '');
+}
+
 export function resetAllSettings(): void {
   for (const key of Object.keys(META) as (keyof AppSettings)[]) {
-    setSetting(key, META[key].dflt);
+    localStorage.removeItem(storageKey(key));
   }
 }
 
@@ -197,4 +210,5 @@ export function setActiveUser(name: string | null): void {
   } else {
     localStorage.removeItem(ACTIVE_USER_KEY);
   }
+  window.dispatchEvent(new Event(ACTIVE_USER_CHANGED_EVENT));
 }

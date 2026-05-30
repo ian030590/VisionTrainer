@@ -20,7 +20,12 @@ import { pixiColors, typography } from '../../theme';
 import { shuffleArray, generateRandomLetters, generateScatteredPositions } from '../../utils/mathUtils';
 import { pixelFromMillimeter } from '../../utils/spatialUtils';
 import { SoundManager } from '../../utils/soundManager';
-import { pixiAppManager } from '../../utils/pixiPool';
+import {
+  attachPixiTrialCanvas,
+  cleanupPixiTrial,
+  createPixiTrialContainer,
+  runPixiTrial,
+} from '../../utils/pixiPool';
 
 // ── Plugin Info ──
 const info = {
@@ -99,10 +104,7 @@ class PixiMovingCardPlugin implements JsPsychPlugin<Info> {
     const self = this;
 
     // ── Setup Container ──
-    const wrapper = document.createElement('div');
-    wrapper.style.cssText = 'width:100%;height:100%;position:absolute;top:0;left:0;overflow:hidden;';
-    display_element.innerHTML = '';
-    display_element.appendChild(wrapper);
+    const wrapper = createPixiTrialContainer(display_element);
 
     // ── State (captured by closure) ──
     const target = (trial.target_letters as string) || generateRandomLetters(2);
@@ -112,12 +114,8 @@ class PixiMovingCardPlugin implements JsPsychPlugin<Info> {
     let moveTimerId: ReturnType<typeof setInterval> | null = null;
     let trialEnded = false;
 
-    // ── Get shared PixiJS Application ──
-    const manager = pixiAppManager;
-
     const runWithApp = (app: Application) => {
-      manager.clearStage();
-      manager.attachTo(wrapper);
+      attachPixiTrialCanvas(wrapper);
 
       const startTime = performance.now();
 
@@ -511,9 +509,7 @@ class PixiMovingCardPlugin implements JsPsychPlugin<Info> {
         window.removeEventListener('keydown', handleKeydown);
 
         // Clear & detach (reuse app for next round)
-        manager.clearStage();
-        manager.detachCanvas();
-        display_element.innerHTML = '';
+        cleanupPixiTrial(display_element);
 
         // Tell jsPsych this trial is done
         self.jsPsych.finishTrial({
@@ -526,15 +522,7 @@ class PixiMovingCardPlugin implements JsPsychPlugin<Info> {
 
     };
 
-    // Use shared app (sync for instant start) or wait for init (async fallback)
-    if (manager.ready) {
-      runWithApp(manager.getApp()!);
-    } else {
-      manager.ensureReady().then(runWithApp).catch((err) => {
-        console.error('PixiJS init failed:', err);
-        display_element.innerHTML = `<div style="color:red;padding:20px;">PixiJS 初始化失敗: ${err.message}</div>`;
-      });
-    }
+    runPixiTrial(display_element, runWithApp);
 
     // Returns void (undefined) — jsPsych waits for finishTrial()
   }

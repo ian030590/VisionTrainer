@@ -1,8 +1,13 @@
 import { JsPsych, ParameterType } from 'jspsych';
 import type { JsPsychPlugin, TrialType } from 'jspsych';
-import { Application, Container, Graphics, Text } from 'pixi.js';
-import { pixiColors, typography } from '../../theme';
-import { pixiAppManager } from '../../utils/pixiPool';
+import { Application, Graphics, Text } from 'pixi.js';
+import { typography } from '../../theme';
+import {
+  attachPixiTrialCanvas,
+  cleanupPixiTrial,
+  createPixiTrialContainer,
+  runPixiTrial,
+} from '../../utils/pixiPool';
 
 const info = {
   name: 'pixi-reading-training',
@@ -40,10 +45,10 @@ class PixiReadingTrainingPlugin implements JsPsychPlugin<Info> {
 
   trial(display_element: HTMLElement, trial: TrialType<Info>): void {
     const self = this;
-    const wrapper = document.createElement('div');
-    wrapper.style.cssText = 'width:100%;height:100%;position:absolute;top:0;left:0;overflow:hidden;background-color:#ffffff;';
-    display_element.innerHTML = '';
-    display_element.appendChild(wrapper);
+    const wrapper = createPixiTrialContainer(
+      display_element,
+      'width:100%;height:100%;position:absolute;top:0;left:0;overflow:hidden;background-color:#ffffff;',
+    );
 
     const contentArray = trial.content_array as string[];
     const wps = trial.wps as number;
@@ -63,9 +68,7 @@ class PixiReadingTrainingPlugin implements JsPsychPlugin<Info> {
     const startTime = performance.now();
 
     const runWithApp = (app: Application) => {
-      const manager = pixiAppManager;
-      manager.clearStage();
-      manager.attachTo(wrapper);
+      attachPixiTrialCanvas(wrapper);
 
       const W = () => app.screen.width;
       const H = () => app.screen.height;
@@ -108,9 +111,7 @@ class PixiReadingTrainingPlugin implements JsPsychPlugin<Info> {
         if (timerId) clearTimeout(timerId);
         app.renderer.off('resize', handleResize);
         window.removeEventListener('keydown', handleKeydown);
-        manager.clearStage();
-        manager.detachCanvas();
-        display_element.innerHTML = '';
+        cleanupPixiTrial(display_element);
 
         self.jsPsych.finishTrial({
           reading_time: Math.round(performance.now() - startTime),
@@ -157,13 +158,7 @@ class PixiReadingTrainingPlugin implements JsPsychPlugin<Info> {
       showCountdown();
     };
 
-    if (pixiAppManager.ready) {
-      runWithApp(pixiAppManager.getApp()!);
-    } else {
-      pixiAppManager.ensureReady().then(runWithApp).catch(err => {
-        display_element.innerHTML = `<div style="color:red;padding:20px;">PixiJS 初始化失敗: ${err.message}</div>`;
-      });
-    }
+    runPixiTrial(display_element, runWithApp);
   }
 }
 

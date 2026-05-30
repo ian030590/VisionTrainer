@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import { zh } from './zh';
 import type { ReactNode } from 'react';
 import type { TranslationKey } from './zh';
@@ -22,12 +22,12 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
     return (saved === 'en' || saved === 'zh') ? saved : 'zh';
   });
 
-  const setLang = (newLang: Language) => {
+  const setLang = useCallback((newLang: Language) => {
     setLangState(newLang);
     localStorage.setItem(LANGUAGE_KEY, newLang);
-  };
+  }, []);
 
-  const t = (key: TranslationKey, params?: Record<string, string | number>): string => {
+  const t = useCallback((key: TranslationKey, params?: Record<string, string | number>): string => {
     const dictionary = lang === 'en' ? en : zh;
     let text = dictionary[key];
 
@@ -42,10 +42,12 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
     }
 
     return text;
-  };
+  }, [lang]);
+
+  const contextValue = useMemo(() => ({ lang, setLang, t }), [lang, setLang, t]);
 
   return (
-    <LanguageContext.Provider value={{ lang, setLang, t }}>
+    <LanguageContext.Provider value={contextValue}>
       {children}
     </LanguageContext.Provider>
   );

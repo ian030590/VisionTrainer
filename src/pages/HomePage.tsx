@@ -7,19 +7,18 @@ import {
   removeUser,
   getActiveUser,
   setActiveUser,
-  getSetting,
-  setSetting,
   isCalibrated,
   DRIVING_DURATION_MIN_SEC,
   DRIVING_DURATION_MAX_SEC,
 } from '../utils/settings';
 import { pixiAppManager } from '../utils/pixiPool';
 import { SoundManager } from '../utils/soundManager';
+import { usePersistedSetting } from '../utils/usePersistedSetting';
 import {
   oculomotorModes,
   oculomotorPatterns,
 } from './training/oculomotor/presets';
-import type { OculomotorMode, OculomotorPattern, OculomotorTargetShape } from './training/oculomotor/types';
+import type { OculomotorPattern, OculomotorTargetShape } from './training/oculomotor/types';
 import type { DrivingControlMode } from '../utils/settings';
 
 export function HomePage() {
@@ -32,65 +31,33 @@ export function HomePage() {
 
   // ── Module expansion state ──
   const [expandedModule, setExpandedModule] = useState<string | null>(null);
-  const [localDifficulty, setLocalDifficulty] = useState<'beginner' | 'intermediate' | 'advanced'>(
-    () => getSetting('difficulty'),
-  );
-  const [localRounds, setLocalRounds] = useState<number>(() => getSetting('totalRounds'));
+  const [localDifficulty, setLocalDifficulty] = usePersistedSetting('difficulty');
+  const [localRounds, setLocalRounds] = usePersistedSetting('totalRounds');
   const [customRoundsInput, setCustomRoundsInput] = useState('');
-  const [oculomotorMode, setOculomotorMode] = useState<OculomotorMode>(
-    () => getSetting('oculomotorMode'),
-  );
-  const [oculomotorPattern, setOculomotorPattern] = useState<OculomotorPattern>(
-    () => getSetting('oculomotorPattern'),
-  );
-  const [oculomotorDurationSec, setOculomotorDurationSec] = useState(
-    () => getSetting('oculomotorDurationSec'),
-  );
-  const [oculomotorSpeedDegPerSec, setOculomotorSpeedDegPerSec] = useState(
-    () => getSetting('oculomotorSpeedDegPerSec'),
-  );
-  const [oculomotorTargetSizeMm, setOculomotorTargetSizeMm] = useState(
-    () => getSetting('oculomotorTargetSizeMm'),
-  );
-  const [oculomotorDistractorCount, setOculomotorDistractorCount] = useState(
-    () => getSetting('oculomotorDistractorCount'),
-  );
-  const [oculomotorTargetColor, setOculomotorTargetColor] = useState(
-    () => getSetting('oculomotorTargetColor'),
-  );
-  const [oculomotorBackgroundColor, setOculomotorBackgroundColor] = useState(
-    () => getSetting('oculomotorBackgroundColor'),
-  );
-  const [oculomotorTargetShape, setOculomotorTargetShape] = useState<OculomotorTargetShape>(
-    () => getSetting('oculomotorTargetShape'),
-  );
-  const [oculomotorCustomTargetImage, setOculomotorCustomTargetImage] = useState(
-    () => getSetting('oculomotorCustomTargetImage'),
-  );
-  const [oculomotorTargetOpacity, setOculomotorTargetOpacity] = useState(
-    () => getSetting('oculomotorTargetOpacity'),
-  );
-  const [oculomotorBackgroundImage, setOculomotorBackgroundImage] = useState(
-    () => getSetting('oculomotorBackgroundImage'),
-  );
-  const [oculomotorAudio, setOculomotorAudio] = useState(
-    () => getSetting('oculomotorAudio'),
-  );
-  const [oculomotorBounceJitter, setOculomotorBounceJitter] = useState(
-    () => getSetting('oculomotorBounceJitter'),
-  );
-  const [oculomotorEnableWebgazer, setOculomotorEnableWebgazer] = useState(
-    () => getSetting('oculomotorEnableWebgazer'),
-  );
+  const [oculomotorMode, setOculomotorMode] = usePersistedSetting('oculomotorMode');
+  const [oculomotorPattern, setOculomotorPattern] = usePersistedSetting('oculomotorPattern');
+  const [oculomotorDurationSec, setOculomotorDurationSec] = usePersistedSetting('oculomotorDurationSec');
+  const [oculomotorSpeedDegPerSec, setOculomotorSpeedDegPerSec] = usePersistedSetting('oculomotorSpeedDegPerSec');
+  const [oculomotorTargetSizeMm, setOculomotorTargetSizeMm] = usePersistedSetting('oculomotorTargetSizeMm');
+  const [oculomotorDistractorCount, setOculomotorDistractorCount] = usePersistedSetting('oculomotorDistractorCount');
+  const [oculomotorTargetColor, setOculomotorTargetColor] = usePersistedSetting('oculomotorTargetColor');
+  const [oculomotorBackgroundColor, setOculomotorBackgroundColor] = usePersistedSetting('oculomotorBackgroundColor');
+  const [oculomotorTargetShape, setOculomotorTargetShape] = usePersistedSetting('oculomotorTargetShape');
+  const [oculomotorCustomTargetImage, setOculomotorCustomTargetImage] = usePersistedSetting('oculomotorCustomTargetImage');
+  const [oculomotorTargetOpacity, setOculomotorTargetOpacity] = usePersistedSetting('oculomotorTargetOpacity');
+  const [oculomotorBackgroundImage, setOculomotorBackgroundImage] = usePersistedSetting('oculomotorBackgroundImage');
+  const [oculomotorAudio, setOculomotorAudio] = usePersistedSetting('oculomotorAudio');
+  const [oculomotorBounceJitter, setOculomotorBounceJitter] = usePersistedSetting('oculomotorBounceJitter');
+  const [oculomotorEnableWebgazer, setOculomotorEnableWebgazer] = usePersistedSetting('oculomotorEnableWebgazer');
   const [gaborDurationSec, setGaborDurationSec] = useState(60);
   const [gaborMaxSpots, setGaborMaxSpots] = useState(10);
-  const [readingWPS, setReadingWPS] = useState(() => getSetting('readingWPS'));
-  const [readingCrowding, setReadingCrowding] = useState(() => getSetting('readingCrowding'));
-  const [readingContrast, setReadingContrast] = useState(() => getSetting('readingContrast'));
-  const [drivingDurationSec, setDrivingDurationSec] = useState(() => getSetting('drivingDurationSec'));
-  const [drivingRedFlashEnabled, setDrivingRedFlashEnabled] = useState(() => getSetting('drivingRedFlashEnabled'));
-  const [drivingDifficulty, setDrivingDifficulty] = useState<'beginner' | 'intermediate' | 'advanced'>(() => getSetting('drivingDifficulty'));
-  const [drivingControlMode, setDrivingControlMode] = useState<DrivingControlMode>(() => getSetting('drivingControlMode'));
+  const [readingWPS, setReadingWPS] = usePersistedSetting('readingWPS');
+  const [readingCrowding, setReadingCrowding] = usePersistedSetting('readingCrowding');
+  const [readingContrast, setReadingContrast] = usePersistedSetting('readingContrast');
+  const [drivingDurationSec, setDrivingDurationSec] = usePersistedSetting('drivingDurationSec');
+  const [drivingRedFlashEnabled, setDrivingRedFlashEnabled] = usePersistedSetting('drivingRedFlashEnabled');
+  const [drivingDifficulty, setDrivingDifficulty] = usePersistedSetting('drivingDifficulty');
+  const [drivingControlMode, setDrivingControlMode] = usePersistedSetting('drivingControlMode');
   const [prewarmed, setPrewarmed] = useState(() => pixiAppManager.ready);
 
   const refreshUsers = useCallback(() => {
@@ -143,108 +110,11 @@ export function HomePage() {
     let cancelled = false;
     pixiAppManager.warmUp().then(() => {
       if (!cancelled) setPrewarmed(true);
+    }).catch(() => {
+      if (!cancelled) setPrewarmed(false);
     });
     return () => { cancelled = true; };
   }, [expandedModule]);
-
-
-  // ── Persist settings when changed ──
-  useEffect(() => {
-    setSetting('difficulty', localDifficulty);
-  }, [localDifficulty]);
-
-  useEffect(() => {
-    setSetting('totalRounds', localRounds);
-  }, [localRounds]);
-
-  useEffect(() => {
-    setSetting('oculomotorMode', oculomotorMode);
-  }, [oculomotorMode]);
-
-  useEffect(() => {
-    setSetting('oculomotorPattern', oculomotorPattern);
-  }, [oculomotorPattern]);
-
-  useEffect(() => {
-    setSetting('oculomotorDurationSec', oculomotorDurationSec);
-  }, [oculomotorDurationSec]);
-
-  useEffect(() => {
-    setSetting('oculomotorSpeedDegPerSec', oculomotorSpeedDegPerSec);
-  }, [oculomotorSpeedDegPerSec]);
-
-  useEffect(() => {
-    setSetting('oculomotorTargetSizeMm', oculomotorTargetSizeMm);
-  }, [oculomotorTargetSizeMm]);
-
-  useEffect(() => {
-    setSetting('oculomotorDistractorCount', oculomotorDistractorCount);
-  }, [oculomotorDistractorCount]);
-
-  useEffect(() => {
-    setSetting('oculomotorTargetColor', oculomotorTargetColor);
-  }, [oculomotorTargetColor]);
-
-  useEffect(() => {
-    setSetting('oculomotorBackgroundColor', oculomotorBackgroundColor);
-  }, [oculomotorBackgroundColor]);
-
-  useEffect(() => {
-    setSetting('oculomotorTargetShape', oculomotorTargetShape);
-  }, [oculomotorTargetShape]);
-
-  useEffect(() => {
-    setSetting('oculomotorCustomTargetImage', oculomotorCustomTargetImage);
-  }, [oculomotorCustomTargetImage]);
-
-  useEffect(() => {
-    setSetting('oculomotorTargetOpacity', oculomotorTargetOpacity);
-  }, [oculomotorTargetOpacity]);
-
-  useEffect(() => {
-    setSetting('oculomotorBackgroundImage', oculomotorBackgroundImage);
-  }, [oculomotorBackgroundImage]);
-
-  useEffect(() => {
-    setSetting('oculomotorAudio', oculomotorAudio);
-  }, [oculomotorAudio]);
-
-  useEffect(() => {
-    setSetting('oculomotorBounceJitter', oculomotorBounceJitter);
-  }, [oculomotorBounceJitter]);
-
-  useEffect(() => {
-    setSetting('oculomotorEnableWebgazer', oculomotorEnableWebgazer);
-  }, [oculomotorEnableWebgazer]);
-
-  useEffect(() => {
-    setSetting('readingWPS', readingWPS);
-  }, [readingWPS]);
-
-  useEffect(() => {
-    setSetting('readingCrowding', readingCrowding);
-  }, [readingCrowding]);
-
-  useEffect(() => {
-    setSetting('readingContrast', readingContrast);
-  }, [readingContrast]);
-
-  useEffect(() => {
-    setSetting('drivingDurationSec', drivingDurationSec);
-  }, [drivingDurationSec]);
-
-  useEffect(() => {
-    setSetting('drivingRedFlashEnabled', drivingRedFlashEnabled);
-  }, [drivingRedFlashEnabled]);
-
-  useEffect(() => {
-    setSetting('drivingDifficulty', drivingDifficulty);
-  }, [drivingDifficulty]);
-
-  useEffect(() => {
-    setSetting('drivingControlMode', drivingControlMode);
-  }, [drivingControlMode]);
-
 
   // ── Handlers ──
   const handleCardClick = (moduleId: string) => {

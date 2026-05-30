@@ -11,6 +11,8 @@
 import { Application } from 'pixi.js';
 import { pixiColors } from '../theme';
 
+const DEFAULT_TRIAL_CONTAINER_STYLE = 'width:100%;height:100%;position:absolute;top:0;left:0;overflow:hidden;';
+
 class PixiAppManager {
   private static instance: PixiAppManager;
   private app: Application | null = null;
@@ -94,17 +96,66 @@ class PixiAppManager {
   /* ── Internal ───────────────────────────────────────── */
 
   private async _init(): Promise<void> {
-    this.app = new Application();
-    await this.app.init({
-      backgroundColor: pixiColors.bg,
-      antialias: true,
-      resolution: Math.max(window.devicePixelRatio || 1, 2),
-      autoDensity: true,
-      width: 100,
-      height: 100,
-    });
-    this._ready = true;
+    try {
+      this.app = new Application();
+      await this.app.init({
+        backgroundColor: pixiColors.bg,
+        antialias: true,
+        resolution: window.devicePixelRatio || 1,
+        autoDensity: true,
+        width: 100,
+        height: 100,
+      });
+      this._ready = true;
+    } catch (error) {
+      this.app = null;
+      this._ready = false;
+      this.initPromise = null;
+      throw error;
+    }
   }
 }
 
 export const pixiAppManager = PixiAppManager.getInstance();
+
+export function createPixiTrialContainer(
+  displayElement: HTMLElement,
+  styleText = DEFAULT_TRIAL_CONTAINER_STYLE,
+): HTMLDivElement {
+  displayElement.innerHTML = '';
+  const container = document.createElement('div');
+  container.style.cssText = styleText;
+  displayElement.appendChild(container);
+  return container;
+}
+
+export function attachPixiTrialCanvas(container: HTMLElement): void {
+  pixiAppManager.clearStage();
+  pixiAppManager.attachTo(container);
+}
+
+export function cleanupPixiTrial(displayElement: HTMLElement): void {
+  pixiAppManager.clearStage();
+  pixiAppManager.detachCanvas();
+  displayElement.innerHTML = '';
+}
+
+export function runPixiTrial(displayElement: HTMLElement, runWithApp: (app: Application) => void): void {
+  if (pixiAppManager.ready) {
+    const app = pixiAppManager.getApp();
+    if (app) {
+      runWithApp(app);
+      return;
+    }
+  }
+
+  pixiAppManager.ensureReady().then(runWithApp).catch((error) => {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error('PixiJS init failed:', error);
+    displayElement.innerHTML = '';
+    const errorElement = document.createElement('div');
+    errorElement.style.cssText = 'color:red;padding:20px;';
+    errorElement.textContent = `PixiJS initialization failed: ${message}`;
+    displayElement.appendChild(errorElement);
+  });
+}

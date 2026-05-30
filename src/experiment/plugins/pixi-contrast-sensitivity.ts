@@ -1,7 +1,12 @@
 import { JsPsych, ParameterType } from 'jspsych';
 import type { JsPsychPlugin, TrialType } from 'jspsych';
 import { Application, Sprite, Texture, Graphics } from 'pixi.js';
-import { pixiAppManager } from '../../utils/pixiPool';
+import {
+  attachPixiTrialCanvas,
+  cleanupPixiTrial,
+  createPixiTrialContainer,
+  runPixiTrial,
+} from '../../utils/pixiPool';
 import { drawLandoltC, drawTumblingE, drawContrastGrating } from '../../pages/assessment/logic/optotypeRenderer';
 import type { LandoltDirection, EDirection } from '../../pages/assessment/logic/optotypeRenderer';
 
@@ -56,6 +61,33 @@ const info = {
 
 type Info = typeof info;
 
+const KEY_DIRECTION_MAP: Record<string, number> = {
+  arrowright: 0,
+  '6': 0,
+  arrowupright: 1,
+  '9': 1,
+  pageup: 1,
+  arrowup: 2,
+  '8': 2,
+  arrowupleft: 3,
+  '7': 3,
+  home: 3,
+  arrowleft: 4,
+  '4': 4,
+  arrowdownleft: 5,
+  '1': 5,
+  end: 5,
+  arrowdown: 6,
+  '2': 6,
+  arrowdownright: 7,
+  '3': 7,
+  pagedown: 7,
+};
+
+function keyToDirection(key: string): number {
+  return KEY_DIRECTION_MAP[key.toLowerCase()] ?? -1;
+}
+
 class PixiContrastSensitivityPlugin implements JsPsychPlugin<Info> {
   static info = info;
   private app: Application | null = null;
@@ -64,156 +96,80 @@ class PixiContrastSensitivityPlugin implements JsPsychPlugin<Info> {
   constructor(private jsPsych: JsPsych) {}
 
   trial(display_element: HTMLElement, trial: TrialType<Info>, on_load: () => void) {
-    this.app = pixiAppManager.getApp();
-    if (!this.app) {
-      console.error('Pixi App not initialized');
-      this.jsPsych.finishTrial();
-      return;
-    }
+    const container = createPixiTrialContainer(display_element);
 
-    display_element.innerHTML = '';
-    const container = document.createElement('div');
-    container.style.width = '100%';
-    container.style.height = '100%';
-    container.style.position = 'absolute';
-    container.style.top = '0';
-    container.style.left = '0';
-    display_element.appendChild(container);
-    pixiAppManager.attachTo(container);
-    pixiAppManager.clearStage();
-    this.app.renderer.background.color = trial.back_color!;
+    runPixiTrial(display_element, (app) => {
+      this.app = app;
+      attachPixiTrialCanvas(container);
+      app.renderer.background.color = trial.back_color!;
 
-    const cx = this.app.screen.width / 2;
-    const cy = this.app.screen.height / 2;
+      const cx = app.screen.width / 2;
+      const cy = app.screen.height / 2;
 
-    const cross = new Graphics();
-    cross.setStrokeStyle({ width: 2, color: 0x000000 });
-    cross.moveTo(cx - 10, cy);
-    cross.lineTo(cx + 10, cy);
-    cross.moveTo(cx, cy - 10);
-    cross.lineTo(cx, cy + 10);
-    this.app.stage.addChild(cross);
+      const cross = new Graphics();
+      cross.setStrokeStyle({ width: 2, color: 0x000000 });
+      cross.moveTo(cx - 10, cy);
+      cross.lineTo(cx + 10, cy);
+      cross.moveTo(cx, cy - 10);
+      cross.lineTo(cx, cy + 10);
+      app.stage.addChild(cross);
 
-    on_load();
+      on_load();
 
-    this.jsPsych.pluginAPI.setTimeout(() => {
-      cross.destroy();
+      this.jsPsych.pluginAPI.setTimeout(() => {
+        cross.destroy();
 
-      const isGrating = trial.optotype === 'grating';
-      const size = isGrating ? Math.max(this.app!.screen.width, this.app!.screen.height) * 1.5 : (trial.stroke_px || 10) * 10;
-      const canvas = document.createElement('canvas');
-      canvas.width = size;
-      canvas.height = size;
-      const ctx = canvas.getContext('2d')!;
+        const isGrating = trial.optotype === 'grating';
+        const size = isGrating ? Math.max(app.screen.width, app.screen.height) * 1.5 : (trial.stroke_px || 10) * 10;
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d')!;
       
-      ctx.fillStyle = trial.back_color!;
-      ctx.fillRect(0, 0, size, size);
+        ctx.fillStyle = trial.back_color!;
+        ctx.fillRect(0, 0, size, size);
 
-      if (trial.optotype === 'landolt') {
-        drawLandoltC(ctx, size / 2, size / 2, trial.stroke_px!, trial.direction as LandoltDirection, trial.fore_color!, trial.back_color!);
-      } else if (trial.optotype === 'tumblingE') {
-        drawTumblingE(ctx, size / 2, size / 2, trial.stroke_px!, trial.direction as EDirection, trial.fore_color!);
-      } else if (trial.optotype === 'grating') {
-        drawContrastGrating(ctx, size / 2, size / 2, size, trial.direction!, trial.contrast!, trial.back_color!);
-      }
+        if (trial.optotype === 'landolt') {
+          drawLandoltC(ctx, size / 2, size / 2, trial.stroke_px!, trial.direction as LandoltDirection, trial.fore_color!, trial.back_color!);
+        } else if (trial.optotype === 'tumblingE') {
+          drawTumblingE(ctx, size / 2, size / 2, trial.stroke_px!, trial.direction as EDirection, trial.fore_color!);
+        } else if (trial.optotype === 'grating') {
+          drawContrastGrating(ctx, size / 2, size / 2, size, trial.direction!, trial.contrast!, trial.back_color!);
+        }
       
-      const texture = Texture.from(canvas);
-      const sprite = new Sprite(texture);
-      sprite.anchor.set(0.5);
-      sprite.x = cx;
-      sprite.y = cy;
-      this.app!.stage.addChild(sprite);
+        const texture = Texture.from(canvas);
+        const sprite = new Sprite(texture);
+        sprite.anchor.set(0.5);
+        sprite.x = cx;
+        sprite.y = cy;
+        app.stage.addChild(sprite);
 
-      this.keyboardListener = this.jsPsych.pluginAPI.getKeyboardResponse({
-        callback_function: (info: any) => {
-          this.endTrial(info.rt, info.key, trial, sprite);
-        },
-        valid_responses: trial.choices,
-        rt_method: 'performance',
-        persist: false,
-        allow_held_key: false,
-      });
+        this.keyboardListener = this.jsPsych.pluginAPI.getKeyboardResponse({
+          callback_function: (info: any) => {
+            this.endTrial(info.rt, info.key, trial, sprite, display_element);
+          },
+          valid_responses: trial.choices,
+          rt_method: 'performance',
+          persist: false,
+          allow_held_key: false,
+        });
 
-    }, trial.fixation_duration_ms!);
+      }, trial.fixation_duration_ms!);
+    });
   }
 
-  private endTrial(rt: number, key: string, trial: TrialType<Info>, sprite: Sprite) {
+  private endTrial(rt: number, key: string, trial: TrialType<Info>, sprite: Sprite, displayElement: HTMLElement) {
     if (this.keyboardListener) {
       this.jsPsych.pluginAPI.cancelKeyboardResponse(this.keyboardListener);
     }
     sprite.destroy();
-    pixiAppManager.clearStage();
-    pixiAppManager.detachCanvas();
+    cleanupPixiTrial(displayElement);
 
-    let isCorrect = false;
-    let expectedKey = '';
-    if (trial.optotype === 'landolt') {
-      const keys = ['ArrowRight', 'ArrowUpRight', 'ArrowUp', 'ArrowUpLeft', 'ArrowLeft', 'ArrowDownLeft', 'ArrowDown', 'ArrowDownRight'];
-      expectedKey = keys[trial.direction!];
-    } else if (trial.optotype === 'tumblingE') {
-      const keys = ['ArrowRight', 'ArrowUp', 'ArrowLeft', 'ArrowDown'];
-      expectedKey = keys[trial.direction! / 2];
-    } else if (trial.optotype === 'grating') {
-      const k = key.toLowerCase();
-      const isUpRight = k === 'arrowupright' || k === '9' || k === 'pageup';
-      const isUpLeft = k === 'arrowupleft' || k === '7' || k === 'home';
-      const isDownRight = k === 'arrowdownright' || k === '3' || k === 'pagedown';
-      const isDownLeft = k === 'arrowdownleft' || k === '1' || k === 'end';
-      const isUp = k === 'arrowup' || k === '8';
-      const isDown = k === 'arrowdown' || k === '2';
-      const isLeft = k === 'arrowleft' || k === '4';
-      const isRight = k === 'arrowright' || k === '6';
-      
-      let userDirection = -1;
-      if (isRight) userDirection = 0;
-      else if (isUpRight) userDirection = 1;
-      else if (isUp) userDirection = 2;
-      else if (isUpLeft) userDirection = 3;
-      else if (isLeft) userDirection = 4;
-      else if (isDownLeft) userDirection = 5;
-      else if (isDown) userDirection = 6;
-      else if (isDownRight) userDirection = 7;
-      
-      if (userDirection !== -1) {
-        isCorrect = (userDirection % 4 === trial.direction);
-      }
-    }
-    
-    if (trial.optotype === 'landolt') {
-      const isUpRight = key === 'ArrowUpRight' || key === '9' || key === 'PageUp';
-      const isUpLeft = key === 'ArrowUpLeft' || key === '7' || key === 'Home';
-      const isDownRight = key === 'ArrowDownRight' || key === '3' || key === 'PageDown';
-      const isDownLeft = key === 'ArrowDownLeft' || key === '1' || key === 'End';
-      const isUp = key === 'ArrowUp' || key === '8';
-      const isDown = key === 'ArrowDown' || key === '2';
-      const isLeft = key === 'ArrowLeft' || key === '4';
-      const isRight = key === 'ArrowRight' || key === '6';
-      
-      let userDirection = -1;
-      if (isRight) userDirection = 0;
-      else if (isUpRight) userDirection = 1;
-      else if (isUp) userDirection = 2;
-      else if (isUpLeft) userDirection = 3;
-      else if (isLeft) userDirection = 4;
-      else if (isDownLeft) userDirection = 5;
-      else if (isDown) userDirection = 6;
-      else if (isDownRight) userDirection = 7;
-      
-      isCorrect = (userDirection === trial.direction);
-    } else if (trial.optotype === 'tumblingE') {
-      const isUp = key === 'ArrowUp' || key === '8';
-      const isDown = key === 'ArrowDown' || key === '2';
-      const isLeft = key === 'ArrowLeft' || key === '4';
-      const isRight = key === 'ArrowRight' || key === '6';
-      
-      let userDirection = -1;
-      if (isRight) userDirection = 0;
-      else if (isUp) userDirection = 2;
-      else if (isLeft) userDirection = 4;
-      else if (isDown) userDirection = 6;
-      
-      isCorrect = (userDirection === trial.direction);
-    }
+    const userDirection = keyToDirection(key);
+    const expectedDirection = trial.direction;
+    const isCorrect = trial.optotype === 'grating'
+      ? userDirection !== -1 && userDirection % 4 === expectedDirection
+      : userDirection === expectedDirection;
 
     this.jsPsych.finishTrial({
       rt,

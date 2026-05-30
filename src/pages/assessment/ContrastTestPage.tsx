@@ -7,6 +7,7 @@ import { pixiAppManager } from '../../utils/pixiPool';
 import PixiContrastSensitivityPlugin from '../../experiment/plugins/pixi-contrast-sensitivity';
 import { BestPEST } from './logic/bestPest';
 import { getActiveUser, getSetting } from '../../utils/settings';
+import { downloadCsvFile } from '../../utils/downloadFile';
 
 // Ensure plugin is referenced
 void PixiContrastSensitivityPlugin;
@@ -166,13 +167,10 @@ export function ContrastTestPage() {
     rows.push(['logCS (Weber)', resultLogCSW.toFixed(2)]);
     
     const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
-    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${prefix ? prefix + '_' : ''}${userName}_contrast_${dateStr}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadCsvFile(
+      csv,
+      `${prefix ? prefix + '_' : ''}${userName}_contrast_${dateStr}.csv`,
+    );
   };
 
   if (phase === 'results') {

@@ -1,7 +1,12 @@
 import { JsPsych, ParameterType } from 'jspsych';
 import type { JsPsychPlugin, TrialType } from 'jspsych';
 import { Application, Sprite, Texture, Text } from 'pixi.js';
-import { pixiAppManager } from '../../utils/pixiPool';
+import {
+  attachPixiTrialCanvas,
+  cleanupPixiTrial,
+  createPixiTrialContainer,
+  runPixiTrial,
+} from '../../utils/pixiPool';
 import { typography } from '../../theme';
 import { SoundManager } from '../../utils/soundManager';
 
@@ -105,14 +110,10 @@ class PixiGaborPatchingPlugin implements JsPsychPlugin<Info> {
   constructor(private jsPsych: JsPsych) {}
 
   trial(display_element: HTMLElement, trial: TrialType<Info>) {
-    display_element.innerHTML = '';
-    const container = document.createElement('div');
-    container.style.width = '100%';
-    container.style.height = '100%';
-    container.style.position = 'relative';
-    container.style.overflow = 'hidden';
-    container.style.cursor = 'default';
-    display_element.appendChild(container);
+    const container = createPixiTrialContainer(
+      display_element,
+      'width:100%;height:100%;position:relative;overflow:hidden;cursor:default;',
+    );
 
     const HUD = document.createElement('div');
     HUD.style.position = 'absolute';
@@ -139,10 +140,9 @@ class PixiGaborPatchingPlugin implements JsPsychPlugin<Info> {
     this.spots = [];
     this.isGameOver = false;
 
-    pixiAppManager.ensureReady().then(app => {
+    runPixiTrial(display_element, (app) => {
       this.app = app;
-      pixiAppManager.attachTo(container);
-      pixiAppManager.clearStage();
+      attachPixiTrialCanvas(container);
       app.renderer.background.color = trial.background_color ?? '#808080';
       
       // Generate some distinct Gabor textures
@@ -337,8 +337,7 @@ class PixiGaborPatchingPlugin implements JsPsychPlugin<Info> {
     }
 
     if (this.app) {
-      pixiAppManager.clearStage();
-      pixiAppManager.detachCanvas();
+      cleanupPixiTrial(display_element);
       this.app = null;
     }
 
@@ -358,7 +357,6 @@ class PixiGaborPatchingPlugin implements JsPsychPlugin<Info> {
       duration_ms: trial.duration_ms,
     };
 
-    display_element.innerHTML = '';
     this.jsPsych.finishTrial(trialData);
   }
 }

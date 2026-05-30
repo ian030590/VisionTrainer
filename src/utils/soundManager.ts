@@ -26,6 +26,15 @@ class SoundManagerImpl {
     return this.ctx;
   }
 
+  destroy(): void {
+    if (!this.ctx) return;
+    this.ctx.close().catch((error) => {
+      console.warn('Failed to close AudioContext:', error);
+    });
+    this.ctx = null;
+    this.initialized = false;
+  }
+
   playTone(frequency: number, durationMs: number, type: OscillatorType = 'sine'): void {
     if (!getSetting('auditoryFeedbackEnabled')) return;
     const ctx = this.ensureContext();
@@ -71,8 +80,9 @@ class SoundManagerImpl {
   }
 
   playRunEnd(): void {
+    if (!getSetting('auditoryFeedbackEnabled')) return;
     const ctx = this.ensureContext();
-    if (!ctx || !getSetting('auditoryFeedbackEnabled')) return;
+    if (!ctx) return;
     const vol = getSetting('soundVolume') / 100;
     const now = ctx.currentTime;
     [523.25, 659.25, 783.99].forEach((freq, i) => {

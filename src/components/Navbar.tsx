@@ -1,21 +1,34 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { getActiveUser } from '../utils/settings';
+import { ACTIVE_USER_CHANGED_EVENT, getActiveUser } from '../utils/settings';
 import { useT } from '../i18n';
 
+const navLinkClass = ({ isActive }: { isActive: boolean }) => `navbar-link ${isActive ? 'active' : ''}`;
+const logoStyle = { width: 'auto', objectFit: 'contain' } as const;
+
 export function Navbar() {
-  const user = getActiveUser();
   const { t } = useT();
+  const [user, setUser] = useState(getActiveUser);
   const [isOpen, setIsOpen] = useState(false);
 
-  const toggleMenu = () => setIsOpen(!isOpen);
+  useEffect(() => {
+    const syncUser = () => setUser(getActiveUser());
+    window.addEventListener('storage', syncUser);
+    window.addEventListener(ACTIVE_USER_CHANGED_EVENT, syncUser);
+    return () => {
+      window.removeEventListener('storage', syncUser);
+      window.removeEventListener(ACTIVE_USER_CHANGED_EVENT, syncUser);
+    };
+  }, []);
+
+  const toggleMenu = () => setIsOpen((open) => !open);
   const closeMenu = () => setIsOpen(false);
 
   return (
     <nav className="navbar">
       <div className="navbar-inner">
         <NavLink to="/" className="navbar-brand" onClick={closeMenu}>
-          <img src={`${import.meta.env.BASE_URL}assets/logo.svg`} alt="Vision Trainer Logo" height="22" style={{ width: 'auto', objectFit: 'contain' }} />
+          <img src={`${import.meta.env.BASE_URL}assets/logo.svg`} alt="Vision Trainer Logo" height="22" style={logoStyle} />
           {t('nav.brand')}
         </NavLink>
 
@@ -41,28 +54,28 @@ export function Navbar() {
             <NavLink
               to="/"
               end
-              className={({ isActive }) => `navbar-link ${isActive ? 'active' : ''}`}
+              className={navLinkClass}
               onClick={closeMenu}
             >
               {t('nav.trainingList')}
             </NavLink>
             <NavLink
               to="/assessment"
-              className={({ isActive }) => `navbar-link ${isActive ? 'active' : ''}`}
+              className={navLinkClass}
               onClick={closeMenu}
             >
               {t('nav.assessment')}
             </NavLink>
             <NavLink
               to="/settings"
-              className={({ isActive }) => `navbar-link ${isActive ? 'active' : ''}`}
+              className={navLinkClass}
               onClick={closeMenu}
             >
               {t('nav.settings')}
             </NavLink>
             <NavLink
               to="/credits"
-              className={({ isActive }) => `navbar-link ${isActive ? 'active' : ''}`}
+              className={navLinkClass}
               onClick={closeMenu}
             >
               {t('nav.credits')}
