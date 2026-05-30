@@ -1,29 +1,33 @@
+import { Suspense, lazy } from 'react';
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { Navbar } from './components/Navbar';
-import { HomePage } from './pages/HomePage';
-import { SettingsPage } from './pages/settings/SettingsPage';
-import { TrainingPage } from './pages/training/TrainingPage';
-import { AssessmentPage } from './pages/assessment/AssessmentPage';
-import { AcuityTestPage } from './pages/assessment/AcuityTestPage';
-import { ContrastTestPage } from './pages/assessment/ContrastTestPage';
-import { CreditsPage } from './pages/credits/CreditsPage';
+
+const HomePage = lazy(() => import('./pages/HomePage').then((module) => ({ default: module.HomePage })));
+const SettingsPage = lazy(() => import('./pages/settings/SettingsPage').then((module) => ({ default: module.SettingsPage })));
+const TrainingPage = lazy(() => import('./pages/training/TrainingPage').then((module) => ({ default: module.TrainingPage })));
+const AssessmentPage = lazy(() => import('./pages/assessment/AssessmentPage').then((module) => ({ default: module.AssessmentPage })));
+const AcuityTestPage = lazy(() => import('./pages/assessment/AcuityTestPage').then((module) => ({ default: module.AcuityTestPage })));
+const ContrastTestPage = lazy(() => import('./pages/assessment/ContrastTestPage').then((module) => ({ default: module.ContrastTestPage })));
+const CreditsPage = lazy(() => import('./pages/credits/CreditsPage').then((module) => ({ default: module.CreditsPage })));
 
 export function App() {
   return (
-    <Routes>
-      <Route path="/training" element={<TrainingPage />} />
-      <Route path="/acuity-test" element={<AcuityTestPage />} />
-      <Route path="/contrast-test" element={<ContrastTestPage />} />
+    <Suspense fallback={<div className="app-loading" />}>
+      <Routes>
+        <Route path="/training" element={<TrainingPage />} />
+        <Route path="/acuity-test" element={<AcuityTestPage />} />
+        <Route path="/contrast-test" element={<ContrastTestPage />} />
 
-      <Route element={<AppLayout />}>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/assessment" element={<AssessmentPage />} />
-        <Route path="/settings" element={<SettingsPage />} />
-        <Route path="/credits" element={<CreditsPage />} />
-      </Route>
+        <Route element={<AppLayout />}>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/assessment" element={<AssessmentPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/credits" element={<CreditsPage />} />
+        </Route>
 
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Suspense>
   );
 }
 

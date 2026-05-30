@@ -60,6 +60,42 @@ const info = {
 
 type Info = typeof info;
 
+interface GaborSpot {
+  sprite: Sprite;
+  targetSize: number;
+  targetOpacity: number;
+  type: number;
+  spawnTime: number;
+  maxScore: number;
+  minSize: number;
+  lifetime: number;
+}
+
+interface FloatingScore {
+  text: Text;
+  createdAt: number;
+  startY: number;
+  lifetime: number;
+}
+
+const GABOR_TEXTURE_SPECS = [
+  { size: 256, freq: 0.05, angle: 0 },
+  { size: 256, freq: 0.08, angle: Math.PI / 4 },
+  { size: 256, freq: 0.03, angle: Math.PI / 2 },
+] as const;
+
+const gaborTextureCache = new Map<string, Texture>();
+
+function getGaborTexture(size: number, freq: number, angle: number): Texture {
+  const key = `${size}:${freq}:${angle}`;
+  const cached = gaborTextureCache.get(key);
+  if (cached) return cached;
+
+  const texture = createGaborTexture(size, freq, angle);
+  gaborTextureCache.set(key, texture);
+  return texture;
+}
+
 function createGaborTexture(size: number, freq: number, angle: number): Texture {
   const canvas = document.createElement('canvas');
   canvas.width = size;
@@ -99,7 +135,8 @@ class PixiGaborPatchingPlugin implements JsPsychPlugin<Info> {
   static info = info;
   private app: Application | null = null;
   private textures: Texture[] = [];
-  private spots: Array<{ sprite: Sprite, targetSize: number, targetOpacity: number, type: number, spawnTime: number, maxScore: number, minSize: number, lifetime: number }> = [];
+  private spots: GaborSpot[] = [];
+  private floatingScores: FloatingScore[] = [];
   private score = 0;
   private hits = 0;
   private gameStartTime = 0;
@@ -138,6 +175,7 @@ class PixiGaborPatchingPlugin implements JsPsychPlugin<Info> {
     this.score = 0;
     this.hits = 0;
     this.spots = [];
+    this.floatingScores = [];
     this.isGameOver = false;
 
     runPixiTrial(display_element, (app) => {
@@ -145,12 +183,9 @@ class PixiGaborPatchingPlugin implements JsPsychPlugin<Info> {
       attachPixiTrialCanvas(container);
       app.renderer.background.color = trial.background_color ?? '#808080';
       
-      // Generate some distinct Gabor textures
-      this.textures = [
-        createGaborTexture(256, 0.05, 0),
-        createGaborTexture(256, 0.08, Math.PI / 4),
-        createGaborTexture(256, 0.03, Math.PI / 2),
-      ];
+      this.textures = GABOR_TEXTURE_SPECS.map((spec) => (
+        getGaborTexture(spec.size, spec.freq, spec.angle)
+      ));
 
       this.gameStartTime = performance.now();
 
@@ -244,9 +279,21 @@ class PixiGaborPatchingPlugin implements JsPsychPlugin<Info> {
           const currentScore = Math.ceil(spot.maxScore * (1 - progress));
           
           if (currentScore <= 0) {
-            this.app.stage.removeChild(spot.sprite);
-            spot.sprite.destroy();
+            this.removeSpot(spot);
             this.spots.splice(i, 1);
+          }
+        }
+
+        for (let i = this.floatingScores.length - 1; i >= 0; i--) {
+          const score = this.floatingScores[i];
+          const progress = Math.min(1, (time - score.createdAt) / score.lifetime);
+          score.text.y = score.startY - progress * 50;
+          score.text.alpha = 1 - progress;
+
+          if (progress >= 1) {
+            this.app.stage.removeChild(score.text);
+            score.text.destroy();
+            this.floatingScores.splice(i, 1);
           }
         }
 
@@ -271,7 +318,7 @@ class PixiGaborPatchingPlugin implements JsPsychPlugin<Info> {
     });
   }
 
-  private handleSpotClick(spot: { sprite: Sprite, targetSize: number, targetOpacity: number, type: number, spawnTime: number, maxScore: number, minSize: number, lifetime: number }) {
+  private handleSpotClick(spot: GaborSpot) {
     if (this.isGameOver || !this.app) return;
 
     const now = performance.now();
@@ -285,7 +332,6 @@ class PixiGaborPatchingPlugin implements JsPsychPlugin<Info> {
     this.hits += 1;
     SoundManager.playPop();
 
-    // Show floating score
     const floatText = new Text({
       text: finalPoints.toString(),
       style: {
@@ -304,32 +350,30 @@ class PixiGaborPatchingPlugin implements JsPsychPlugin<Info> {
     floatText.anchor.set(0.5);
     floatText.x = spot.sprite.x;
     floatText.y = spot.sprite.y - 20;
+    floatText.alpha = 1;
     this.app.stage.addChild(floatText);
+    this.floatingScores.push({
+      text: floatText,
+      createdAt: now,
+      startY: floatText.y,
+      lifetime: 800,
+    });
 
-    // Animate floating text
-    let frame = 0;
-    const animateText = () => {
-      frame++;
-      floatText.y -= 1;
-      floatText.alpha -= 0.02;
-      if (frame < 50 && !this.isGameOver) {
-        requestAnimationFrame(animateText);
-      } else if (this.app && !this.app.stage.destroyed) {
-        this.app.stage.removeChild(floatText);
-        floatText.destroy();
-      }
-    };
-    requestAnimationFrame(animateText);
-
-    // Remove spot
-    this.app.stage.removeChild(spot.sprite);
-    spot.sprite.destroy();
+    this.removeSpot(spot);
     this.spots = this.spots.filter(s => s !== spot);
   }
 
+  private removeSpot(spot: GaborSpot) {
+    if (!this.app) return;
+    this.app.stage.removeChild(spot.sprite);
+    spot.sprite.destroy();
+  }
+
   private endGame(trial: TrialType<Info>, display_element: HTMLElement) {
+    if (this.isGameOver) return;
     this.isGameOver = true;
     cancelAnimationFrame(this.gameLoopRaf);
+    this.gameLoopRaf = 0;
     
     if (this.keydownListener) {
       window.removeEventListener('keydown', this.keydownListener);
@@ -341,11 +385,9 @@ class PixiGaborPatchingPlugin implements JsPsychPlugin<Info> {
       this.app = null;
     }
 
-    // Cleanup textures
-    for (const tex of this.textures) {
-      tex.destroy(true);
-    }
     this.textures = [];
+    this.spots = [];
+    this.floatingScores = [];
 
     const trialData = {
       rt: trial.duration_ms,

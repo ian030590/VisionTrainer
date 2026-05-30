@@ -301,6 +301,7 @@ export function AcuityTestPage() {
     trialRef.current += 1;
     if (trialRef.current > totalTrials) {
       setTrialRecords([...recordsRef.current]);
+      SoundManager.destroy();
       setPhase('results');
       return;
     }
@@ -548,6 +549,7 @@ export function AcuityTestPage() {
   }, [drawStimulus]);
 
   useEffect(() => () => {
+    SoundManager.destroy();
     try {
       gazeExtensionRef.current?.pause?.();
       gazeExtensionRef.current?.hidePredictions?.();

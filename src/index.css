@@ -71,6 +71,12 @@ html, body, #root {
   background: var(--bg);
 }
 
+.app-loading {
+  width: 100vw;
+  height: 100vh;
+  background: var(--bg);
+}
+
 .page-content {
   flex: 1;
   overflow-y: auto;
@@ -483,8 +489,9 @@ html, body, #root {
   border-color: var(--accent);
 }
 
-/* ── Training Grid ── */
-.training-grid {
+/* ── Responsive Card Grids ── */
+.training-grid,
+.assessment-grid {
   display: grid;
   grid-template-columns: 1fr;
   gap: 24px;
@@ -492,13 +499,15 @@ html, body, #root {
 }
 
 @media (min-width: 768px) {
-  .training-grid {
+  .training-grid,
+  .assessment-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
 @media (min-width: 1024px) {
-  .training-grid {
+  .training-grid,
+  .assessment-grid {
     grid-template-columns: repeat(3, 1fr);
   }
 }
@@ -1253,25 +1262,6 @@ body #webgazer-calibrate-container #calibration-point {
   color: var(--warning);
   width: 100%;
   line-height: 1.6;
-}
-
-.assessment-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 24px;
-  width: 100%;
-}
-
-@media (min-width: 768px) {
-  .assessment-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (min-width: 1024px) {
-  .assessment-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
 }
 
 .card-meta {

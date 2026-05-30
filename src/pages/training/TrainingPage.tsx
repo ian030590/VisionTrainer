@@ -14,6 +14,7 @@ import {
   getSetting,
   isDrivingControlMode,
 } from '../../utils/settings';
+import { SoundManager } from '../../utils/soundManager';
 import { downloadTrainingCsv } from './exportCsv';
 import {
   isOculomotorMode,
@@ -100,6 +101,7 @@ export function TrainingPage() {
         extensions: enableWebGazer ? [{ type: WebGazerExtension }] : [],
         on_finish: () => {
           const data = jsPsych.data.get().values() as TrialData[];
+          SoundManager.destroy();
           setResults(data);
           jsPsychRef.current = null;
           setPhase('results');
@@ -147,6 +149,7 @@ export function TrainingPage() {
     setupExperiment();
 
     return () => {
+      SoundManager.destroy();
       if (jsPsychRef.current) {
         jsPsychRef.current = null;
       }

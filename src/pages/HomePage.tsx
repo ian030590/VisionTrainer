@@ -18,6 +18,9 @@ import {
   oculomotorModes,
   oculomotorPatterns,
 } from './training/oculomotor/presets';
+import { TrainingModuleCard } from './home/TrainingModuleCard';
+import { TRAINING_MODULES } from './home/trainingModules';
+import type { TrainingModuleId } from './home/trainingModules';
 import type { OculomotorPattern, OculomotorTargetShape } from './training/oculomotor/types';
 import type { DrivingControlMode } from '../utils/settings';
 
@@ -30,7 +33,7 @@ export function HomePage() {
   const [showAddUser, setShowAddUser] = useState(false);
 
   // ── Module expansion state ──
-  const [expandedModule, setExpandedModule] = useState<string | null>(null);
+  const [expandedModule, setExpandedModule] = useState<TrainingModuleId | null>(null);
   const [localDifficulty, setLocalDifficulty] = usePersistedSetting('difficulty');
   const [localRounds, setLocalRounds] = usePersistedSetting('totalRounds');
   const [customRoundsInput, setCustomRoundsInput] = useState('');
@@ -117,7 +120,7 @@ export function HomePage() {
   }, [expandedModule]);
 
   // ── Handlers ──
-  const handleCardClick = (moduleId: string) => {
+  const handleCardClick = (moduleId: TrainingModuleId) => {
     if (!activeUser) {
       alert(t('home.pleaseSelectUser'));
       return;
@@ -222,7 +225,7 @@ export function HomePage() {
       return;
     }
     if (!file.type.startsWith('audio/')) {
-      alert(t('home.pleaseSelectAudio')); // We will define this key later or just use english/chinese hardcoded if missing, but let's assume it'll be defined
+      alert(t('home.pleaseSelectAudio'));
       return;
     }
     const reader = new FileReader();
@@ -252,14 +255,14 @@ export function HomePage() {
     { key: 'advanced', label: t('home.diff.advanced'), desc: t('home.diff.advancedDesc') },
   ];
   const gaborDiffOptions: { key: 'beginner' | 'intermediate' | 'advanced'; label: string; desc: string }[] = [
-    { key: 'beginner', label: t('home.diff.beginner'), desc: t('home.diff.gaborBeginnerDesc' as any) },
-    { key: 'intermediate', label: t('home.diff.intermediate'), desc: t('home.diff.gaborIntermediateDesc' as any) },
-    { key: 'advanced', label: t('home.diff.advanced'), desc: t('home.diff.gaborAdvancedDesc' as any) },
+    { key: 'beginner', label: t('home.diff.beginner'), desc: t('home.diff.gaborBeginnerDesc') },
+    { key: 'intermediate', label: t('home.diff.intermediate'), desc: t('home.diff.gaborIntermediateDesc') },
+    { key: 'advanced', label: t('home.diff.advanced'), desc: t('home.diff.gaborAdvancedDesc') },
   ];
   const drivingControlOptions: { key: DrivingControlMode; label: string }[] = [
-    { key: 'arrow', label: t('home.config.drivingControlArrow' as any) },
-    { key: 'wasd', label: t('home.config.drivingControlWasd' as any) },
-    { key: 'wheel', label: t('home.config.drivingControlWheel' as any) },
+    { key: 'arrow', label: t('home.config.drivingControlArrow') },
+    { key: 'wasd', label: t('home.config.drivingControlWasd') },
+    { key: 'wheel', label: t('home.config.drivingControlWheel') },
   ];
   const drivingDifficultyLabels: Record<'beginner' | 'intermediate' | 'advanced', string> = {
     beginner: t('home.diff.beginner'),
@@ -361,220 +364,15 @@ export function HomePage() {
 
       {/* ── Training Cards ── */}
       <div className="training-grid">
-        <div
-          className={`card fade-in-up ${expandedModule === 'moving-card' ? 'card-active' : ''}`}
-          onClick={() => handleCardClick('moving-card')}
-        >
-          <div className="card-icon">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-              <circle cx="12" cy="12" r="3" />
-            </svg>
-          </div>
-          <div className="card-title">{t('home.module.movingCard.title')}</div>
-          <div className="card-desc">
-            {t('home.module.movingCard.desc')}
-          </div>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            marginTop: 16,
-            fontSize: 13,
-            color: 'var(--accent)',
-            fontWeight: 600,
-          }}>
-            {expandedModule === 'moving-card' ? t('btn.collapseSettings') : t('btn.selectModule')}
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              style={{
-                transform: expandedModule === 'moving-card' ? 'rotate(180deg)' : 'rotate(0deg)',
-                transition: 'transform 0.3s ease',
-              }}
-            >
-              <path d="M6 9l6 6 6-6" />
-            </svg>
-          </div>
-        </div>
-
-        <div
-          className={`card fade-in-up ${expandedModule === 'oculomotor-training' ? 'card-active' : ''}`}
-          onClick={() => handleCardClick('oculomotor-training')}
-        >
-          <div className="card-icon">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="2.5" />
-              <path d="M12 3a9 9 0 0 1 9 9" />
-              <path d="M21 12a9 9 0 0 1-9 9" />
-              <path d="M12 21a9 9 0 0 1-9-9" />
-              <path d="M3 12a9 9 0 0 1 9-9" />
-              <path d="M12 7v2" />
-              <path d="M17 12h-2" />
-              <path d="M12 17v-2" />
-              <path d="M7 12h2" />
-            </svg>
-          </div>
-          <div className="card-title">{t('home.module.oculomotor.title')}</div>
-          <div className="card-desc">
-            {t('home.module.oculomotor.desc')}
-          </div>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            marginTop: 16,
-            fontSize: 13,
-            color: 'var(--accent)',
-            fontWeight: 600,
-          }}>
-            {expandedModule === 'oculomotor-training' ? t('btn.collapseSettings') : t('btn.selectModule')}
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              style={{
-                transform: expandedModule === 'oculomotor-training' ? 'rotate(180deg)' : 'rotate(0deg)',
-                transition: 'transform 0.3s ease',
-              }}
-            >
-              <path d="M6 9l6 6 6-6" />
-            </svg>
-          </div>
-        </div>
-
-        <div
-          className={`card fade-in-up ${expandedModule === 'gabor-patching' ? 'card-active' : ''}`}
-          onClick={() => handleCardClick('gabor-patching')}
-        >
-          <div className="card-icon">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10" />
-              <path d="M8 12a4 4 0 0 1 8 0" />
-              <path d="M12 8v8" />
-            </svg>
-          </div>
-          <div className="card-title">{t('home.module.gaborPatching.title')}</div>
-          <div className="card-desc">
-            {t('home.module.gaborPatching.desc')}
-          </div>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            marginTop: 16,
-            fontSize: 13,
-            color: 'var(--accent)',
-            fontWeight: 600,
-          }}>
-            {expandedModule === 'gabor-patching' ? t('btn.collapseSettings') : t('btn.selectModule')}
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              style={{
-                transform: expandedModule === 'gabor-patching' ? 'rotate(180deg)' : 'rotate(0deg)',
-                transition: 'transform 0.3s ease',
-              }}
-            >
-              <path d="M6 9l6 6 6-6" />
-            </svg>
-          </div>
-        </div>
-
-        <div
-          className={`card fade-in-up ${expandedModule === 'reading-training' ? 'card-active' : ''}`}
-          onClick={() => handleCardClick('reading-training')}
-        >
-          <div className="card-icon">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
-            </svg>
-          </div>
-          <div className="card-title">{t('home.module.reading.title')}</div>
-          <div className="card-desc">
-            {t('home.module.reading.desc')}
-          </div>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            marginTop: 16,
-            fontSize: 13,
-            color: 'var(--accent)',
-            fontWeight: 600,
-          }}>
-            {expandedModule === 'reading-training' ? t('btn.collapseSettings') : t('btn.selectModule')}
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              style={{
-                transform: expandedModule === 'reading-training' ? 'rotate(180deg)' : 'rotate(0deg)',
-                transition: 'transform 0.3s ease',
-              }}
-            >
-              <path d="M6 9l6 6 6-6" />
-            </svg>
-          </div>
-        </div>
-
-        <div
-          className={`card fade-in-up ${expandedModule === 'driving-rehab' ? 'card-active' : ''}`}
-          onClick={() => handleCardClick('driving-rehab')}
-        >
-          <div className="card-icon">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 13h18l-2 6H5l-2-6Z" />
-              <path d="M6 13l2-5h8l2 5" />
-              <circle cx="7.5" cy="19" r="1.5" />
-              <circle cx="16.5" cy="19" r="1.5" />
-              <path d="M10 4h4" />
-            </svg>
-          </div>
-          <div className="card-title">{t('home.module.driving.title')}</div>
-          <div className="card-desc">
-            {t('home.module.driving.desc')}
-          </div>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            marginTop: 16,
-            fontSize: 13,
-            color: 'var(--accent)',
-            fontWeight: 600,
-          }}>
-            {expandedModule === 'driving-rehab' ? t('btn.collapseSettings') : t('btn.selectModule')}
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              style={{
-                transform: expandedModule === 'driving-rehab' ? 'rotate(180deg)' : 'rotate(0deg)',
-                transition: 'transform 0.3s ease',
-              }}
-            >
-              <path d="M6 9l6 6 6-6" />
-            </svg>
-          </div>
-        </div>
+        {TRAINING_MODULES.map((module) => (
+          <TrainingModuleCard
+            key={module.id}
+            module={module}
+            expandedModule={expandedModule}
+            onSelect={handleCardClick}
+            t={t}
+          />
+        ))}
       </div>
 
       {/* ── Module Config Panel ── */}
@@ -1083,10 +881,10 @@ export function HomePage() {
           <div className="module-config-panel config-modal-panel" onClick={(e) => e.stopPropagation()}>
 
             <div className="config-section">
-              <div className="config-label">閱讀設定</div>
+              <div className="config-label">{t('home.config.readingSettings')}</div>
               <div className="difficulty-selector">
                 <label className="diff-btn" style={{ cursor: 'default', alignItems: 'stretch' }}>
-                  <span className="diff-btn-desc">閱讀速度 (WPS)</span>
+                  <span className="diff-btn-desc">{t('home.config.readingWps')}</span>
                   <input
                     className="rounds-custom-input"
                     type="number"
@@ -1102,7 +900,7 @@ export function HomePage() {
                   />
                 </label>
                 <label className="diff-btn" style={{ cursor: 'default', alignItems: 'stretch' }}>
-                  <span className="diff-btn-desc">單次字數 (Crowding)</span>
+                  <span className="diff-btn-desc">{t('home.config.readingCrowding')}</span>
                   <input
                     className="rounds-custom-input"
                     type="number"
@@ -1118,7 +916,7 @@ export function HomePage() {
                   />
                 </label>
                 <label className="diff-btn" style={{ cursor: 'default', alignItems: 'stretch' }}>
-                  <span className="diff-btn-desc">對比度 (logCS)</span>
+                  <span className="diff-btn-desc">{t('home.config.readingContrast')}</span>
                   <input
                     type="range"
                     min="0.0"
@@ -1155,7 +953,7 @@ export function HomePage() {
 
             <div className="config-summary">
               {t('home.config.user')} <strong>{activeUser}</strong> ·{' '}
-              故事 <strong>隨機抽選</strong>
+              {t('home.config.storyLabel')} <strong>{t('home.config.randomStory')}</strong>
             </div>
           </div>
         </div>
