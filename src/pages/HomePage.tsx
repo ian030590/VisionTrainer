@@ -391,6 +391,16 @@ export function HomePage() {
     { key: 'wasd', label: t('home.config.drivingControlWasd' as any) },
     { key: 'wheel', label: t('home.config.drivingControlWheel' as any) },
   ];
+  const drivingDifficultyLabels: Record<'beginner' | 'intermediate' | 'advanced', string> = {
+    beginner: t('home.diff.beginner'),
+    intermediate: t('home.diff.intermediate'),
+    advanced: t('home.diff.advanced'),
+  };
+  const drivingDifficultyDescs: Record<'beginner' | 'intermediate' | 'advanced', string> = {
+    beginner: t('home.diff.drivingBeginnerDesc'),
+    intermediate: t('home.diff.drivingIntermediateDesc'),
+    advanced: t('home.diff.drivingAdvancedDesc'),
+  };
 
   return (
     <div className="page-content">
@@ -1285,19 +1295,17 @@ export function HomePage() {
         <div className="config-modal-overlay fade-in" onClick={() => setExpandedModule(null)}>
           <div className="module-config-panel config-modal-panel" onClick={(e) => e.stopPropagation()}>
             <div className="config-section">
-              <div className="config-label">事件反應難度</div>
+              <div className="config-label">{t('home.config.drivingReactionDifficulty')}</div>
               <div className="difficulty-selector">
                 {(['beginner', 'intermediate', 'advanced'] as const).map((level) => {
-                  const labels: Record<string, string> = { beginner: '初級', intermediate: '中級', advanced: '高級' };
-                  const descs: Record<string, string> = { beginner: '反應窗口 5.2 秒', intermediate: '反應窗口 3.2 秒', advanced: '反應窗口 1.8 秒' };
                   return (
                     <button
                       key={level}
                       className={`diff-btn ${drivingDifficulty === level ? 'active' : ''}`}
                       onClick={(e) => { e.stopPropagation(); setDrivingDifficulty(level); }}
                     >
-                      <span className="diff-btn-label">{labels[level]}</span>
-                      <span className="diff-btn-desc">{descs[level]}</span>
+                      <span className="diff-btn-label">{drivingDifficultyLabels[level]}</span>
+                      <span className="diff-btn-desc">{drivingDifficultyDescs[level]}</span>
                     </button>
                   );
                 })}
@@ -1393,7 +1401,7 @@ export function HomePage() {
             <div className="config-summary">
               {t('home.config.user')} <strong>{activeUser}</strong> ·{' '}
               {t('home.config.durationLabel')} <strong>{drivingDurationSec}s</strong> ·{' '}
-              難度 <strong>{drivingDifficulty === 'beginner' ? '初級' : drivingDifficulty === 'intermediate' ? '中級' : '高級'}</strong> ·{' '}
+              {t('home.config.diffLabel')} <strong>{drivingDifficultyLabels[drivingDifficulty]}</strong> ·{' '}
               {t('home.config.drivingRedFlash')} <strong>{drivingRedFlashEnabled ? t('common.on') : t('common.off')}</strong>
             </div>
           </div>

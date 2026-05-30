@@ -17,6 +17,8 @@ import type { OculomotorMode, OculomotorPattern, OculomotorTargetShape } from '.
 import type { ReadingStory } from '../pages/training/reading/types';
 import type { DrivingControlMode } from '../utils/settings';
 
+type AppLanguage = 'zh' | 'en';
+
 /**
  * Build a jsPsych timeline for the given module.
  * Each trial = one round of the training game.
@@ -57,6 +59,7 @@ export function buildTimeline(
       redFlashEnabled?: boolean;
       difficulty?: 'beginner' | 'intermediate' | 'advanced';
       controlMode?: DrivingControlMode;
+      language?: AppLanguage;
     };
   },
 ): object[] {
@@ -84,6 +87,7 @@ function buildDrivingRehabTimeline(
       redFlashEnabled?: boolean;
       difficulty?: 'beginner' | 'intermediate' | 'advanced';
       controlMode?: DrivingControlMode;
+      language?: AppLanguage;
     };
   },
 ): object[] {
@@ -94,6 +98,7 @@ function buildDrivingRehabTimeline(
   const redFlashEnabled = overrides?.driving?.redFlashEnabled ?? getSetting('drivingRedFlashEnabled');
   const drivingDifficulty = overrides?.driving?.difficulty ?? getSetting('drivingDifficulty');
   const drivingControlMode = overrides?.driving?.controlMode ?? getSetting('drivingControlMode');
+  const language = overrides?.driving?.language ?? 'zh';
 
   return [
     {
@@ -102,6 +107,7 @@ function buildDrivingRehabTimeline(
       red_flash_enabled: redFlashEnabled,
       driving_difficulty: drivingDifficulty,
       control_mode: drivingControlMode,
+      language,
     },
   ];
 }

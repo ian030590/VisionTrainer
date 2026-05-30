@@ -4,6 +4,7 @@ import { SoundManager } from '../../utils/soundManager';
 
 type ThreeModule = typeof import('three');
 type DrivingControlMode = 'arrow' | 'wasd' | 'wheel';
+type DrivingLanguage = 'zh' | 'en';
 
 const info = {
   name: 'three-driving-rehab',
@@ -25,6 +26,10 @@ const info = {
     control_mode: {
       type: ParameterType.STRING,
       default: 'arrow',
+    },
+    language: {
+      type: ParameterType.STRING,
+      default: 'zh',
     },
   },
   data: {
@@ -75,9 +80,151 @@ interface DrivingInput {
 
 type HazardId = 'child-crossing' | 'plane-crash' | 'drunk-driver' | 'elder-stopped' | 'wrong-way-driver';
 
+const DRIVING_TEXT = {
+  zh: {
+    eyebrow: '駕駛認知復健模擬器',
+    title: '駕駛認知復健模擬器',
+    introA: '將貨物由 A 點送至 B 點。請依照右下角的',
+    routeMap: '導航小地圖',
+    introB: '指示方向，自行操控方向盤在路口轉彎。',
+    hazardIntroA: '駕駛途中會',
+    randomHazards: '隨機出現突發事件',
+    hazardIntroB: '，請立即踩煞車反應。',
+    difficultyLabel: '難度',
+    difficultyBeginner: '初級',
+    difficultyIntermediate: '中級',
+    difficultyAdvanced: '高級',
+    steering: '方向 / 轉彎',
+    throttle: '油門',
+    brake: '煞車',
+    emergencyBrake: '緊急煞車',
+    arrowSteerHint: '← / →',
+    arrowThrottleHint: '↑',
+    arrowBrakeHint: '↓',
+    wasdSteerHint: 'A / D',
+    wasdThrottleHint: 'W',
+    wasdBrakeHint: 'S',
+    wheelSteerHint: '方向盤',
+    wheelThrottleHint: '油門踏板',
+    wheelBrakeHint: '煞車踏板',
+    loading3d: '正在動態載入 3D 資源...',
+    readyLoaded: '3D 資源已載入。請確認輸入訊號後開始任務。',
+    loadingButton: '載入中...',
+    startMission: '開始送貨任務',
+    startHint: 'Enter 開始 · Esc 可提前結束並返回結果頁',
+    controllerConnected: '已連接控制器：{id}',
+    controllerDisconnected: '控制器已中斷，改用鍵盤控制',
+    taskDelivery: '任務：A 點送貨至 B 點',
+    watchRoad: '保持車道並注意突發事件',
+    navigation: '導航',
+    straight: '直行',
+    straightToDestination: '直行抵達目的地',
+    turnAfterMeters: '{dist}m 後{instruction}',
+    upcomingTurn: '導航：前方路口請{instruction} {arrow}',
+    navTurn: '導航：{dist}m 後{instruction} {arrow} · 剩餘 {remaining}s',
+    navStraight: '導航：直行 · 剩餘 {remaining}s',
+    timeUp: '時間已到',
+    timeoutMessage: '任務時間已到，尚未抵達終點',
+    timeoutHint: '點擊畫面任一處查看成績',
+    noValidRt: '無有效 RT',
+    collision: '碰撞',
+    dodged: '閃避通過',
+    stopped: '已煞停',
+    brakeReaction: '{label}：煞車反應 {rt} ms',
+    hazardResult: '{label}：{outcome} / {rtText}',
+    controlArrow: '目前控制方式：方向鍵',
+    controlWasd: '目前控制方式：WASD',
+    gamepadUnsupported: '此瀏覽器不支援 Gamepad API，將使用鍵盤控制。',
+    gamepadConnected: 'Gamepad API 已接入：{id}',
+    gamepadWaiting: 'Gamepad API 已接入，等待控制器輸入。',
+    wheelWaiting: '等待 USB 外接方向盤輸入。',
+    turnLeft: '左轉',
+    turnRight: '右轉',
+    deliveryTarget: 'A 點送貨至 B 點',
+    hazardLabels: {
+      'child-crossing': '小孩突然衝出馬路',
+      'plane-crash': '飛機墜落於前方道路',
+      'drunk-driver': '醉酒駕駛車輛開上分隔島',
+      'elder-stopped': '老人走到路中間停下',
+      'wrong-way-driver': '毒駕車輛逆向衝來',
+    },
+  },
+  en: {
+    eyebrow: 'Driving Cognitive Rehab Simulator',
+    title: 'Driving Cognitive Rehab Simulator',
+    introA: 'Deliver the cargo from point A to point B. Follow the',
+    routeMap: 'navigation mini-map',
+    introB: 'at the lower right and steer through intersections.',
+    hazardIntroA: 'Unexpected',
+    randomHazards: 'hazards will appear at random',
+    hazardIntroB: '; brake immediately when they occur.',
+    difficultyLabel: 'Difficulty',
+    difficultyBeginner: 'Beginner',
+    difficultyIntermediate: 'Intermediate',
+    difficultyAdvanced: 'Advanced',
+    steering: 'Steering / Turn',
+    throttle: 'Throttle',
+    brake: 'Brake',
+    emergencyBrake: 'Emergency Brake',
+    arrowSteerHint: '← / →',
+    arrowThrottleHint: '↑',
+    arrowBrakeHint: '↓',
+    wasdSteerHint: 'A / D',
+    wasdThrottleHint: 'W',
+    wasdBrakeHint: 'S',
+    wheelSteerHint: 'Steering wheel',
+    wheelThrottleHint: 'Throttle pedal',
+    wheelBrakeHint: 'Brake pedal',
+    loading3d: 'Loading 3D assets...',
+    readyLoaded: '3D assets loaded. Confirm input signal, then start the mission.',
+    loadingButton: 'Loading...',
+    startMission: 'Start Delivery Mission',
+    startHint: 'Enter to start · Esc to finish early and return to results',
+    controllerConnected: 'Controller connected: {id}',
+    controllerDisconnected: 'Controller disconnected; using keyboard control',
+    taskDelivery: 'Task: deliver from point A to point B',
+    watchRoad: 'Stay in lane and watch for hazards',
+    navigation: 'Navigation',
+    straight: 'Straight',
+    straightToDestination: 'Straight to destination',
+    turnAfterMeters: 'in {dist}m {instruction}',
+    upcomingTurn: 'Navigation: {instruction} at the upcoming intersection {arrow}',
+    navTurn: 'Navigation: {instruction} in {dist}m {arrow} · {remaining}s left',
+    navStraight: 'Navigation: straight · {remaining}s left',
+    timeUp: 'TIME UP',
+    timeoutMessage: 'Mission time has ended before reaching the destination',
+    timeoutHint: 'Click anywhere to view results',
+    noValidRt: 'No valid RT',
+    collision: 'Collision',
+    dodged: 'Dodged',
+    stopped: 'Stopped',
+    brakeReaction: '{label}: brake reaction {rt} ms',
+    hazardResult: '{label}: {outcome} / {rtText}',
+    controlArrow: 'Control mode: Arrow keys',
+    controlWasd: 'Control mode: WASD',
+    gamepadUnsupported: 'This browser does not support the Gamepad API; keyboard control will be used.',
+    gamepadConnected: 'Gamepad API connected: {id}',
+    gamepadWaiting: 'Gamepad API connected; waiting for controller input.',
+    wheelWaiting: 'Waiting for USB steering wheel input.',
+    turnLeft: 'turn left',
+    turnRight: 'turn right',
+    deliveryTarget: 'Delivery from point A to point B',
+    hazardLabels: {
+      'child-crossing': 'Child suddenly runs into the road',
+      'plane-crash': 'Plane crashes onto the road ahead',
+      'drunk-driver': 'Drunk driver vehicle mounts the median',
+      'elder-stopped': 'Older pedestrian stops in the road',
+      'wrong-way-driver': 'Drug-impaired driver approaches the wrong way',
+    },
+  },
+} as const;
+
+type DrivingText = {
+  [K in keyof typeof DRIVING_TEXT.zh]: K extends 'hazardLabels' ? Record<HazardId, string> : string;
+};
+
 interface HazardTemplate {
   id: HazardId;
-  label: string;
 }
 
 interface DrivingEventResult {
@@ -207,6 +354,8 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
   private gamepadDisconnectedListener: ((event: GamepadEvent) => void) | null = null;
   private gamepadConnected = false;
   private controlMode: DrivingControlMode = 'arrow';
+  private language: DrivingLanguage = 'zh';
+  private text: DrivingText = DRIVING_TEXT.zh;
   private gameOverOverlay: HTMLDivElement | null = null;
 
   private hud: {
@@ -239,11 +388,11 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
 
   /** Hazard templates – drawn randomly */
   private readonly hazardTemplates: HazardTemplate[] = [
-    { id: 'child-crossing', label: '小孩突然衝出馬路' },
-    { id: 'plane-crash', label: '飛機墜落於前方道路' },
-    { id: 'drunk-driver', label: '醉酒駕駛車輛開上分隔島' },
-    { id: 'elder-stopped', label: '老人走到路中間停下' },
-    { id: 'wrong-way-driver', label: '毒駕車輛逆向衝來' },
+    { id: 'child-crossing' },
+    { id: 'plane-crash' },
+    { id: 'drunk-driver' },
+    { id: 'elder-stopped' },
+    { id: 'wrong-way-driver' },
   ];
 
   constructor(private jsPsych: JsPsych) {
@@ -275,7 +424,7 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     const threePromise = import('three').then((three) => {
       this.three = three;
       const ready = overlay.querySelector<HTMLDivElement>('[data-driving-ready]');
-      if (ready) ready.textContent = '3D 資源已載入。請確認輸入訊號後開始任務。';
+      if (ready) ready.textContent = this.text.readyLoaded;
     });
 
     this.attachKeyboardListeners(() => {
@@ -288,7 +437,7 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     const startDriving = async () => {
       if (this.finished || this.renderer) return;
       startButton?.setAttribute('disabled', 'true');
-      startButton && (startButton.textContent = '載入中...');
+      startButton && (startButton.textContent = this.text.loadingButton);
       try {
         await threePromise;
         if (!this.three) throw new Error('Three.js failed to load.');
@@ -338,6 +487,8 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     this.miniMapCtx = null;
     this.gamepadConnected = Array.from(navigator.getGamepads?.() ?? []).some(Boolean);
     this.controlMode = this.getControlMode((trial as any)?.control_mode);
+    this.language = this.getLanguage((trial as any)?.language);
+    this.text = DRIVING_TEXT[this.language];
     this.gameOverOverlay = null;
 
     // Difficulty
@@ -385,39 +536,39 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
       background: 'linear-gradient(135deg, rgba(6, 22, 36, 0.96), rgba(20, 38, 52, 0.96))',
     });
 
-    const diffKey = (this as any).difficultyPreset === DIFFICULTY_PRESETS.advanced ? '高級' :
-                    (this as any).difficultyPreset === DIFFICULTY_PRESETS.intermediate ? '中級' : '初級';
+    const text = this.text;
+    const diffKey = this.getDifficultyLabel();
 
     overlay.innerHTML = `
       <div style="width:min(760px, 100%); border:1px solid rgba(255,255,255,0.18); border-radius:24px; padding:40px 36px 32px; background:rgba(255,255,255,0.06); box-shadow:0 30px 90px rgba(0,0,0,0.36);">
 
-        <div style="font-size:13px; letter-spacing:2px; text-transform:uppercase; color:#7dd3fc; font-weight:700; margin-bottom:6px;">Driving Cognitive Rehab Simulator</div>
-        <h1 style="font-size:34px; line-height:1.15; margin:0 0 16px; font-weight:800;">駕駛認知復健模擬器</h1>
+        <div style="font-size:13px; letter-spacing:2px; text-transform:uppercase; color:#7dd3fc; font-weight:700; margin-bottom:6px;">${text.eyebrow}</div>
+        <h1 style="font-size:34px; line-height:1.15; margin:0 0 16px; font-weight:800;">${text.title}</h1>
 
         <p style="font-size:15px; line-height:1.85; color:rgba(255,255,255,0.75); margin:0 0 28px;">
-          將貨物由 A 點送至 B 點。請依照右下角的<b style="color:#7dd3fc;">導航小地圖</b>指示方向，自行操控方向盤在路口轉彎。<br>
-          駕駛途中會<b style="color:#fbbf24;">隨機出現突發事件</b>，請立即踩煞車反應。
-          難度：<b style="color:#38bdf8;">${diffKey}</b>
+          ${text.introA}<b style="color:#7dd3fc;">${text.routeMap}</b>${text.introB}<br>
+          ${text.hazardIntroA}<b style="color:#fbbf24;">${text.randomHazards}</b>${text.hazardIntroB}
+          ${text.difficultyLabel}: <b style="color:#38bdf8;">${diffKey}</b>
         </p>
 
         <!-- Controls info — styled as plain info, NOT as clickable buttons -->
         <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:14px; margin-bottom:28px;">
           <div style="padding:16px 14px; border-radius:14px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08);">
-            <div style="font-size:11px; letter-spacing:1px; text-transform:uppercase; color:#7dd3fc; font-weight:700; margin-bottom:6px;">方向 / 轉彎</div>
-            <div style="font-size:14px; color:rgba(255,255,255,0.62);">← / → 或方向盤</div>
+            <div style="font-size:11px; letter-spacing:1px; text-transform:uppercase; color:#7dd3fc; font-weight:700; margin-bottom:6px;">${text.steering}</div>
+            <div style="font-size:14px; color:rgba(255,255,255,0.62);">${this.getSteeringHint()}</div>
           </div>
           <div style="padding:16px 14px; border-radius:14px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08);">
-            <div style="font-size:11px; letter-spacing:1px; text-transform:uppercase; color:#7dd3fc; font-weight:700; margin-bottom:6px;">油門</div>
-            <div style="font-size:14px; color:rgba(255,255,255,0.62);">↑ 或油門踏板</div>
+            <div style="font-size:11px; letter-spacing:1px; text-transform:uppercase; color:#7dd3fc; font-weight:700; margin-bottom:6px;">${text.throttle}</div>
+            <div style="font-size:14px; color:rgba(255,255,255,0.62);">${this.getThrottleHint()}</div>
           </div>
           <div style="padding:16px 14px; border-radius:14px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08);">
-            <div style="font-size:11px; letter-spacing:1px; text-transform:uppercase; color:#7dd3fc; font-weight:700; margin-bottom:6px;">緊急煞車</div>
-            <div style="font-size:14px; color:rgba(255,255,255,0.62);">↓ 或煞車踏板</div>
+            <div style="font-size:11px; letter-spacing:1px; text-transform:uppercase; color:#7dd3fc; font-weight:700; margin-bottom:6px;">${text.emergencyBrake}</div>
+            <div style="font-size:14px; color:rgba(255,255,255,0.62);">${this.getBrakeHint()}</div>
           </div>
         </div>
 
         <div data-driving-input-bars style="display:grid; gap:10px; margin-bottom:22px;"></div>
-        <div data-driving-ready style="font-size:13px; color:rgba(255,255,255,0.55); margin-bottom:22px;">正在動態載入 3D 資源...</div>
+        <div data-driving-ready style="font-size:13px; color:rgba(255,255,255,0.55); margin-bottom:22px;">${text.loading3d}</div>
 
         <button data-driving-start style="
           width:100%; min-height:58px; border:0; border-radius:16px;
@@ -427,9 +578,9 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
           transition: transform 0.12s, box-shadow 0.12s;
         " onmouseenter="this.style.transform='scale(1.02)'; this.style.boxShadow='0 6px 28px rgba(56, 189, 248, 0.45)';"
            onmouseleave="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 20px rgba(56, 189, 248, 0.35)';"
-        >開始送貨任務</button>
+        >${text.startMission}</button>
 
-        <div style="margin-top:14px; text-align:center; font-size:12px; color:rgba(255,255,255,0.42);">Enter 開始 · Esc 可提前結束並返回結果頁</div>
+        <div style="margin-top:14px; text-align:center; font-size:12px; color:rgba(255,255,255,0.42);">${text.startHint}</div>
       </div>
     `;
 
@@ -447,9 +598,9 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
       if (inputBars) {
         const input = this.readInput();
         inputBars.innerHTML = '';
-        inputBars.appendChild(this.createInputBar('方向', input.steering, -1, 1));
-        inputBars.appendChild(this.createInputBar('油門', input.throttle, 0, 1));
-        inputBars.appendChild(this.createInputBar('煞車', input.brake, 0, 1));
+        inputBars.appendChild(this.createInputBar(this.text.steering, input.steering, -1, 1));
+        inputBars.appendChild(this.createInputBar(this.text.throttle, input.throttle, 0, 1));
+        inputBars.appendChild(this.createInputBar(this.text.brake, input.brake, 0, 1));
         const device = document.createElement('div');
         device.style.fontSize = '12px';
         device.style.color = 'rgba(255,255,255,0.50)';
@@ -525,11 +676,11 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
   private attachGamepadListeners() {
     this.gamepadConnectedListener = (event: GamepadEvent) => {
       this.gamepadConnected = true;
-      if (this.hud?.event) this.hud.event.textContent = `已連接控制器：${event.gamepad.id}`;
+      if (this.hud?.event) this.hud.event.textContent = this.format(this.text.controllerConnected, { id: event.gamepad.id });
     };
     this.gamepadDisconnectedListener = () => {
       this.gamepadConnected = Array.from(navigator.getGamepads?.() ?? []).some(Boolean);
-      if (this.hud?.event && !this.gamepadConnected) this.hud.event.textContent = '控制器已中斷，改用鍵盤控制';
+      if (this.hud?.event && !this.gamepadConnected) this.hud.event.textContent = this.text.controllerDisconnected;
     };
     window.addEventListener('gamepadconnected', this.gamepadConnectedListener);
     window.addEventListener('gamepaddisconnected', this.gamepadDisconnectedListener);
@@ -593,12 +744,12 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
       textShadow: '0 2px 8px rgba(0,0,0,0.55)',
     });
 
-    const status = this.createHudChip('任務：A 點送貨至 B 點');
+    const status = this.createHudChip(this.text.taskDelivery);
     const speed = this.createHudChip('0 km/h');
     const distance = this.createHudChip('0 m');
     top.append(status, speed, distance);
 
-    const event = this.createHudChip('保持車道並注意突發事件');
+    const event = this.createHudChip(this.text.watchRoad);
     Object.assign(event.style, {
       position: 'absolute',
       top: '82px',
@@ -666,7 +817,7 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
         <polygon points="3 11 22 2 13 21 11 13 3 11"/>
       </svg>
-      <span>導航</span>
+      <span>${this.text.navigation}</span>
     `;
 
     // Direction instruction
@@ -681,7 +832,7 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
       background: 'rgba(56, 189, 248, 0.12)',
       borderBottom: '1px solid rgba(255,255,255,0.06)',
     });
-    dirLabel.textContent = '直行';
+    dirLabel.textContent = this.text.straight;
 
     // Canvas
     const canvas = document.createElement('canvas');
@@ -892,9 +1043,9 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
       if (nextInter) {
         const dist = Math.round(nextInter.distance - this.progress);
         const arrow = nextInter.turnDir === 'right' ? '➡️' : nextInter.turnDir === 'left' ? '⬅️' : '⬆️';
-        dirLabel.textContent = `${arrow} ${dist}m 後${nextInter.instruction}`;
+        dirLabel.textContent = `${arrow} ${this.format(this.text.turnAfterMeters, { dist, instruction: nextInter.instruction })}`;
       } else {
-        dirLabel.textContent = '⬆️ 直行抵達目的地';
+        dirLabel.textContent = `⬆️ ${this.text.straightToDestination}`;
       }
     }
   }
@@ -1224,14 +1375,12 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     });
     overlay.innerHTML = `
       <div style="display:grid; gap:14px; justify-items:center; padding:32px;">
-        <div style="font-size:clamp(54px, 10vw, 112px); line-height:0.9; font-weight:900; letter-spacing:0; color:#f87171; text-shadow:0 10px 40px rgba(248,113,113,0.32);">
-          GAME OVER
-        </div>
+        <div style="font-size:clamp(54px, 10vw, 112px); line-height:0.9; font-weight:900; letter-spacing:0; color:#f87171; text-shadow:0 10px 40px rgba(248,113,113,0.32);">${this.text.timeUp}</div>
         <div style="font-size:18px; font-weight:700; color:rgba(255,255,255,0.88);">
-          任務時間已到，尚未抵達終點
+          ${this.text.timeoutMessage}
         </div>
         <div style="font-size:14px; color:rgba(255,255,255,0.58);">
-          點擊畫面任一處查看成績
+          ${this.text.timeoutHint}
         </div>
       </div>
     `;
@@ -1347,7 +1496,7 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
         inter.announced = true;
         if (this.hud && inter.turnDir) {
           const arrow = inter.turnDir === 'right' ? '→' : '←';
-          this.hud.status.textContent = `導航：前方路口請${inter.instruction} ${arrow}`;
+          this.hud.status.textContent = this.format(this.text.upcomingTurn, { instruction: inter.instruction, arrow });
         }
       }
 
@@ -1368,6 +1517,7 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
       this.hazardPool = [...this.hazardTemplates].sort(() => Math.random() - 0.5);
     }
     const template = this.hazardPool.pop()!;
+    const hazardLabel = this.getHazardLabel(template.id);
     this.hazardSpawnCount++;
 
     const input = this.readInput();
@@ -1385,7 +1535,7 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     const preheldBrake = input.brake > 0.35;
     const result: DrivingEventResult = {
       event_id: template.id,
-      label: template.label,
+      label: hazardLabel,
       distance_m: Math.round(this.progress),
       rt_ms: null,
       valid: !preheldBrake,
@@ -1416,7 +1566,7 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     this.activeHazards.push(hazard);
     this.eventResults.push(result);
     this.flashRed();
-    if (this.hud) this.hud.event.textContent = template.label;
+    if (this.hud) this.hud.event.textContent = hazardLabel;
 
     // Schedule next hazard
     const { minHazardInterval, maxHazardInterval } = this.difficultyPreset;
@@ -1512,13 +1662,17 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     }
 
     if (this.hud) {
-      const rtText = hazard.rt !== null ? `${hazard.rt} ms` : '無有效 RT';
+      const rtText = hazard.rt !== null ? `${hazard.rt} ms` : this.text.noValidRt;
       const outcome = collision
-        ? '碰撞'
+        ? this.text.collision
         : response === 'dodge' || response === 'dodge-after-brake'
-          ? '閃避通過'
-          : '已煞停';
-      this.hud.event.textContent = `${hazard.template.label}：${outcome} / ${rtText}`;
+          ? this.text.dodged
+          : this.text.stopped;
+      this.hud.event.textContent = this.format(this.text.hazardResult, {
+        label: hazard.result.label,
+        outcome,
+        rtText,
+      });
     }
   }
 
@@ -1613,7 +1767,12 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     hazard.result.rt_ms = hazard.rt;
     hazard.result.response = 'brake';
     hazard.result.valid = true;
-    if (this.hud) this.hud.event.textContent = `${hazard.template.label}：煞車反應 ${hazard.rt} ms`;
+    if (this.hud) {
+      this.hud.event.textContent = this.format(this.text.brakeReaction, {
+        label: hazard.result.label,
+        rt: hazard.rt,
+      });
+    }
   }
 
   /* ================================================================
@@ -1736,10 +1895,14 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     if (nextInter && nextInter.turnDir) {
       const dist = Math.round(nextInter.distance - this.progress);
       const arrow = nextInter.turnDir === 'right' ? '→' : '←';
-      this.hud.status.textContent = `導航：${dist}m 後${nextInter.instruction} ${arrow} · 剩餘 ${remaining}s`;
+      this.hud.status.textContent = this.format(this.text.navTurn, {
+        dist,
+        instruction: nextInter.instruction,
+        arrow,
+        remaining,
+      });
     } else {
-      const instruction = '直行';
-      this.hud.status.textContent = `導航：${instruction} · 剩餘 ${remaining}s`;
+      this.hud.status.textContent = this.format(this.text.navStraight, { remaining });
     }
     this.hud.speed.textContent = `${Math.round(this.vehicleSpeed * 3.6)} km/h`;
     this.hud.distance.textContent = `${Math.max(0, Math.round(this.routeLength - this.progress))} m`;
@@ -1789,16 +1952,55 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
   }
 
   private getInputDeviceText(input: DrivingInput): string {
-    if (this.controlMode === 'arrow') return '目前控制方式：方向鍵';
-    if (this.controlMode === 'wasd') return '目前控制方式：WASD';
-    if (!('getGamepads' in navigator)) return '此瀏覽器不支援 Gamepad API，將使用鍵盤控制。';
-    if (input.gamepadName) return `Gamepad API 已接入：${input.gamepadName}`;
-    if (this.gamepadConnected) return 'Gamepad API 已接入，等待控制器輸入。';
-    return '等待 USB 外接方向盤輸入。';
+    if (this.controlMode === 'arrow') return this.text.controlArrow;
+    if (this.controlMode === 'wasd') return this.text.controlWasd;
+    if (!('getGamepads' in navigator)) return this.text.gamepadUnsupported;
+    if (input.gamepadName) return this.format(this.text.gamepadConnected, { id: input.gamepadName });
+    if (this.gamepadConnected) return this.text.gamepadWaiting;
+    return this.text.wheelWaiting;
   }
 
   private getControlMode(value: unknown): DrivingControlMode {
     return value === 'wasd' || value === 'wheel' ? value : 'arrow';
+  }
+
+  private getLanguage(value: unknown): DrivingLanguage {
+    return value === 'en' ? 'en' : 'zh';
+  }
+
+  private getDifficultyLabel(): string {
+    if (this.difficultyPreset === DIFFICULTY_PRESETS.advanced) return this.text.difficultyAdvanced;
+    if (this.difficultyPreset === DIFFICULTY_PRESETS.intermediate) return this.text.difficultyIntermediate;
+    return this.text.difficultyBeginner;
+  }
+
+  private getSteeringHint(): string {
+    if (this.controlMode === 'wasd') return this.text.wasdSteerHint;
+    if (this.controlMode === 'wheel') return this.text.wheelSteerHint;
+    return this.text.arrowSteerHint;
+  }
+
+  private getThrottleHint(): string {
+    if (this.controlMode === 'wasd') return this.text.wasdThrottleHint;
+    if (this.controlMode === 'wheel') return this.text.wheelThrottleHint;
+    return this.text.arrowThrottleHint;
+  }
+
+  private getBrakeHint(): string {
+    if (this.controlMode === 'wasd') return this.text.wasdBrakeHint;
+    if (this.controlMode === 'wheel') return this.text.wheelBrakeHint;
+    return this.text.arrowBrakeHint;
+  }
+
+  private getHazardLabel(id: HazardId): string {
+    return this.text.hazardLabels[id];
+  }
+
+  private format(template: string, params: Record<string, string | number>): string {
+    return Object.entries(params).reduce(
+      (text, [key, value]) => text.replace(new RegExp(`{${key}}`, 'g'), String(value)),
+      template,
+    );
   }
 
   private normalizePedalAxis(value: number): number {
@@ -1897,9 +2099,9 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
   }
 
   private getTurnInstruction(turnDir: 'left' | 'right' | null): string {
-    if (turnDir === 'left') return '左轉';
-    if (turnDir === 'right') return '右轉';
-    return '直行';
+    if (turnDir === 'left') return this.text.turnLeft;
+    if (turnDir === 'right') return this.text.turnRight;
+    return this.text.straight;
   }
 
   /* ================================================================
@@ -1937,7 +2139,7 @@ class ThreeDrivingRehabPlugin implements JsPsychPlugin<Info> {
     this.jsPsych.finishTrial({
       rt: averageRt,
       correct: response === 'completed' && collisions === 0,
-      target: 'Delivery A to B',
+      target: this.text.deliveryTarget,
       response,
       duration_ms: duration > 0 ? duration : trial.duration_ms,
       average_rt: averageRt,

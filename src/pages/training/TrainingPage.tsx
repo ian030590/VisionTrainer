@@ -139,6 +139,7 @@ export function TrainingPage() {
           redFlashEnabled: drivingRedFlashEnabled,
           difficulty: drivingDifficulty,
           controlMode: drivingControlMode,
+          language: lang,
         },
       }) as any);
     };
