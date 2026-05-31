@@ -8,7 +8,7 @@ export const en: Record<TranslationKey, string> = {
   'nav.credits': 'Credits',
   'nav.noUser': 'No User Selected',
   'nav.downloadScores': 'Download Scores',
-  'nav.scoresBackupReminder': 'Records stay in this browser. Download backups regularly.',
+  'nav.scoresBackupReminder': 'Records stay in this browser. \nDownload backups regularly.',
   'nav.noScores': 'No saved training scores are available yet.',
 
   // Common Buttons & Actions
