@@ -6,7 +6,7 @@ export const zh = {
   'nav.credits': '致謝',
   'nav.noUser': '未選擇使用者',
   'nav.downloadScores': '下載成績',
-  'nav.scoresBackupReminder': '由於資料儲存在您的當前瀏覽器中，建議定期點擊「下載成績」按鈕備份至電腦硬碟，以免瀏覽器快取被清除時資料遺失。',
+  'nav.scoresBackupReminder': '成績只保存在此瀏覽器，請定期下載備份。',
   'nav.noScores': '目前沒有可下載的訓練成績。',
 
   // Common Buttons & Actions
