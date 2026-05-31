@@ -140,11 +140,38 @@ html, body, #root {
   gap: 24px;
 }
 
+.navbar-tools {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.navbar-records {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 560px;
+}
+
+.navbar-download-btn {
+  min-height: 40px;
+  padding: 8px 14px;
+  border-radius: var(--radius-m);
+  flex: 0 0 auto;
+}
+
+.navbar-backup-reminder {
+  max-width: 430px;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
 .navbar-overlay {
   display: none;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1120px) {
   .navbar {
     padding: 0 20px;
   }
@@ -190,6 +217,31 @@ html, body, #root {
   .navbar-links {
     flex-direction: column;
     width: 100%;
+  }
+
+  .navbar-tools {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+    width: 100%;
+  }
+
+  .navbar-records {
+    flex-direction: column;
+    align-items: flex-start;
+    max-width: none;
+    width: 100%;
+  }
+
+  .navbar-download-btn {
+    width: 100%;
+  }
+
+  .navbar-backup-reminder {
+    display: block;
+    max-width: none;
+    font-size: 13px;
+    line-height: 1.5;
   }
 
   .navbar-link {

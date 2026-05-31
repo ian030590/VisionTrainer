@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { ACTIVE_USER_CHANGED_EVENT, getActiveUser } from '../utils/settings';
+import { downloadAllTrainingRecordsCsv } from '../utils/trainingRecords';
 import { useT } from '../i18n';
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) => `navbar-link ${isActive ? 'active' : ''}`;
@@ -23,6 +24,13 @@ export function Navbar() {
 
   const toggleMenu = () => setIsOpen((open) => !open);
   const closeMenu = () => setIsOpen(false);
+  const handleDownloadScores = () => {
+    const downloaded = downloadAllTrainingRecordsCsv(t);
+    if (!downloaded) {
+      window.alert(t('nav.noScores'));
+    }
+    closeMenu();
+  };
 
   return (
     <nav className="navbar">
@@ -82,15 +90,24 @@ export function Navbar() {
             </NavLink>
           </div>
 
-          <div className="navbar-user">
-            {user ? (
-              <>
-                <span className="navbar-user-dot" />
-                <span>{user}</span>
-              </>
-            ) : (
-              <span style={{ color: 'var(--warning)' }}>{t('nav.noUser')}</span>
-            )}
+          <div className="navbar-tools">
+            <div className="navbar-records">
+              <button type="button" className="btn btn-primary btn-sm navbar-download-btn" onClick={handleDownloadScores}>
+                {t('nav.downloadScores')}
+              </button>
+              <span className="navbar-backup-reminder">{t('nav.scoresBackupReminder')}</span>
+            </div>
+
+            <div className="navbar-user">
+              {user ? (
+                <>
+                  <span className="navbar-user-dot" />
+                  <span>{user}</span>
+                </>
+              ) : (
+                <span style={{ color: 'var(--warning)' }}>{t('nav.noUser')}</span>
+              )}
+            </div>
           </div>
         </div>
       </div>

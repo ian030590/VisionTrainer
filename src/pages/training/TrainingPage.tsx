@@ -12,6 +12,7 @@ import {
   isDrivingControlMode,
 } from '../../utils/settings';
 import { SoundManager } from '../../utils/soundManager';
+import { saveTrainingRecord } from '../../utils/trainingRecords';
 import { downloadTrainingCsv } from './exportCsv';
 import {
   isOculomotorMode,
@@ -96,6 +97,34 @@ export function TrainingPage() {
         extensions: enableWebGazer ? [{ type: WebGazerExtension }] : [],
         on_finish: () => {
           const data = jsPsych.data.get().values() as TrialData[];
+          saveTrainingRecord({
+            results: data,
+            userName,
+            moduleId,
+            difficulty: moduleId === 'driving-rehab' ? drivingDifficulty : difficulty,
+            oculomotorMode,
+            oculomotorPattern,
+            config: {
+              totalRounds,
+              oculomotorMode,
+              oculomotorPattern,
+              oculomotorDurationSec,
+              oculomotorSpeedDegPerSec,
+              oculomotorTargetSizeMm,
+              oculomotorDistractorCount: Number.isFinite(oculomotorDistractorCount)
+                ? oculomotorDistractorCount
+                : getSetting('oculomotorDistractorCount'),
+              gaborDurationSec,
+              gaborMaxSpots,
+              readingWPS: getSetting('readingWPS'),
+              readingCrowding: getSetting('readingCrowding'),
+              readingContrast: getSetting('readingContrast'),
+              drivingDurationSec,
+              drivingRedFlashEnabled,
+              drivingDifficulty,
+              drivingControlMode,
+            },
+          });
           SoundManager.destroy();
           setResults(data);
           jsPsychRef.current = null;
@@ -175,6 +204,7 @@ export function TrainingPage() {
     drivingRedFlashEnabled,
     drivingDifficulty,
     drivingControlMode,
+    userName,
     lang,
   ]);
 
