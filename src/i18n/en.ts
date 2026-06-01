@@ -6,6 +6,7 @@ export const en: Record<TranslationKey, string> = {
   'nav.assessment': 'Visual Assessment',
   'nav.settings': 'Settings',
   'nav.credits': 'Credits',
+  'nav.links': 'Related Sites',
   'nav.noUser': 'No User Selected',
   'nav.downloadScores': 'Download Scores',
   'nav.scoresBackupReminder': 'Records stay in this browser. \nDownload backups regularly.',
@@ -397,4 +398,10 @@ export const en: Record<TranslationKey, string> = {
   'assess.contrast.desc': 'Measure your contrast sensitivity function',
   'assess.contrast.resultsTitle': 'Contrast Sensitivity Results',
   'common.back': 'Back',
+
+  // Links Page
+  'links.title': 'Related Websites',
+  'links.subtitle': 'Other useful vision training and related resource websites',
+  'links.strokeTrainer.title': 'StrokeTrainer',
+  'links.strokeTrainer.desc': 'Stroke rehabilitation training platform with various rehab exercise tools',
 };

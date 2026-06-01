@@ -88,6 +88,13 @@ export function Navbar() {
             >
               {t('nav.credits')}
             </NavLink>
+            <NavLink
+              to="/links"
+              className={navLinkClass}
+              onClick={closeMenu}
+            >
+              {t('nav.links')}
+            </NavLink>
           </div>
 
           <div className="navbar-tools">

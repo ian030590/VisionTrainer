@@ -4,6 +4,7 @@ export const zh = {
   'nav.assessment': '視覺評估',
   'nav.settings': '設定與校正',
   'nav.credits': '致謝',
+  'nav.links': '相關網站',
   'nav.noUser': '未選擇使用者',
   'nav.downloadScores': '下載成績',
   'nav.scoresBackupReminder': '成績只保存在此瀏覽器，\n請定期下載備份。',
@@ -395,6 +396,12 @@ export const zh = {
   'assess.contrast.desc': '測量您的對比敏感度函數',
   'assess.contrast.resultsTitle': '對比敏感度結果',
   'common.back': '返回',
+
+  // Links Page
+  'links.title': '相關網站',
+  'links.subtitle': '其他實用的視覺訓練與相關資源網站',
+  'links.strokeTrainer.title': 'StrokeTrainer',
+  'links.strokeTrainer.desc': '中風復健訓練平台，提供多種復健練習工具',
 };
 
 export type TranslationKey = keyof typeof zh;

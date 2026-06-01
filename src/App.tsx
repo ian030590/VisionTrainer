@@ -9,6 +9,7 @@ const AssessmentPage = lazy(() => import('./pages/assessment/AssessmentPage').th
 const AcuityTestPage = lazy(() => import('./pages/assessment/AcuityTestPage').then((module) => ({ default: module.AcuityTestPage })));
 const ContrastTestPage = lazy(() => import('./pages/assessment/ContrastTestPage').then((module) => ({ default: module.ContrastTestPage })));
 const CreditsPage = lazy(() => import('./pages/credits/CreditsPage').then((module) => ({ default: module.CreditsPage })));
+const LinksPage = lazy(() => import('./pages/links/LinksPage').then((module) => ({ default: module.LinksPage })));
 
 export function App() {
   return (
@@ -23,6 +24,7 @@ export function App() {
           <Route path="/assessment" element={<AssessmentPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/credits" element={<CreditsPage />} />
+          <Route path="/links" element={<LinksPage />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />
