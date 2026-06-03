@@ -274,9 +274,18 @@ export function drawSloanLetter(
   strokePx: number,
   letterIndex: SloanLetterIndex,
 ) {
+  const letter = SLOAN_LETTERS[letterIndex];
+  const fontSize = Math.max(1, strokePx * 5);
+
   ctx.save();
-  ctx.translate(cx, cy);
-  SLOAN_DRAWERS[letterIndex](ctx, strokePx);
+  ctx.fillStyle = FORE;
+  ctx.font = `700 ${fontSize}px Arial, Helvetica, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'alphabetic';
+
+  const metrics = ctx.measureText(letter);
+  const visualCenterY = (metrics.actualBoundingBoxAscent - metrics.actualBoundingBoxDescent) / 2;
+  ctx.fillText(letter, cx, cy + visualCenterY);
   ctx.restore();
 }
 

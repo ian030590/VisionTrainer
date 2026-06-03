@@ -1436,6 +1436,39 @@ body #webgazer-calibrate-container #calibration-point {
   max-width: 400px;
 }
 
+.key-hints-pictures {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(112px, 1fr));
+  gap: 8px;
+  width: min(280px, 100%);
+}
+
+.picture-key-hint {
+  min-height: 42px;
+  border-radius: var(--radius-m);
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.picture-key-number {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(79, 195, 247, 0.15);
+  color: var(--accent);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
 .key-hint {
   width: 52px;
   height: 52px;
@@ -1498,6 +1531,17 @@ body #webgazer-calibrate-container #calibration-point {
   transform: translateX(-50%);
   display: flex;
   gap: 6px;
+  pointer-events: auto;
+}
+
+.touch-btn-pictures {
+  position: fixed;
+  right: 14px;
+  bottom: 14px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+  min-width: 132px;
   pointer-events: auto;
 }
 
@@ -1568,6 +1612,51 @@ body #webgazer-calibrate-container #calibration-point {
 
 .letter-btn:active {
   transform: scale(0.95);
+}
+
+.picture-choice-btn {
+  min-height: 30px;
+  border-radius: var(--radius-m);
+  border: 1px solid var(--acuity-overlay-border);
+  background: var(--acuity-overlay-bg);
+  color: var(--acuity-overlay-color);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px 4px 6px;
+  font-size: var(--acuity-overlay-font-size);
+  font-weight: 700;
+  line-height: 1.1;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: all var(--transition-fast);
+}
+
+.picture-choice-btn:hover {
+  border-color: rgba(75, 85, 99, 0.42);
+  background: rgba(255, 255, 255, 0.28);
+  color: rgba(75, 85, 99, 0.72);
+  transform: scale(1.03);
+}
+
+.picture-choice-btn:active {
+  transform: scale(0.97);
+}
+
+.picture-choice-key {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--acuity-overlay-border);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.picture-choice-name {
+  white-space: nowrap;
 }
 
 /* Abort button */

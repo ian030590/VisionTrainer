@@ -13,6 +13,18 @@ import { pixiColors } from '../theme';
 
 const DEFAULT_TRIAL_CONTAINER_STYLE = 'width:100%;height:100%;position:absolute;top:0;left:0;overflow:hidden;';
 
+function getRenderSize(container: HTMLElement): { width: number; height: number } {
+  const rect = container.getBoundingClientRect();
+  const parentRect = container.parentElement?.getBoundingClientRect();
+  const width = container.clientWidth || rect.width || parentRect?.width || window.innerWidth;
+  const height = container.clientHeight || rect.height || parentRect?.height || window.innerHeight;
+
+  return {
+    width: Math.max(1, Math.round(width)),
+    height: Math.max(1, Math.round(height)),
+  };
+}
+
 class PixiAppManager {
   private static instance: PixiAppManager;
   private app: Application | null = null;
@@ -63,7 +75,11 @@ class PixiAppManager {
     try {
       (this.app as any).resizeTo = container;
     } catch { /* fallback below */ }
-    this.app.renderer.resize(container.clientWidth, container.clientHeight);
+    this.resizeToContainer(container);
+
+    window.requestAnimationFrame(() => {
+      if (canvas.parentElement === container) this.resizeToContainer(container);
+    });
   }
 
   /** Destroy all children from the stage (frees GPU texture memory). */
@@ -113,6 +129,12 @@ class PixiAppManager {
       this.initPromise = null;
       throw error;
     }
+  }
+
+  private resizeToContainer(container: HTMLElement): void {
+    if (!this.app) return;
+    const { width, height } = getRenderSize(container);
+    this.app.renderer.resize(width, height);
   }
 }
 

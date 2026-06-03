@@ -25,6 +25,52 @@ import type { TrialData } from './types';
 
 type Phase = 'running' | 'results';
 
+const TRAINING_LAYOUT_WAIT_TIMEOUT_MS = 800;
+
+function hasUsableLayout(element: HTMLElement): boolean {
+  const rect = element.getBoundingClientRect();
+  return element.isConnected && rect.width > 0 && rect.height > 0;
+}
+
+function waitForUsableLayout(element: HTMLElement): Promise<void> {
+  return new Promise((resolve) => {
+    let done = false;
+    let observer: ResizeObserver | null = null;
+    let frameId = 0;
+    let timeoutId = 0;
+
+    const cleanup = () => {
+      if (frameId) window.cancelAnimationFrame(frameId);
+      if (timeoutId) window.clearTimeout(timeoutId);
+      observer?.disconnect();
+    };
+
+    const finish = () => {
+      if (done) return;
+      done = true;
+      cleanup();
+      resolve();
+    };
+
+    const check = () => {
+      if (done) return;
+      if (!hasUsableLayout(element)) {
+        frameId = window.requestAnimationFrame(check);
+        return;
+      }
+      frameId = window.requestAnimationFrame(finish);
+    };
+
+    frameId = window.requestAnimationFrame(check);
+    timeoutId = window.setTimeout(finish, TRAINING_LAYOUT_WAIT_TIMEOUT_MS);
+
+    if (typeof ResizeObserver !== 'undefined') {
+      observer = new ResizeObserver(check);
+      observer.observe(element);
+    }
+  });
+}
+
 export function TrainingPage() {
   const { t, lang } = useT();
   const navigate = useNavigate();
@@ -88,6 +134,9 @@ export function TrainingPage() {
     let cancelled = false;
 
     const setupExperiment = async () => {
+      await waitForUsableLayout(container);
+      if (cancelled) return;
+
       const storyData = moduleId === 'reading-training'
         ? getRandomStory(lang) || undefined
         : undefined;

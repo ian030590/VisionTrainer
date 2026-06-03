@@ -44,6 +44,8 @@ type Phase = 'intro' | 'isi' | 'stimulus' | 'results';
 const ACUITY_OVERLAY_FONT_SIZE = 12;
 const MID_LUMINANCE = 0.5;
 const DEFAULT_ACUITY_BACKGROUND = '#FFFFFF';
+const VALID_TEST_TYPES: TestType[] = ['landolt', 'tumblingE', 'letters', 'pictures', 'gratings', 'contrast'];
+const PICTURE_KEY_LABELS = ['1', '2', '3', '4'] as const;
 
 interface TrialRecord {
   trial: number;
@@ -69,6 +71,10 @@ interface GazeDecisionMeta {
   leftSamples?: number;
   rightSamples?: number;
   totalSamples?: number;
+}
+
+function isTestType(value: string | null): value is TestType {
+  return value !== null && VALID_TEST_TYPES.includes(value as TestType);
 }
 
 function prepareAcuityCanvas(canvas: HTMLCanvasElement) {
@@ -141,9 +147,11 @@ export function AcuityTestPage() {
   const { t } = useT();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const testType = (searchParams.get('type') || 'landolt') as TestType;
+  const requestedTestType = searchParams.get('type') || searchParams.get('test');
+  const testType = isTestType(requestedTestType) ? requestedTestType : 'landolt';
   const totalTrials = parseInt(searchParams.get('trials') || '18', 10);
-  const requestedResponseMode = searchParams.get('responseMode') || getSetting('preferentialLookingInputMode');
+  const requestedResponseMode =
+    searchParams.get('responseMode') || searchParams.get('mode') || getSetting('preferentialLookingInputMode');
   const responseMode: 'keyboard' | 'webgazer' =
     requestedResponseMode === 'webgazer' ? 'webgazer' : 'keyboard';
   const isWebGazerPL = testType === 'gratings' && responseMode === 'webgazer';
@@ -501,7 +509,7 @@ export function AcuityTestPage() {
 
         case 'pictures':
           const picturesKeyMap: Record<string, number> = {
-            ArrowRight: 0, '6': 0, ArrowUp: 1, '8': 1, ArrowLeft: 2, '4': 2, ArrowDown: 3, '2': 3,
+            '1': 0, '2': 1, '3': 2, '4': 3,
           };
           responseIdx = picturesKeyMap[e.key] ?? -1;
           break;
@@ -813,13 +821,23 @@ function getKeyHints(t: TestType, tFunc: any): React.ReactNode {
         </div>
       );
     case 'tumblingE':
-    case 'pictures':
       return (
         <div className="key-hints-grid-4">
           <div className="key-hint" style={{ gridColumn: 2, gridRow: 1 }}>↑</div>
           <div className="key-hint" style={{ gridColumn: 1, gridRow: 2 }}>←</div>
           <div className="key-hint" style={{ gridColumn: 3, gridRow: 2 }}>→</div>
           <div className="key-hint" style={{ gridColumn: 2, gridRow: 3 }}>↓</div>
+        </div>
+      );
+    case 'pictures':
+      return (
+        <div className="key-hints-pictures">
+          {PICTURE_NAMES.map((name, idx) => (
+            <div key={name} className="picture-key-hint">
+              <span className="picture-key-number">{PICTURE_KEY_LABELS[idx]}</span>
+              <span>{name}</span>
+            </div>
+          ))}
         </div>
       );
     case 'letters':
@@ -865,13 +883,27 @@ function renderTouchButtons(testType: TestType, onResponse: (idx: number) => voi
         </div>
       );
     case 'tumblingE':
-    case 'pictures':
       return (
         <div className="touch-btn-cross">
           <button className="direction-btn dir-up" onClick={() => onResponse(1)}>↑</button>
           <button className="direction-btn dir-left" onClick={() => onResponse(2)}>←</button>
           <button className="direction-btn dir-right" onClick={() => onResponse(0)}>→</button>
           <button className="direction-btn dir-down" onClick={() => onResponse(3)}>↓</button>
+        </div>
+      );
+    case 'pictures':
+      return (
+        <div className="touch-btn-pictures">
+          {PICTURE_NAMES.map((name, idx) => (
+            <button
+              key={name}
+              className="picture-choice-btn"
+              onClick={() => onResponse(idx)}
+            >
+              <span className="picture-choice-key">{PICTURE_KEY_LABELS[idx]}</span>
+              <span className="picture-choice-name">{name}</span>
+            </button>
+          ))}
         </div>
       );
     case 'letters':
@@ -904,7 +936,7 @@ function formatAlternative(testType: TestType, idx: number, tFunc: any): string 
     case 'letters':
       return SLOAN_LETTERS[idx] || String(idx);
     case 'pictures':
-      return PICTURE_NAMES[idx] || String(idx);
+      return PICTURE_NAMES[idx] ? `${idx + 1} ${PICTURE_NAMES[idx]}` : String(idx);
     case 'gratings':
       return idx === 0 ? tFunc('acuity.lbl.left') : tFunc('acuity.lbl.right');
     default:

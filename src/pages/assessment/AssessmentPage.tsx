@@ -129,11 +129,11 @@ export function AssessmentPage() {
   const handleStartTest = () => {
     if (!expandedTest || !activeUser) return;
     const params = new URLSearchParams({
-      test: expandedTest,
+      type: expandedTest,
       trials: localTrials.toString(),
     });
     if (expandedTest === 'gratings') {
-      params.set('mode', plInputMode);
+      params.set('responseMode', plInputMode);
     }
     
     if (expandedTest === 'contrast') {
