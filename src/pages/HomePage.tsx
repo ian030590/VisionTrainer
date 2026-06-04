@@ -24,6 +24,18 @@ import type { TrainingModuleId } from './home/trainingModules';
 import type { OculomotorPattern, OculomotorTargetShape } from './training/oculomotor/types';
 import type { DrivingControlMode } from '../utils/settings';
 
+function preloadTrainingRoute(): Promise<unknown> {
+  return import('./training/TrainingPage');
+}
+
+function preloadTrainingEngine(moduleId: TrainingModuleId): Promise<unknown> {
+  if (moduleId === 'driving-rehab') {
+    return import('../experiment/plugins/three-driving-rehab');
+  }
+
+  return pixiAppManager.warmUp();
+}
+
 export function HomePage() {
   const { t } = useT();
   const navigate = useNavigate();
@@ -62,6 +74,8 @@ export function HomePage() {
   const [drivingDifficulty, setDrivingDifficulty] = usePersistedSetting('drivingDifficulty');
   const [drivingControlMode, setDrivingControlMode] = usePersistedSetting('drivingControlMode');
   const [prewarmed, setPrewarmed] = useState(() => pixiAppManager.ready);
+  const [isStartingTraining, setIsStartingTraining] = useState(false);
+  const startTrainingButtonLabel = isStartingTraining ? t('btn.preparingTraining') : t('btn.startTraining');
 
   const refreshUsers = useCallback(() => {
     setUsersState(getUsers());
@@ -90,28 +104,23 @@ export function HomePage() {
     }
   };
 
-  // Warm up the selected training engine when a module panel expands.
+  // Preload the route chunk shortly after the home page is interactive.
+  useEffect(() => {
+    const timerId = window.setTimeout(() => {
+      void preloadTrainingRoute();
+    }, 0);
+    return () => window.clearTimeout(timerId);
+  }, []);
+
+  // Warm up the selected training route and engine when a module panel expands.
   useEffect(() => {
     if (!expandedModule) return;
-    if (expandedModule === 'driving-rehab') {
-      setPrewarmed(false);
-      let cancelled = false;
-      import('../experiment/plugins/three-driving-rehab')
-        .then(() => {
-          if (!cancelled) setPrewarmed(true);
-        })
-        .catch(() => {
-          if (!cancelled) setPrewarmed(false);
-        });
-      return () => { cancelled = true; };
-    }
-    if (pixiAppManager.ready) {
-      setPrewarmed(true);
-      return;
-    }
     setPrewarmed(false);
     let cancelled = false;
-    pixiAppManager.warmUp().then(() => {
+    Promise.all([
+      preloadTrainingRoute(),
+      preloadTrainingEngine(expandedModule),
+    ]).then(() => {
       if (!cancelled) setPrewarmed(true);
     }).catch(() => {
       if (!cancelled) setPrewarmed(false);
@@ -121,6 +130,7 @@ export function HomePage() {
 
   // ── Handlers ──
   const handleCardClick = (moduleId: TrainingModuleId) => {
+    if (isStartingTraining) return;
     if (!activeUser) {
       alert(t('home.pleaseSelectUser'));
       return;
@@ -128,16 +138,32 @@ export function HomePage() {
     setExpandedModule(expandedModule === moduleId ? null : moduleId);
   };
 
-  const handleStartTraining = () => {
-    if (!expandedModule || !activeUser) return;
+  const handleStartTraining = async () => {
+    if (!expandedModule || !activeUser || isStartingTraining) return;
+    const moduleToStart = expandedModule;
+    setIsStartingTraining(true);
     SoundManager.init();
+
+    try {
+      await Promise.all([
+        preloadTrainingRoute(),
+        preloadTrainingEngine(moduleToStart),
+      ]);
+    } catch (error) {
+      console.error('Training preload failed:', error);
+      setPrewarmed(false);
+      setIsStartingTraining(false);
+      alert(t('home.trainingLoadError'));
+      return;
+    }
+
     const params = new URLSearchParams({
-      module: expandedModule,
+      module: moduleToStart,
       difficulty: localDifficulty,
       rounds: String(localRounds),
     });
 
-    if (expandedModule === 'oculomotor-training') {
+    if (moduleToStart === 'oculomotor-training') {
       params.set('mode', oculomotorMode);
       params.set('pattern', oculomotorPattern);
       params.set('duration', String(oculomotorDurationSec));
@@ -149,22 +175,22 @@ export function HomePage() {
       params.set('shape', oculomotorTargetShape);
     }
 
-    if (expandedModule === 'gabor-patching') {
+    if (moduleToStart === 'gabor-patching') {
       navigate(`/training?module=gabor-patching&duration=${gaborDurationSec}&difficulty=${localDifficulty}&maxSpots=${gaborMaxSpots}`);
       return;
     }
 
-    if (expandedModule === 'moving-card') {
+    if (moduleToStart === 'moving-card') {
       navigate(`/training?module=moving-card&difficulty=${localDifficulty}`);
       return;
     }
 
-    if (expandedModule === 'reading-training') {
+    if (moduleToStart === 'reading-training') {
       navigate('/training?module=reading-training');
       return;
     }
 
-    if (expandedModule === 'driving-rehab') {
+    if (moduleToStart === 'driving-rehab') {
       navigate(`/training?module=driving-rehab&duration=${drivingDurationSec}&redFlash=${drivingRedFlashEnabled}&drivingDifficulty=${drivingDifficulty}&controlMode=${drivingControlMode}`);
       return;
     }
@@ -425,14 +451,16 @@ export function HomePage() {
             {/* Actions */}
             <div className="config-actions">
               <button
-                className="btn btn-primary btn-lg config-start-btn"
+                className={`btn btn-primary btn-lg config-start-btn ${isStartingTraining ? 'is-loading' : ''}`}
+                disabled={isStartingTraining}
+                aria-busy={isStartingTraining}
                 onClick={(e) => { e.stopPropagation(); handleStartTraining(); }}
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                   <polygon points="5,3 19,12 5,21" />
                 </svg>
-                {t('btn.startTraining')}
-                {prewarmed && <span className="ready-dot" />}
+                {startTrainingButtonLabel}
+                {isStartingTraining ? <span className="loading-dot" /> : prewarmed && <span className="ready-dot" />}
               </button>
               <button
                 className="btn btn-ghost btn-lg"
@@ -746,14 +774,16 @@ export function HomePage() {
 
             <div className="config-actions">
               <button
-                className="btn btn-primary btn-lg config-start-btn"
+                className={`btn btn-primary btn-lg config-start-btn ${isStartingTraining ? 'is-loading' : ''}`}
+                disabled={isStartingTraining}
+                aria-busy={isStartingTraining}
                 onClick={(e) => { e.stopPropagation(); handleStartTraining(); }}
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                   <polygon points="5,3 19,12 5,21" />
                 </svg>
-                {t('btn.startTraining')}
-                {prewarmed && <span className="ready-dot" />}
+                {startTrainingButtonLabel}
+                {isStartingTraining ? <span className="loading-dot" /> : prewarmed && <span className="ready-dot" />}
               </button>
               <button
                 className="btn btn-ghost btn-lg"
@@ -849,14 +879,16 @@ export function HomePage() {
 
             <div className="config-actions">
               <button
-                className="btn btn-primary btn-lg config-start-btn"
+                className={`btn btn-primary btn-lg config-start-btn ${isStartingTraining ? 'is-loading' : ''}`}
+                disabled={isStartingTraining}
+                aria-busy={isStartingTraining}
                 onClick={(e) => { e.stopPropagation(); handleStartTraining(); }}
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                   <polygon points="5,3 19,12 5,21" />
                 </svg>
-                {t('btn.startTraining')}
-                {prewarmed && <span className="ready-dot" />}
+                {startTrainingButtonLabel}
+                {isStartingTraining ? <span className="loading-dot" /> : prewarmed && <span className="ready-dot" />}
               </button>
               <button
                 className="btn btn-ghost btn-lg"
@@ -934,14 +966,16 @@ export function HomePage() {
 
             <div className="config-actions">
               <button
-                className="btn btn-primary btn-lg config-start-btn"
+                className={`btn btn-primary btn-lg config-start-btn ${isStartingTraining ? 'is-loading' : ''}`}
+                disabled={isStartingTraining}
+                aria-busy={isStartingTraining}
                 onClick={(e) => { e.stopPropagation(); handleStartTraining(); }}
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                   <polygon points="5,3 19,12 5,21" />
                 </svg>
-                {t('btn.startTraining')}
-                {prewarmed && <span className="ready-dot" />}
+                {startTrainingButtonLabel}
+                {isStartingTraining ? <span className="loading-dot" /> : prewarmed && <span className="ready-dot" />}
               </button>
               <button
                 className="btn btn-ghost btn-lg"
@@ -1049,14 +1083,16 @@ export function HomePage() {
 
             <div className="config-actions">
               <button
-                className="btn btn-primary btn-lg config-start-btn"
+                className={`btn btn-primary btn-lg config-start-btn ${isStartingTraining ? 'is-loading' : ''}`}
+                disabled={isStartingTraining}
+                aria-busy={isStartingTraining}
                 onClick={(e) => { e.stopPropagation(); handleStartTraining(); }}
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                   <polygon points="5,3 19,12 5,21" />
                 </svg>
-                {t('btn.startTraining')}
-                {prewarmed && <span className="ready-dot" />}
+                {startTrainingButtonLabel}
+                {isStartingTraining ? <span className="loading-dot" /> : prewarmed && <span className="ready-dot" />}
               </button>
               <button
                 className="btn btn-ghost btn-lg"

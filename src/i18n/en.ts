@@ -1,6 +1,10 @@
 import type { TranslationKey } from './zh';
 
 export const en: Record<TranslationKey, string> = {
+  'app.loading': 'Loading...',
+  'btn.preparingTraining': 'Preparing...',
+  'home.trainingLoadError': 'Training resources failed to load. Check the network and try again.',
+
   // Navigation
   'nav.trainingList': 'Visual Training',
   'nav.assessment': 'Visual Assessment',

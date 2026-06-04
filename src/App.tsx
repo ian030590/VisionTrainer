@@ -1,6 +1,7 @@
 import { Suspense, lazy } from 'react';
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { Navbar } from './components/Navbar';
+import { useT } from './i18n';
 
 const HomePage = lazy(() => import('./pages/HomePage').then((module) => ({ default: module.HomePage })));
 const SettingsPage = lazy(() => import('./pages/settings/SettingsPage').then((module) => ({ default: module.SettingsPage })));
@@ -12,8 +13,10 @@ const CreditsPage = lazy(() => import('./pages/credits/CreditsPage').then((modul
 const LinksPage = lazy(() => import('./pages/links/LinksPage').then((module) => ({ default: module.LinksPage })));
 
 export function App() {
+  const { t } = useT();
+
   return (
-    <Suspense fallback={<div className="app-loading" />}>
+    <Suspense fallback={<AppLoading label={t('app.loading')} />}>
       <Routes>
         <Route path="/training" element={<TrainingPage />} />
         <Route path="/acuity-test" element={<AcuityTestPage />} />
@@ -30,6 +33,15 @@ export function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Suspense>
+  );
+}
+
+function AppLoading({ label }: { label: string }) {
+  return (
+    <div className="app-loading" role="status" aria-live="polite">
+      <div className="app-loading-indicator" />
+      <div className="app-loading-text">{label}</div>
+    </div>
   );
 }
 

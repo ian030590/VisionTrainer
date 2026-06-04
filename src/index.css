@@ -75,6 +75,26 @@ html, body, #root {
   width: 100vw;
   height: 100vh;
   background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  color: var(--text-secondary);
+}
+
+.app-loading-indicator {
+  width: 34px;
+  height: 34px;
+  border: 3px solid rgba(0, 94, 184, 0.16);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+
+.app-loading-text {
+  font-size: 15px;
+  font-weight: 600;
 }
 
 .page-content {
@@ -386,6 +406,15 @@ html, body, #root {
 
 .btn:active {
   transform: scale(0.98);
+}
+
+.btn:disabled {
+  opacity: 0.62;
+  cursor: not-allowed;
+}
+
+.btn:disabled:hover {
+  box-shadow: none;
 }
 
 .btn-primary {
@@ -834,6 +863,10 @@ html, body, #root {
   position: relative;
 }
 
+.config-start-btn.is-loading {
+  pointer-events: none;
+}
+
 .ready-dot {
   width: 8px;
   height: 8px;
@@ -842,6 +875,16 @@ html, body, #root {
   display: inline-block;
   margin-left: 4px;
   animation: pulse 2s infinite;
+}
+
+.loading-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  display: inline-block;
+  margin-left: 4px;
+  animation: pulse 0.9s infinite;
 }
 
 .config-summary {
@@ -986,6 +1029,10 @@ html, body, #root {
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50%      { opacity: 0.6; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 .fade-in {

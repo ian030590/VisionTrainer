@@ -1,4 +1,8 @@
 export const zh = {
+  'app.loading': '載入中...',
+  'btn.preparingTraining': '準備中...',
+  'home.trainingLoadError': '訓練資源載入失敗，請檢查網路後再試一次。',
+
   // Navigation
   'nav.trainingList': '視覺訓練',
   'nav.assessment': '視覺評估',
