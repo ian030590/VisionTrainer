@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useT } from '../../i18n';
 import { getActiveUser, getSetting, setSetting } from '../../utils/settings';
+import { UserSelector } from '../../components/UserSelector';
 import type { TestType } from './logic/optotypeRenderer';
 
 interface TestCard {
@@ -99,7 +100,7 @@ const getTestCards = (t: any): TestCard[] => [
 export function AssessmentPage() {
   const { t } = useT();
   const navigate = useNavigate();
-  const activeUser = getActiveUser();
+  const [activeUser, setActiveUser] = useState(getActiveUser);
   const distanceCM = getSetting('distanceInCM');
 
   const [expandedTest, setExpandedTest] = useState<TestType | null>(null);
@@ -166,6 +167,8 @@ export function AssessmentPage() {
 
   return (
     <div className="page-content">
+      <UserSelector onUserChange={setActiveUser} />
+
       {/* Disclaimer */}
       <div className="assessment-disclaimer fade-in">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

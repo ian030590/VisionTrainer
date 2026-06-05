@@ -1,16 +1,13 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useT } from '../i18n';
 import { useNavigate } from 'react-router-dom';
 import {
-  getUsers,
-  addUser,
-  removeUser,
   getActiveUser,
-  setActiveUser,
   isCalibrated,
   DRIVING_DURATION_MIN_SEC,
   DRIVING_DURATION_MAX_SEC,
 } from '../utils/settings';
+import { UserSelector } from '../components/UserSelector';
 import { pixiAppManager } from '../utils/pixiPool';
 import { SoundManager } from '../utils/soundManager';
 import { usePersistedSetting } from '../utils/usePersistedSetting';
@@ -39,10 +36,7 @@ function preloadTrainingEngine(moduleId: TrainingModuleId): Promise<unknown> {
 export function HomePage() {
   const { t } = useT();
   const navigate = useNavigate();
-  const [users, setUsersState] = useState(getUsers);
   const [activeUser, setActiveUserState] = useState(getActiveUser);
-  const [newName, setNewName] = useState('');
-  const [showAddUser, setShowAddUser] = useState(false);
 
   // ── Module expansion state ──
   const [expandedModule, setExpandedModule] = useState<TrainingModuleId | null>(null);
@@ -76,33 +70,6 @@ export function HomePage() {
   const [prewarmed, setPrewarmed] = useState(() => pixiAppManager.ready);
   const [isStartingTraining, setIsStartingTraining] = useState(false);
   const startTrainingButtonLabel = isStartingTraining ? t('btn.preparingTraining') : t('btn.startTraining');
-
-  const refreshUsers = useCallback(() => {
-    setUsersState(getUsers());
-    setActiveUserState(getActiveUser());
-  }, []);
-
-  const handleSelectUser = (name: string) => {
-    setActiveUser(name || null);
-    setActiveUserState(name || null);
-  };
-
-  const handleAddUser = () => {
-    const trimmed = newName.trim();
-    if (!trimmed) return;
-    addUser(trimmed);
-    setActiveUser(trimmed);
-    setNewName('');
-    setShowAddUser(false);
-    refreshUsers();
-  };
-
-  const handleRemoveUser = (name: string) => {
-    if (confirm(t('home.deleteUserPrompt', { name }))) {
-      removeUser(name);
-      refreshUsers();
-    }
-  };
 
   // Preload the route chunk shortly after the home page is interactive.
   useEffect(() => {
@@ -304,65 +271,7 @@ export function HomePage() {
   return (
     <div className="page-content">
       {/* ── User Selector ── */}
-      <div className="user-selector">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-          <circle cx="12" cy="7" r="4" />
-        </svg>
-        <select
-          value={activeUser || ''}
-          onChange={(e) => handleSelectUser(e.target.value)}
-        >
-          <option value="">{t('home.selectUser')}</option>
-          {users.map((u) => (
-            <option key={u} value={u}>{u}</option>
-          ))}
-        </select>
-        <button className="btn btn-primary btn-sm" onClick={() => setShowAddUser(!showAddUser)}>
-          {showAddUser ? t('btn.cancel') : t('btn.add')}
-        </button>
-        {activeUser && (
-          <button className="btn btn-danger btn-sm" onClick={() => handleRemoveUser(activeUser)}>
-            {t('btn.delete')}
-          </button>
-        )}
-        <button
-          className="btn btn-ghost btn-sm"
-          onClick={() => {
-            if (!document.fullscreenElement) {
-              document.documentElement.requestFullscreen?.();
-            } else {
-              document.exitFullscreen?.();
-            }
-          }}
-          title={t('home.toggleFullscreen')}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M8 3H5a2 2 0 0 0-2 2v3" />
-            <path d="M21 8V5a2 2 0 0 0-2-2h-3" />
-            <path d="M3 16v3a2 2 0 0 0 2 2h3" />
-            <path d="M16 21h3a2 2 0 0 0 2-2v-3" />
-          </svg>
-        </button>
-      </div>
-
-      {/* ── Add User Form ── */}
-      {showAddUser && (
-        <div className="user-selector fade-in" style={{ marginTop: -16 }}>
-          <input
-            className="input"
-            type="text"
-            placeholder={t('home.enterUserName')}
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleAddUser()}
-            autoFocus
-          />
-          <button className="btn btn-primary btn-sm" onClick={handleAddUser}>
-            {t('btn.confirmAdd')}
-          </button>
-        </div>
-      )}
+      <UserSelector onUserChange={setActiveUserState} />
 
       {/* ── Calibration Notice ── */}
       {!calibrated && (

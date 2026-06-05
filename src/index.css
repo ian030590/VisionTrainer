@@ -548,6 +548,7 @@ html, body, #root {
 .user-selector {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 12px;
   padding: 16px 24px;
   background: var(--bg-panel);
@@ -559,6 +560,7 @@ html, body, #root {
 
 .user-selector select {
   flex: 1;
+  min-width: 180px;
   background: var(--bg);
   border: 2px solid var(--border);
   border-radius: var(--radius-m);
@@ -577,6 +579,15 @@ html, body, #root {
 
 .user-selector select:focus {
   border-color: var(--accent);
+}
+
+.user-selector .input {
+  flex: 1;
+  min-width: 180px;
+}
+
+.user-selector-add {
+  margin-top: -16px;
 }
 
 /* ── Responsive Card Grids ── */
