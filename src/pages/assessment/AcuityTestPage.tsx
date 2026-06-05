@@ -150,6 +150,7 @@ export function AcuityTestPage() {
   const requestedTestType = searchParams.get('type') || searchParams.get('test');
   const testType = isTestType(requestedTestType) ? requestedTestType : 'landolt';
   const totalTrials = parseInt(searchParams.get('trials') || '18', 10);
+  const isTrialMode = searchParams.get('trialMode') === 'true';
   const requestedResponseMode =
     searchParams.get('responseMode') || searchParams.get('mode') || getSetting('preferentialLookingInputMode');
   const responseMode: 'keyboard' | 'webgazer' =
@@ -758,9 +759,11 @@ export function AcuityTestPage() {
         </table>
 
         <div className="results-actions">
-          <button className="btn btn-primary btn-lg" onClick={downloadCSV}>
-            {t('acuity.downloadCsv')}
-          </button>
+          {!isTrialMode && (
+            <button className="btn btn-primary btn-lg" onClick={downloadCSV}>
+              {t('acuity.downloadCsv')}
+            </button>
+          )}
           <button className="btn btn-secondary btn-lg" onClick={() => navigate('/assessment')}>
             {t('acuity.backAssess')}
           </button>

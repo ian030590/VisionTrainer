@@ -43,6 +43,7 @@ export function ContrastTestPage() {
 
   const [searchParams] = useSearchParams();
   const totalTrials = parseInt(searchParams.get('trials') || '18', 10);
+  const isTrialMode = searchParams.get('trialMode') === 'true';
   
   const userName = getActiveUser() || t('exp.unknownUser');
 
@@ -224,9 +225,11 @@ export function ContrastTestPage() {
            </table>
 
            <div className="results-actions">
-             <button className="btn btn-primary btn-lg" onClick={downloadCSV}>
-               {t('acuity.downloadCsv') || 'Download CSV'}
-             </button>
+             {!isTrialMode && (
+               <button className="btn btn-primary btn-lg" onClick={downloadCSV}>
+                 {t('acuity.downloadCsv') || 'Download CSV'}
+               </button>
+             )}
              <button className="btn btn-secondary btn-lg" onClick={() => navigate('/assessment')}>
                {t('acuity.backAssess') || 'Back'}
              </button>

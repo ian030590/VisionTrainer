@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useT } from '../../i18n';
-import { getActiveUser, getSetting, setSetting } from '../../utils/settings';
+import { getActiveUser, getSetting, isAssessmentCalibrationAtDefaults, setSetting } from '../../utils/settings';
 import { UserSelector } from '../../components/UserSelector';
 import type { TestType } from './logic/optotypeRenderer';
 
@@ -106,6 +106,7 @@ export function AssessmentPage() {
   const [expandedTest, setExpandedTest] = useState<TestType | null>(null);
   const [localTrials, setLocalTrials] = useState<number>(18);
   const [customTrialsInput, setCustomTrialsInput] = useState('');
+  const [showCalibrationWarning, setShowCalibrationWarning] = useState(false);
   const [plInputMode, setPlInputMode] = useState<'keyboard' | 'webgazer'>(
     () => getSetting('preferentialLookingInputMode'),
   );
@@ -127,8 +128,8 @@ export function AssessmentPage() {
 
   const TEST_CARDS = getTestCards(t);
 
-  const handleStartTest = () => {
-    if (!expandedTest || !activeUser) return;
+  const getAssessmentUrl = (trialMode: boolean) => {
+    if (!expandedTest) return '';
     const params = new URLSearchParams({
       type: expandedTest,
       trials: localTrials.toString(),
@@ -136,12 +137,30 @@ export function AssessmentPage() {
     if (expandedTest === 'gratings') {
       params.set('responseMode', plInputMode);
     }
-    
-    if (expandedTest === 'contrast') {
-      navigate(`/contrast-test?${params.toString()}`);
-    } else {
-      navigate(`/acuity-test?${params.toString()}`);
+    if (trialMode) params.set('trialMode', 'true');
+
+    return expandedTest === 'contrast'
+      ? `/contrast-test?${params.toString()}`
+      : `/acuity-test?${params.toString()}`;
+  };
+
+  const handleStartTest = () => {
+    if (!expandedTest || !activeUser) return;
+    if (isAssessmentCalibrationAtDefaults()) {
+      setShowCalibrationWarning(true);
+      return;
     }
+
+    navigate(getAssessmentUrl(false));
+  };
+
+  const handleCalibrateNow = () => {
+    navigate('/settings');
+  };
+
+  const handleTryAnyway = () => {
+    setShowCalibrationWarning(false);
+    navigate(getAssessmentUrl(true));
   };
 
   const handlePLInputMode = (mode: 'keyboard' | 'webgazer') => {
@@ -297,6 +316,27 @@ export function AssessmentPage() {
               {t('assess.config.test')} <strong>{expandedCard.title}</strong> ·{' '}
               {t('assess.config.trials')} <strong>{localTrials}</strong> ·{' '}
               {t('assess.config.dist')} <strong>{distanceCM} cm</strong>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showCalibrationWarning && (
+        <div className="config-modal-overlay fade-in" onClick={() => setShowCalibrationWarning(false)}>
+          <div className="module-config-panel config-modal-panel" onClick={(e) => e.stopPropagation()}>
+            <div className="config-section">
+              <div className="config-label">{t('assess.calibrationWarning.title')}</div>
+              <p className="calibration-warning-message">
+                {t('assess.calibrationWarning.message')}
+              </p>
+            </div>
+            <div className="config-actions">
+              <button className="btn btn-primary btn-lg" onClick={handleCalibrateNow}>
+                {t('assess.calibrationWarning.calibrateNow')}
+              </button>
+              <button className="btn btn-secondary btn-lg" onClick={handleTryAnyway}>
+                {t('assess.calibrationWarning.tryAnyway')}
+              </button>
             </div>
           </div>
         </div>

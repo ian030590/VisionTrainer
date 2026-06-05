@@ -231,6 +231,10 @@ export const en: Record<TranslationKey, string> = {
   'assess.config.test': 'Test:',
   'assess.config.trials': 'Trials:',
   'assess.config.dist': 'Distance:',
+  'assess.calibrationWarning.title': 'Calibration Reminder',
+  'assess.calibrationWarning.message': 'You have not calibrated the screen, viewing distance, or Gamma. Assessment values may not be accurate.',
+  'assess.calibrationWarning.calibrateNow': 'Calibrate Now',
+  'assess.calibrationWarning.tryAnyway': 'I just want to try it',
 
   // Experiment / Results
   'exp.unknownUser': 'Unknown User',

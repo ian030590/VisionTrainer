@@ -909,6 +909,13 @@ html, body, #root {
   color: var(--text-secondary);
 }
 
+.calibration-warning-message {
+  color: var(--text-secondary);
+  font-size: 18px;
+  line-height: 1.7;
+  margin: 0;
+}
+
 /* ── Experiment Container ── */
 .experiment-container {
   position: fixed;

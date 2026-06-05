@@ -230,6 +230,11 @@ export const zh = {
   'assess.config.trials': '試驗數:',
   'assess.config.dist': '觀看距離:',
 
+  'assess.calibrationWarning.title': '校正提醒',
+  'assess.calibrationWarning.message': '您尚未進行螢幕、觀看距離及Gamma校正，評估後的數值可能不是準確的',
+  'assess.calibrationWarning.calibrateNow': '立即校正',
+  'assess.calibrationWarning.tryAnyway': '我只是想試試看',
+
   // Experiment / Results
   'exp.unknownUser': '未知使用者',
   'exp.csv.user': '使用者',

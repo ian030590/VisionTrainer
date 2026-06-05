@@ -8,6 +8,7 @@ export const CARD_WIDTH_MM = 85.6;
 export const CARD_HEIGHT_MM = 53.98;
 export const DEFAULT_DISTANCE_CM = 60;
 export const DEFAULT_CAL_BAR_LENGTH_MM = 149;
+export const DEFAULT_GAMMA_VALUE = 2.0;
 export const CAL_BAR_LENGTH_PX = 700;
 export const APP_VERSION = '3.0.0';
 export const STORAGE_PREFIX = 'vision_trainer_';
@@ -73,7 +74,7 @@ const META: { [K in keyof AppSettings]: SettingMeta<AppSettings[K]> } = {
   distanceInCM:           { dflt: DEFAULT_DISTANCE_CM,       min: 10,   max: 500 },
   calBarLengthInMM:       { dflt: DEFAULT_CAL_BAR_LENGTH_MM, min: 1,    max: 10000 },
   rulerLengthInMM:        { dflt: 0,    min: 0,    max: 10000 },
-  gammaValue:             { dflt: 2.0,  min: 0.8,  max: 4.0 },
+  gammaValue:             { dflt: DEFAULT_GAMMA_VALUE,  min: 0.8,  max: 4.0 },
   crowdingType:           { dflt: 0,    min: 0,    max: 6 },
   crowdingDistanceType:   { dflt: 0,    min: 0,    max: 3 },
   totalRounds:            { dflt: 5,    min: 1,    max: 100 },
@@ -149,6 +150,14 @@ export function isCalibrated(): boolean {
     getSetting('displayCalibrationAt') !== '' ||
     getSetting('distanceInCM') !== DEFAULT_DISTANCE_CM ||
     getSetting('calBarLengthInMM') !== DEFAULT_CAL_BAR_LENGTH_MM
+  );
+}
+
+export function isAssessmentCalibrationAtDefaults(): boolean {
+  return (
+    getSetting('distanceInCM') === DEFAULT_DISTANCE_CM &&
+    getSetting('calBarLengthInMM') === DEFAULT_CAL_BAR_LENGTH_MM &&
+    getSetting('gammaValue') === DEFAULT_GAMMA_VALUE
   );
 }
 
