@@ -13,6 +13,7 @@ export const zh = {
   'nav.downloadScores': '下載成績',
   'nav.scoresBackupReminder': '成績保存在瀏覽器，請定期下載備份',
   'nav.noScores': '目前沒有可下載的訓練成績。',
+  'nav.scoresDownloadError': '無法讀取已儲存的訓練成績，請稍後再試。',
 
   // Common Buttons & Actions
   'btn.cancel': '取消',

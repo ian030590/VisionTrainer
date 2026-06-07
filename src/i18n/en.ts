@@ -15,6 +15,7 @@ export const en: Record<TranslationKey, string> = {
   'nav.downloadScores': 'Download Scores',
   'nav.scoresBackupReminder': 'Records stay in this browser. \nDownload backups regularly.',
   'nav.noScores': 'No saved training scores are available yet.',
+  'nav.scoresDownloadError': 'Unable to read saved training scores. Please try again.',
 
   // Common Buttons & Actions
   'btn.cancel': 'Cancel',

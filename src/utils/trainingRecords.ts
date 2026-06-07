@@ -7,7 +7,11 @@ type TFunction = (key: TranslationKey, params?: Record<string, string | number>)
 
 export const TRAINING_RECORDS_CHANGED_EVENT = 'vision-trainer-training-records-changed';
 
-const TRAINING_RECORDS_KEY = `${STORAGE_PREFIX}training_records_v1`;
+const LEGACY_TRAINING_RECORDS_KEY = `${STORAGE_PREFIX}training_records_v1`;
+const TRAINING_HIGH_SCORES_KEY = `${STORAGE_PREFIX}training_high_scores_v1`;
+const TRAINING_RECORDS_DB_NAME = `${STORAGE_PREFIX}training_records`;
+const TRAINING_RECORDS_DB_VERSION = 1;
+const TRAINING_RECORDS_STORE = 'records';
 
 const MODULE_TITLE_KEYS: Record<string, TranslationKey> = {
   'moving-card': 'home.module.movingCard.title',
@@ -48,6 +52,13 @@ export interface TrainingRecord {
   results: TrialData[];
 }
 
+export interface TrainingHighScore {
+  userName: string;
+  moduleId: string;
+  score: number;
+  achievedAt: string;
+}
+
 interface SaveTrainingRecordArgs {
   userName: string;
   moduleId: string;
@@ -60,28 +71,50 @@ interface SaveTrainingRecordArgs {
 
 type CsvRow = unknown[];
 
-export function getTrainingRecords(): TrainingRecord[] {
+let databasePromise: Promise<IDBDatabase> | null = null;
+let migrationPromise: Promise<void> | null = null;
+
+export function initializeTrainingRecords(): Promise<void> {
+  return ensureLegacyRecordsMigrated();
+}
+
+export async function getTrainingRecords(): Promise<TrainingRecord[]> {
   try {
-    const raw = localStorage.getItem(TRAINING_RECORDS_KEY);
-    if (!raw) return [];
+    const database = await getTrainingRecordsDatabase();
+    await ensureLegacyRecordsMigrated(database);
+    const transaction = database.transaction(TRAINING_RECORDS_STORE, 'readonly');
+    const records = await requestToPromise<unknown[]>(
+      transaction.objectStore(TRAINING_RECORDS_STORE).getAll(),
+    );
+    await transactionToPromise(transaction);
 
-    const parsed: unknown = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-
-    return parsed
+    return records
       .map(toTrainingRecord)
-      .filter((record): record is TrainingRecord => record !== null);
+      .filter((record): record is TrainingRecord => record !== null)
+      .sort((left, right) => left.savedAt.localeCompare(right.savedAt));
   } catch (error) {
     console.warn('Unable to read saved training records.', error);
-    return [];
+    throw error;
   }
 }
 
-export function getTrainingRecordCount(): number {
-  return getTrainingRecords().length;
+export async function getTrainingRecordCount(): Promise<number> {
+  try {
+    const database = await getTrainingRecordsDatabase();
+    await ensureLegacyRecordsMigrated(database);
+    const transaction = database.transaction(TRAINING_RECORDS_STORE, 'readonly');
+    const count = await requestToPromise<number>(
+      transaction.objectStore(TRAINING_RECORDS_STORE).count(),
+    );
+    await transactionToPromise(transaction);
+    return count;
+  } catch (error) {
+    console.warn('Unable to count saved training records.', error);
+    return 0;
+  }
 }
 
-export function saveTrainingRecord(args: SaveTrainingRecordArgs): TrainingRecord | null {
+export async function saveTrainingRecord(args: SaveTrainingRecordArgs): Promise<TrainingRecord | null> {
   if (args.results.length === 0) return null;
 
   const record: TrainingRecord = {
@@ -97,8 +130,12 @@ export function saveTrainingRecord(args: SaveTrainingRecordArgs): TrainingRecord
   };
 
   try {
-    const records = getTrainingRecords();
-    localStorage.setItem(TRAINING_RECORDS_KEY, JSON.stringify([...records, record]));
+    const database = await getTrainingRecordsDatabase();
+    await ensureLegacyRecordsMigrated(database);
+    const transaction = database.transaction(TRAINING_RECORDS_STORE, 'readwrite');
+    transaction.objectStore(TRAINING_RECORDS_STORE).put(record);
+    await transactionToPromise(transaction);
+    updateTrainingHighScores([record]);
     window.dispatchEvent(new Event(TRAINING_RECORDS_CHANGED_EVENT));
     return record;
   } catch (error) {
@@ -107,8 +144,8 @@ export function saveTrainingRecord(args: SaveTrainingRecordArgs): TrainingRecord
   }
 }
 
-export function downloadAllTrainingRecordsCsv(t: TFunction): boolean {
-  const records = getTrainingRecords();
+export async function downloadAllTrainingRecordsCsv(t: TFunction): Promise<boolean> {
+  const records = await getTrainingRecords();
   if (records.length === 0) return false;
 
   const now = new Date();
@@ -119,6 +156,181 @@ export function downloadAllTrainingRecordsCsv(t: TFunction): boolean {
 
   downloadCsvFile(buildTrainingRecordsCsv(records, t), filename);
   return true;
+}
+
+function getTrainingRecordsDatabase(): Promise<IDBDatabase> {
+  if (!databasePromise) {
+    const openingDatabase = new Promise<IDBDatabase>((resolve, reject) => {
+      if (!('indexedDB' in window)) {
+        reject(new Error('IndexedDB is not available in this browser.'));
+        return;
+      }
+
+      const request = window.indexedDB.open(
+        TRAINING_RECORDS_DB_NAME,
+        TRAINING_RECORDS_DB_VERSION,
+      );
+
+      request.onupgradeneeded = () => {
+        const database = request.result;
+        if (!database.objectStoreNames.contains(TRAINING_RECORDS_STORE)) {
+          const store = database.createObjectStore(TRAINING_RECORDS_STORE, { keyPath: 'id' });
+          store.createIndex('savedAt', 'savedAt');
+          store.createIndex('userName', 'userName');
+          store.createIndex('moduleId', 'moduleId');
+        }
+      };
+      request.onsuccess = () => {
+        const database = request.result;
+        database.onversionchange = () => {
+          database.close();
+          databasePromise = null;
+        };
+        resolve(database);
+      };
+      request.onerror = () => reject(request.error ?? new Error('Unable to open IndexedDB.'));
+      request.onblocked = () => console.warn('Opening the training records database is blocked.');
+    });
+
+    databasePromise = openingDatabase.catch((error) => {
+      databasePromise = null;
+      throw error;
+    });
+  }
+
+  return databasePromise;
+}
+
+function ensureLegacyRecordsMigrated(database?: IDBDatabase): Promise<void> {
+  if (!migrationPromise) {
+    migrationPromise = migrateLegacyRecords(database).catch((error) => {
+      migrationPromise = null;
+      throw error;
+    });
+  }
+  return migrationPromise;
+}
+
+async function migrateLegacyRecords(existingDatabase?: IDBDatabase): Promise<void> {
+  const raw = localStorage.getItem(LEGACY_TRAINING_RECORDS_KEY);
+  if (!raw) return;
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (error) {
+    console.warn('Legacy training records could not be parsed and were left in localStorage.', error);
+    return;
+  }
+
+  if (!Array.isArray(parsed)) {
+    console.warn('Legacy training records are not stored as an array and were left in localStorage.');
+    return;
+  }
+
+  const records = parsed
+    .map(toTrainingRecord)
+    .filter((record): record is TrainingRecord => record !== null)
+    .sort((left, right) => left.savedAt.localeCompare(right.savedAt));
+
+  if (records.length !== parsed.length) {
+    console.warn('Some legacy training records could not be validated, so the source data was left in localStorage.');
+    return;
+  }
+
+  const database = existingDatabase ?? await getTrainingRecordsDatabase();
+  if (records.length > 0) {
+    const transaction = database.transaction(TRAINING_RECORDS_STORE, 'readwrite');
+    const store = transaction.objectStore(TRAINING_RECORDS_STORE);
+    records.forEach((record) => store.put(record));
+    await transactionToPromise(transaction);
+    updateTrainingHighScores(records);
+  }
+
+  localStorage.removeItem(LEGACY_TRAINING_RECORDS_KEY);
+  window.dispatchEvent(new Event(TRAINING_RECORDS_CHANGED_EVENT));
+}
+
+function updateTrainingHighScores(records: TrainingRecord[]): void {
+  const highScores = readTrainingHighScores();
+
+  records.forEach((record) => {
+    const score = calculateTrainingScore(record);
+    if (score === null) return;
+
+    const key = createHighScoreKey(record.userName, record.moduleId);
+    const current = highScores[key];
+    if (current && current.score >= score) return;
+
+    highScores[key] = {
+      userName: record.userName,
+      moduleId: record.moduleId,
+      score,
+      achievedAt: record.savedAt,
+    };
+  });
+
+  localStorage.setItem(TRAINING_HIGH_SCORES_KEY, JSON.stringify(highScores));
+}
+
+function readTrainingHighScores(): Record<string, TrainingHighScore> {
+  const raw = localStorage.getItem(TRAINING_HIGH_SCORES_KEY);
+  if (!raw) return {};
+
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    return toObject(parsed) as Record<string, TrainingHighScore> | undefined ?? {};
+  } catch (error) {
+    console.warn('Unable to read saved training high scores.', error);
+    return {};
+  }
+}
+
+function calculateTrainingScore(record: TrainingRecord): number | null {
+  const firstResult = record.results[0];
+
+  if (record.moduleId === 'gabor-patching') {
+    return toFiniteNumber(firstResult?.score);
+  }
+
+  if (record.moduleId === 'oculomotor-training') {
+    const aoiScore = toFiniteNumber(
+      (firstResult as TrialData & { aoi_score?: number } | undefined)?.aoi_score,
+    );
+    return aoiScore ?? toFiniteNumber(firstResult?.acquired_targets);
+  }
+
+  if (record.moduleId === 'driving-rehab') {
+    return toFiniteNumber(firstResult?.valid_event_count);
+  }
+
+  const scoredResults = record.moduleId === 'reading-training'
+    ? record.results.filter((result) => result.trial_type === 'html-button-response')
+    : record.results;
+  return scoredResults.filter((result) => result.correct).length;
+}
+
+function createHighScoreKey(userName: string, moduleId: string): string {
+  return `${encodeURIComponent(userName)}::${encodeURIComponent(moduleId)}`;
+}
+
+function toFiniteNumber(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+function requestToPromise<T>(request: IDBRequest<T>): Promise<T> {
+  return new Promise((resolve, reject) => {
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error ?? new Error('IndexedDB request failed.'));
+  });
+}
+
+function transactionToPromise(transaction: IDBTransaction): Promise<void> {
+  return new Promise((resolve, reject) => {
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error ?? new Error('IndexedDB transaction failed.'));
+    transaction.onabort = () => reject(transaction.error ?? new Error('IndexedDB transaction was aborted.'));
+  });
 }
 
 export function buildTrainingRecordsCsv(records: TrainingRecord[], t: TFunction): string {

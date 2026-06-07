@@ -11,6 +11,7 @@ export function Navbar() {
   const { t } = useT();
   const [user, setUser] = useState(getActiveUser);
   const [isOpen, setIsOpen] = useState(false);
+  const [isDownloadingScores, setIsDownloadingScores] = useState(false);
 
   useEffect(() => {
     const syncUser = () => setUser(getActiveUser());
@@ -24,12 +25,22 @@ export function Navbar() {
 
   const toggleMenu = () => setIsOpen((open) => !open);
   const closeMenu = () => setIsOpen(false);
-  const handleDownloadScores = () => {
-    const downloaded = downloadAllTrainingRecordsCsv(t);
-    if (!downloaded) {
-      window.alert(t('nav.noScores'));
+  const handleDownloadScores = async () => {
+    if (isDownloadingScores) return;
+
+    setIsDownloadingScores(true);
+    try {
+      const downloaded = await downloadAllTrainingRecordsCsv(t);
+      if (!downloaded) {
+        window.alert(t('nav.noScores'));
+      }
+      closeMenu();
+    } catch (error) {
+      console.error('Unable to download training scores.', error);
+      window.alert(t('nav.scoresDownloadError'));
+    } finally {
+      setIsDownloadingScores(false);
     }
-    closeMenu();
   };
 
   return (
@@ -99,7 +110,13 @@ export function Navbar() {
 
           <div className="navbar-tools">
             <div className="navbar-records">
-              <button type="button" className="btn btn-primary btn-sm navbar-download-btn" onClick={handleDownloadScores}>
+              <button
+                type="button"
+                className="btn btn-primary btn-sm navbar-download-btn"
+                onClick={handleDownloadScores}
+                disabled={isDownloadingScores}
+                aria-busy={isDownloadingScores}
+              >
                 {t('nav.downloadScores')}
               </button>
               <span className="navbar-backup-reminder">{t('nav.scoresBackupReminder')}</span>

@@ -144,9 +144,9 @@ export function TrainingPage() {
       const jsPsych = initJsPsych({
         display_element: container,
         extensions: enableWebGazer ? [{ type: WebGazerExtension }] : [],
-        on_finish: () => {
+        on_finish: async () => {
           const data = jsPsych.data.get().values() as TrialData[];
-          saveTrainingRecord({
+          await saveTrainingRecord({
             results: data,
             userName,
             moduleId,
