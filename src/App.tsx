@@ -23,11 +23,11 @@ export function App() {
         <Route path="/training" element={<TrainingPage />} />
         <Route path="/acuity-test" element={<AcuityTestPage />} />
         <Route path="/contrast-test" element={<ContrastTestPage />} />
+        <Route path="/hart-chart" element={<HartChartPage />} />
         <Route path="/hart-chart/display" element={<HartChartDisplayPage />} />
 
         <Route element={<AppLayout />}>
           <Route path="/" element={<HomePage />} />
-          <Route path="/hart-chart" element={<HartChartPage />} />
           <Route path="/assessment" element={<AssessmentPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/credits" element={<CreditsPage />} />
