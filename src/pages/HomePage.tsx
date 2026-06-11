@@ -26,6 +26,10 @@ function preloadTrainingRoute(): Promise<unknown> {
 }
 
 function preloadTrainingEngine(moduleId: TrainingModuleId): Promise<unknown> {
+  if (moduleId === 'hart-chart') {
+    return import('./training/HartChartPage');
+  }
+
   if (moduleId === 'driving-rehab') {
     return import('../experiment/plugins/three-driving-rehab');
   }
@@ -109,6 +113,19 @@ export function HomePage() {
     if (!expandedModule || !activeUser || isStartingTraining) return;
     const moduleToStart = expandedModule;
     setIsStartingTraining(true);
+
+    if (moduleToStart === 'hart-chart') {
+      try {
+        await preloadTrainingEngine(moduleToStart);
+        navigate('/hart-chart');
+      } catch (error) {
+        console.error('Hart Chart preload failed:', error);
+        setIsStartingTraining(false);
+        alert(t('home.trainingLoadError'));
+      }
+      return;
+    }
+
     SoundManager.init();
 
     try {
@@ -1016,6 +1033,38 @@ export function HomePage() {
               {t('home.config.durationLabel')} <strong>{drivingDurationSec}s</strong> ·{' '}
               {t('home.config.diffLabel')} <strong>{drivingDifficultyLabels[drivingDifficulty]}</strong> ·{' '}
               {t('home.config.drivingRedFlash')} <strong>{drivingRedFlashEnabled ? t('common.on') : t('common.off')}</strong>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {expandedModule === 'hart-chart' && (
+        <div className="config-modal-overlay fade-in" onClick={() => setExpandedModule(null)}>
+          <div className="module-config-panel config-modal-panel" onClick={(e) => e.stopPropagation()}>
+            <div className="config-section">
+              <div className="config-label">{t('home.module.hartChart.title')}</div>
+              <p className="calibration-warning-message">{t('home.config.hartChartSummary')}</p>
+            </div>
+
+            <div className="config-actions">
+              <button
+                className={`btn btn-primary btn-lg config-start-btn ${isStartingTraining ? 'is-loading' : ''}`}
+                disabled={isStartingTraining}
+                aria-busy={isStartingTraining}
+                onClick={(e) => { e.stopPropagation(); handleStartTraining(); }}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <polygon points="5,3 19,12 5,21" />
+                </svg>
+                {startTrainingButtonLabel}
+                {isStartingTraining ? <span className="loading-dot" /> : prewarmed && <span className="ready-dot" />}
+              </button>
+              <button
+                className="btn btn-ghost btn-lg"
+                onClick={(e) => { e.stopPropagation(); setExpandedModule(null); }}
+              >
+                {t('btn.cancel')}
+              </button>
             </div>
           </div>
         </div>

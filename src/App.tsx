@@ -11,6 +11,8 @@ const AcuityTestPage = lazy(() => import('./pages/assessment/AcuityTestPage').th
 const ContrastTestPage = lazy(() => import('./pages/assessment/ContrastTestPage').then((module) => ({ default: module.ContrastTestPage })));
 const CreditsPage = lazy(() => import('./pages/credits/CreditsPage').then((module) => ({ default: module.CreditsPage })));
 const LinksPage = lazy(() => import('./pages/links/LinksPage').then((module) => ({ default: module.LinksPage })));
+const HartChartPage = lazy(() => import('./pages/training/HartChartPage').then((module) => ({ default: module.HartChartPage })));
+const HartChartDisplayPage = lazy(() => import('./pages/training/HartChartPage').then((module) => ({ default: module.HartChartDisplayPage })));
 
 export function App() {
   const { t } = useT();
@@ -21,9 +23,11 @@ export function App() {
         <Route path="/training" element={<TrainingPage />} />
         <Route path="/acuity-test" element={<AcuityTestPage />} />
         <Route path="/contrast-test" element={<ContrastTestPage />} />
+        <Route path="/hart-chart/display" element={<HartChartDisplayPage />} />
 
         <Route element={<AppLayout />}>
           <Route path="/" element={<HomePage />} />
+          <Route path="/hart-chart" element={<HartChartPage />} />
           <Route path="/assessment" element={<AssessmentPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/credits" element={<CreditsPage />} />

@@ -6,7 +6,8 @@ export type TrainingModuleId =
   | 'oculomotor-training'
   | 'gabor-patching'
   | 'reading-training'
-  | 'driving-rehab';
+  | 'driving-rehab'
+  | 'hart-chart';
 
 export interface TrainingModuleCardData {
   id: TrainingModuleId;
@@ -78,6 +79,18 @@ export const TRAINING_MODULES: readonly TrainingModuleCardData[] = [
         <circle cx="7.5" cy="19" r="1.5" />
         <circle cx="16.5" cy="19" r="1.5" />
         <path d="M10 4h4" />
+      </svg>
+    ),
+  },
+  {
+    id: 'hart-chart',
+    titleKey: 'home.module.hartChart.title',
+    descKey: 'home.module.hartChart.desc',
+    icon: (
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="3" width="18" height="18" rx="2" />
+        <path d="M9 3v18M15 3v18M3 9h18M3 15h18" />
+        <path d="m6 7 1-2 1 2M11 13h2M17 17h2" />
       </svg>
     ),
   },
