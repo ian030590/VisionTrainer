@@ -1,3 +1,5 @@
+import { ResultSummary } from '../../../components/ResultSummary';
+import type { ResultSummaryItem } from '../../../components/ResultSummary';
 import type { TFunction, TrialData } from '../types';
 
 interface OculomotorResultsProps {
@@ -16,30 +18,24 @@ export function OculomotorResults({
   oculomotorPattern,
 }: OculomotorResultsProps) {
   const result = results[0];
+  const summaryItems: ResultSummaryItem[] = [
+    { label: t('exp.res.mode'), value: t(`preset.mode.${result?.mode || oculomotorMode}` as any) },
+    { label: t('exp.res.path'), value: t(`preset.path.${result?.pattern || oculomotorPattern}` as any) },
+    { label: t('exp.res.acquired'), value: result?.acquired_targets ?? 0 },
+    { label: t('exp.res.fps'), value: result?.average_fps ?? '-' },
+  ];
+
+  if (result?.aoi_score !== undefined) {
+    summaryItems.push({ label: t('exp.res.aoi'), value: result.aoi_score });
+  }
+  summaryItems.push({ label: t('exp.res.user'), value: userName, emphasize: false });
 
   return (
     <>
       <div className="results-score">
         {Math.round((result?.duration_ms ?? 0) / 1000)}s
       </div>
-      <div style={{
-        display: 'flex',
-        flexWrap: 'wrap',
-        justifyContent: 'center',
-        gap: 24,
-        marginBottom: 16,
-        fontSize: 14,
-        color: 'var(--text-secondary)',
-      }}>
-        <span>{t('exp.res.mode')} <b style={{ color: 'var(--accent)' }}>{t(`preset.mode.${result?.mode || oculomotorMode}` as any)}</b></span>
-        <span>{t('exp.res.path')} <b style={{ color: 'var(--accent)' }}>{t(`preset.path.${result?.pattern || oculomotorPattern}` as any)}</b></span>
-        <span>{t('exp.res.acquired')} <b style={{ color: 'var(--accent)' }}>{result?.acquired_targets ?? 0}</b></span>
-        <span>{t('exp.res.fps')} <b style={{ color: 'var(--accent)' }}>{result?.average_fps ?? '-'}</b></span>
-        {(result as any)?.aoi_score !== undefined && (
-          <span>{t('exp.res.aoi')} <b style={{ color: 'var(--accent)' }}>{(result as any).aoi_score}</b></span>
-        )}
-        <span>{t('exp.res.user')} <b>{userName}</b></span>
-      </div>
+      <ResultSummary items={summaryItems} />
     </>
   );
 }

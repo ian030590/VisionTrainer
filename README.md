@@ -163,7 +163,8 @@ src/
 │       └── CreditsPage.tsx
 └── utils/
     ├── settings.ts                   # 設定持久化（localStorage）
-    ├── usePersistedSetting.ts        # 設定持久化 Custom Hook
+    ├── useAppSetting.ts              # 全域設定訂閱 Hook
+    ├── useActiveUser.ts              # 目前使用者訂閱 Hook
     ├── spatialUtils.ts               # 空間轉換（px ↔ mm ↔ degree）
     ├── mathUtils.ts                  # 數學/動畫工具函式
     ├── soundManager.ts               # 音效回饋管理

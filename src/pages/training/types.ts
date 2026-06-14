@@ -27,6 +27,8 @@ export interface TrialData {
   score?: number;
   trial_type?: string;
   reading_time?: number;
+  response_text?: string;
+  aoi_score?: number;
   average_rt?: number;
   median_rt?: number;
   valid_event_count?: number;

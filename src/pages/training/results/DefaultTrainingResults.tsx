@@ -1,3 +1,5 @@
+import { ResultSummary } from '../../../components/ResultSummary';
+import { mean, median } from '../../../utils/mathUtils';
 import type { TFunction, TrialData } from '../types';
 
 interface DefaultTrainingResultsProps {
@@ -7,31 +9,19 @@ interface DefaultTrainingResultsProps {
 }
 
 export function DefaultTrainingResults({ results, userName, t }: DefaultTrainingResultsProps) {
-  const averageRt = results.length > 0
-    ? Math.round(results.reduce((sum, result) => sum + result.rt, 0) / results.length)
-    : 0;
+  const responseTimes = results.map((result) => result.rt);
+  const averageRt = Math.round(mean(responseTimes));
   const correctCount = results.filter((result) => result.correct).length;
-  const sortedRts = [...results].map((result) => result.rt).sort((a, b) => a - b);
-  const medianRt = sortedRts.length > 0
-    ? (sortedRts.length % 2
-      ? sortedRts[Math.floor(sortedRts.length / 2)]
-      : Math.round((sortedRts[Math.floor(sortedRts.length / 2) - 1] + sortedRts[Math.floor(sortedRts.length / 2)]) / 2))
-    : 0;
+  const medianRt = Math.round(median(responseTimes));
 
   return (
     <>
       <div className="results-score">{correctCount}/{results.length}</div>
-      <div style={{
-        display: 'flex',
-        gap: 32,
-        marginBottom: 16,
-        fontSize: 14,
-        color: 'var(--text-secondary)',
-      }}>
-        <span>{t('exp.res.avgRt')} <b style={{ color: 'var(--accent)' }}>{averageRt} ms</b></span>
-        <span>{t('exp.res.medRt')} <b style={{ color: 'var(--accent)' }}>{medianRt} ms</b></span>
-        <span>{t('exp.res.user')} <b>{userName}</b></span>
-      </div>
+      <ResultSummary items={[
+        { label: t('exp.res.avgRt'), value: `${averageRt} ms` },
+        { label: t('exp.res.medRt'), value: `${medianRt} ms` },
+        { label: t('exp.res.user'), value: userName, emphasize: false },
+      ]} />
 
       <table className="results-table">
         <thead>

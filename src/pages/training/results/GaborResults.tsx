@@ -1,3 +1,4 @@
+import { ResultSummary } from '../../../components/ResultSummary';
 import type { TFunction, TrialData } from '../types';
 
 interface GaborResultsProps {
@@ -11,22 +12,14 @@ export function GaborResults({ results, userName, t }: GaborResultsProps) {
 
   return (
     <>
-      <div className="results-score" style={{ color: 'var(--accent)' }}>
+      <div className="results-score">
         {t('exp.res.score')} {result?.score ?? 0}
       </div>
-      <div style={{
-        display: 'flex',
-        flexWrap: 'wrap',
-        justifyContent: 'center',
-        gap: 24,
-        marginBottom: 16,
-        fontSize: 14,
-        color: 'var(--text-secondary)',
-      }}>
-        <span>{t('exp.res.acquired')} <b style={{ color: 'var(--accent)' }}>{result?.acquired_targets ?? 0}</b></span>
-        <span>{t('home.config.durationLabel')} <b style={{ color: 'var(--accent)' }}>{Math.round((result?.duration_ms ?? 0) / 1000)}s</b></span>
-        <span>{t('exp.res.user')} <b>{userName}</b></span>
-      </div>
+      <ResultSummary items={[
+        { label: t('exp.res.acquired'), value: result?.acquired_targets ?? 0 },
+        { label: t('home.config.durationLabel'), value: `${Math.round((result?.duration_ms ?? 0) / 1000)}s` },
+        { label: t('exp.res.user'), value: userName, emphasize: false },
+      ]} />
     </>
   );
 }

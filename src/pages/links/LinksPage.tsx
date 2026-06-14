@@ -24,7 +24,7 @@ export function LinksPage() {
       <h1 className="section-title fade-in-up">{t('links.title')}</h1>
       <p className="section-subtitle fade-in-up">{t('links.subtitle')}</p>
 
-      <div className="training-grid" style={{ marginTop: 32 }}>
+      <div className="selection-grid" style={{ marginTop: 32 }}>
         {links.map((link, i) => (
           <a
             key={i}

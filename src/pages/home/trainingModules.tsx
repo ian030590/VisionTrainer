@@ -9,14 +9,14 @@ export type TrainingModuleId =
   | 'driving-rehab'
   | 'hart-chart';
 
-export interface TrainingModuleCardData {
+export interface TrainingModuleDefinition {
   id: TrainingModuleId;
   titleKey: TranslationKey;
   descKey: TranslationKey;
   icon: ReactNode;
 }
 
-export const TRAINING_MODULES: readonly TrainingModuleCardData[] = [
+export const TRAINING_MODULES: readonly TrainingModuleDefinition[] = [
   {
     id: 'moving-card',
     titleKey: 'home.module.movingCard.title',

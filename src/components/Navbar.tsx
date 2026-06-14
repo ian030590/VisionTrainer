@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { ACTIVE_USER_CHANGED_EVENT, getActiveUser } from '../utils/settings';
 import { downloadAllTrainingRecordsCsv } from '../utils/trainingRecords';
+import { useActiveUser } from '../utils/useActiveUser';
 import { useT } from '../i18n';
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) => `navbar-link ${isActive ? 'active' : ''}`;
@@ -9,19 +9,9 @@ const logoStyle = { width: 'auto', objectFit: 'contain' } as const;
 
 export function Navbar() {
   const { t } = useT();
-  const [user, setUser] = useState(getActiveUser);
+  const user = useActiveUser();
   const [isOpen, setIsOpen] = useState(false);
   const [isDownloadingScores, setIsDownloadingScores] = useState(false);
-
-  useEffect(() => {
-    const syncUser = () => setUser(getActiveUser());
-    window.addEventListener('storage', syncUser);
-    window.addEventListener(ACTIVE_USER_CHANGED_EVENT, syncUser);
-    return () => {
-      window.removeEventListener('storage', syncUser);
-      window.removeEventListener(ACTIVE_USER_CHANGED_EVENT, syncUser);
-    };
-  }, []);
 
   const toggleMenu = () => setIsOpen((open) => !open);
   const closeMenu = () => setIsOpen(false);

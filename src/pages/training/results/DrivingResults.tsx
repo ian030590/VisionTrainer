@@ -1,3 +1,4 @@
+import { ResultSummary } from '../../../components/ResultSummary';
 import type { TFunction, TrialData } from '../types';
 
 interface DrivingResultsProps {
@@ -12,24 +13,16 @@ export function DrivingResults({ results, userName, t }: DrivingResultsProps) {
 
   return (
     <>
-      <div className="results-score" style={{ color: 'var(--accent)' }}>
+      <div className="results-score">
         {result?.average_rt ?? 0} ms
       </div>
-      <div style={{
-        display: 'flex',
-        flexWrap: 'wrap',
-        justifyContent: 'center',
-        gap: 24,
-        marginBottom: 16,
-        fontSize: 14,
-        color: 'var(--text-secondary)',
-      }}>
-        <span>{t('exp.res.validEvents')} <b style={{ color: 'var(--accent)' }}>{result?.valid_event_count ?? 0}</b></span>
-        <span>{t('exp.res.collisions')} <b style={{ color: 'var(--accent)' }}>{result?.collisions ?? 0}</b></span>
-        <span>{t('exp.res.laneDeviations')} <b style={{ color: 'var(--accent)' }}>{result?.lane_deviations ?? 0}</b></span>
-        <span>{t('exp.res.fps')} <b style={{ color: 'var(--accent)' }}>{result?.average_fps ?? '-'}</b></span>
-        <span>{t('exp.res.user')} <b>{userName}</b></span>
-      </div>
+      <ResultSummary items={[
+        { label: t('exp.res.validEvents'), value: result?.valid_event_count ?? 0 },
+        { label: t('exp.res.collisions'), value: result?.collisions ?? 0 },
+        { label: t('exp.res.laneDeviations'), value: result?.lane_deviations ?? 0 },
+        { label: t('exp.res.fps'), value: result?.average_fps ?? '-' },
+        { label: t('exp.res.user'), value: userName, emphasize: false },
+      ]} />
 
       <table className="results-table" style={{ maxWidth: 920 }}>
         <thead>

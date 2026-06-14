@@ -65,7 +65,7 @@ export function CreditsPage() {
       <h1 className="section-title fade-in-up">{t('credits.title')}</h1>
       <p className="section-subtitle fade-in-up">{t('credits.subtitle')}</p>
 
-      <div className="training-grid" style={{ marginTop: 32 }}>
+      <div className="selection-grid" style={{ marginTop: 32 }}>
         {credits.map((c, i) => (
           <a
             key={i}

@@ -1,5 +1,6 @@
 import { getSetting } from '../../utils/settings';
 import { downloadCsvFile } from '../../utils/downloadFile';
+import { mean } from '../../utils/mathUtils';
 import type { TFunction, TrialData } from './types';
 
 interface DownloadTrainingCsvArgs {
@@ -62,14 +63,14 @@ export function downloadTrainingCsv({
     : results.map((result, i) => {
       const baseRow: (string | number)[] = [userName, dateStr, timeStr, moduleId];
       if (isOculomotor) {
-        return [...baseRow, t(`preset.mode.${result.mode || oculomotorMode}` as any), t(`preset.path.${result.pattern || oculomotorPattern}` as any), result.duration_ms ?? result.rt, result.acquired_targets ?? 0, result.average_fps ?? '', (result as any).aoi_score ?? '-', result.response];
+        return [...baseRow, t(`preset.mode.${result.mode || oculomotorMode}` as any), t(`preset.path.${result.pattern || oculomotorPattern}` as any), result.duration_ms ?? result.rt, result.acquired_targets ?? 0, result.average_fps ?? '', result.aoi_score ?? '-', result.response];
       }
       if (isGabor) {
         return [...baseRow, result.duration_ms ?? result.rt, result.score ?? 0, result.acquired_targets ?? 0];
       }
       if (isReading) {
         if (result.trial_type === 'html-button-response') {
-          return [...baseRow, getSetting('readingWPS'), getSetting('readingCrowding'), result.target, (result as any).response_text || result.response, result.correct ? '✓' : '✗', result.rt];
+          return [...baseRow, getSetting('readingWPS'), getSetting('readingCrowding'), result.target, result.response_text || result.response, result.correct ? '✓' : '✗', result.rt];
         }
         return [...baseRow, getSetting('readingWPS'), getSetting('readingCrowding'), 'Reading Phase', '-', '-', result.reading_time || 0];
       }
@@ -77,7 +78,7 @@ export function downloadTrainingCsv({
     });
 
   if (!isOculomotor && !isGabor && !isDriving) {
-    const avgRt = Math.round(results.reduce((sum, result) => sum + result.rt, 0) / results.length);
+    const avgRt = Math.round(mean(results.map((result) => result.rt)));
     const correctCount = results.filter((result) => result.correct).length;
     rows.push(['']);
     rows.push([t('exp.avgRt'), `${avgRt} ms`]);

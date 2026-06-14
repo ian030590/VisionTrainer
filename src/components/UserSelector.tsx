@@ -3,11 +3,11 @@ import { useT } from '../i18n';
 import {
   ACTIVE_USER_CHANGED_EVENT,
   addUser,
-  getActiveUser,
   getUsers,
   removeUser,
   setActiveUser,
 } from '../utils/settings';
+import { useActiveUser } from '../utils/useActiveUser';
 
 interface UserSelectorProps {
   onUserChange?: (name: string | null) => void;
@@ -16,15 +16,12 @@ interface UserSelectorProps {
 export function UserSelector({ onUserChange }: UserSelectorProps) {
   const { t } = useT();
   const [users, setUsers] = useState(getUsers);
-  const [activeUser, setActiveUserState] = useState(getActiveUser);
+  const activeUser = useActiveUser();
   const [newName, setNewName] = useState('');
   const [showAddUser, setShowAddUser] = useState(false);
 
   const refreshUsers = () => {
-    const nextActiveUser = getActiveUser();
     setUsers(getUsers());
-    setActiveUserState(nextActiveUser);
-    onUserChange?.(nextActiveUser);
   };
 
   useEffect(() => {
@@ -37,11 +34,13 @@ export function UserSelector({ onUserChange }: UserSelectorProps) {
     };
   }, []);
 
+  useEffect(() => {
+    onUserChange?.(activeUser);
+  }, [activeUser, onUserChange]);
+
   const handleSelectUser = (name: string) => {
     const nextActiveUser = name || null;
     setActiveUser(nextActiveUser);
-    setActiveUserState(nextActiveUser);
-    onUserChange?.(nextActiveUser);
   };
 
   const handleAddUser = () => {

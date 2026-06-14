@@ -12,6 +12,7 @@ export const DEFAULT_GAMMA_VALUE = 2.0;
 export const CAL_BAR_LENGTH_PX = 700;
 export const APP_VERSION = '3.0.0';
 export const STORAGE_PREFIX = 'vision_trainer_';
+export const APP_SETTINGS_CHANGED_EVENT = 'vision-trainer-settings-changed';
 
 import type { OculomotorPattern, OculomotorTargetShape } from '../pages/training/oculomotor/types';
 
@@ -139,6 +140,7 @@ export function getSetting<K extends keyof AppSettings>(key: K): AppSettings[K] 
 
 export function setSetting<K extends keyof AppSettings>(key: K, value: AppSettings[K]): void {
   localStorage.setItem(storageKey(key), String(value));
+  window.dispatchEvent(new CustomEvent(APP_SETTINGS_CHANGED_EVENT, { detail: { key } }));
 }
 
 export function isDrivingControlMode(value: unknown): value is DrivingControlMode {
@@ -173,6 +175,7 @@ export function resetAllSettings(): void {
   for (const key of Object.keys(META) as (keyof AppSettings)[]) {
     localStorage.removeItem(storageKey(key));
   }
+  window.dispatchEvent(new CustomEvent(APP_SETTINGS_CHANGED_EVENT, { detail: { key: null } }));
 }
 
 export function getPixelsPerMM(): number {

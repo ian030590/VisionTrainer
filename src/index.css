@@ -2,30 +2,7 @@
 /* Human-Centric Clinical Theme */
 
 :root {
-  --bg:            #F2F4F3; /* Warm Gray */
-  --bg-panel:      #F9F9FC; /* Surface */
-  --bg-card:       #FFFFFF; /* White */
-  --bg-card-hover: #F9F9FC; /* Surface */
-  --accent:        #005EB8; /* Medical Blue */
-  --accent-dark:   #00478D; /* Primary */
-  --accent-hover:  #005DB6; /* Surface Tint */
-  --success:       #005EB8; /* Soft Sage */
-  --error:         #BA1A1A; /* Error */
-  --warning:       #D29922;
-  --text-primary:  #1A1C1E; /* On-surface */
-  --text-secondary:#424752; /* On-surface-variant */
-  --text-muted:    #727783; /* Outline */
-  --border:        #C2C6D4; /* Outline-variant */
-  --border-hover:  #727783; /* Outline */
-  --font-family:   'Inter', 'Noto Sans TC', sans-serif;
-  --radius-s:  8px;
-  --radius-m:  8px;
-  --radius-l:  16px;
-  --radius-xl: 24px;
-  --transition-fast:   150ms ease;
-  --transition-normal: 300ms ease;
-  --transition-slow:   500ms ease;
-  --shadow-ambient: 0px 4px 20px rgba(0, 94, 184, 0.08);
+  color-scheme: light;
 }
 
 * {
@@ -351,6 +328,14 @@ html, body, #root {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
 }
 
+.selection-card {
+  width: 100%;
+  min-height: 100%;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+}
+
 .card:hover {
   background: var(--bg-card);
   border-color: var(--border-hover);
@@ -366,6 +351,7 @@ html, body, #root {
 }
 
 .card-title {
+  display: block;
   font-size: 24px;
   font-weight: 600;
   margin-bottom: 12px;
@@ -374,12 +360,14 @@ html, body, #root {
 }
 
 .card-desc {
+  display: block;
   font-size: 16px;
   color: var(--text-secondary);
   line-height: 1.5;
 }
 
 .card-icon {
+  display: block;
   font-size: 32px;
   margin-bottom: 16px;
   color: var(--accent);
@@ -591,8 +579,7 @@ html, body, #root {
 }
 
 /* ── Responsive Card Grids ── */
-.training-grid,
-.assessment-grid {
+.selection-grid {
   display: grid;
   grid-template-columns: 1fr;
   gap: 24px;
@@ -600,15 +587,13 @@ html, body, #root {
 }
 
 @media (min-width: 768px) {
-  .training-grid,
-  .assessment-grid {
+  .selection-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
 @media (min-width: 1024px) {
-  .training-grid,
-  .assessment-grid {
+  .selection-grid {
     grid-template-columns: repeat(3, 1fr);
   }
 }
@@ -621,7 +606,7 @@ html, body, #root {
 }
 
 /* ── Module Config Panel ── */
-.module-config-panel {
+.config-panel {
   width: 100%;
   max-width: 800px;
   background: var(--bg-panel);
@@ -715,13 +700,13 @@ html, body, #root {
   color: var(--text-secondary);
 }
 
-.rounds-selector {
+.number-preset-selector {
   display: flex;
   gap: 8px;
   align-items: center;
 }
 
-.rounds-btn {
+.number-preset-button {
   width: 52px;
   height: 42px;
   display: flex;
@@ -738,19 +723,19 @@ html, body, #root {
   transition: all var(--transition-fast);
 }
 
-.rounds-btn:hover {
+.number-preset-button:hover {
   background: var(--bg-card-hover);
   border-color: var(--accent);
   color: var(--text-primary);
 }
 
-.rounds-btn.active {
+.number-preset-button.active {
   background: var(--accent);
   border-color: var(--accent);
   color: var(--bg);
 }
 
-.rounds-custom-input {
+.number-preset-input {
   width: 72px;
   height: 42px;
   padding: 0 12px;
@@ -765,17 +750,17 @@ html, body, #root {
   transition: border-color var(--transition-fast);
 }
 
-.rounds-custom-input:focus {
+.number-preset-input:focus {
   border-color: var(--accent);
 }
 
-.rounds-custom-input::placeholder {
+.number-preset-input::placeholder {
   color: var(--text-muted);
   font-size: 12px;
 }
 
-.rounds-custom-input::-webkit-outer-spin-button,
-.rounds-custom-input::-webkit-inner-spin-button {
+.number-preset-input::-webkit-outer-spin-button,
+.number-preset-input::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
@@ -907,6 +892,20 @@ html, body, #root {
 
 .config-summary strong {
   color: var(--text-secondary);
+}
+
+.results-summary {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 24px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.results-summary-value {
+  color: var(--accent);
 }
 
 .calibration-warning-message {
@@ -1398,7 +1397,7 @@ body #webgazer-calibrate-container #calibration-point {
   color: var(--text-muted);
 }
 
-.card-expand-hint {
+.card-action {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1406,6 +1405,14 @@ body #webgazer-calibrate-container #calibration-point {
   font-size: 16px;
   color: var(--accent);
   font-weight: 600;
+}
+
+.card-action-icon {
+  transition: transform var(--transition-normal);
+}
+
+.card-action-icon.is-expanded {
+  transform: rotate(180deg);
 }
 
 /* ── Acuity Test – Intro ── */

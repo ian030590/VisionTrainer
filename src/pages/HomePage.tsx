@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useT } from '../i18n';
 import { useNavigate } from 'react-router-dom';
 import {
-  getActiveUser,
   isCalibrated,
   DRIVING_DURATION_MIN_SEC,
   DRIVING_DURATION_MAX_SEC,
@@ -10,12 +9,15 @@ import {
 import { UserSelector } from '../components/UserSelector';
 import { pixiAppManager } from '../utils/pixiPool';
 import { SoundManager } from '../utils/soundManager';
-import { usePersistedSetting } from '../utils/usePersistedSetting';
+import { useActiveUser } from '../utils/useActiveUser';
+import { useAppSetting } from '../utils/useAppSetting';
+import { ConfigDialog } from '../components/ConfigDialog';
+import { NumberPresetSelector } from '../components/NumberPresetSelector';
+import { SelectionCard } from '../components/SelectionCard';
 import {
   oculomotorModes,
   oculomotorPatterns,
 } from './training/oculomotor/presets';
-import { TrainingModuleCard } from './home/TrainingModuleCard';
 import { TRAINING_MODULES } from './home/trainingModules';
 import type { TrainingModuleId } from './home/trainingModules';
 import type { OculomotorPattern, OculomotorTargetShape } from './training/oculomotor/types';
@@ -40,37 +42,37 @@ function preloadTrainingEngine(moduleId: TrainingModuleId): Promise<unknown> {
 export function HomePage() {
   const { t } = useT();
   const navigate = useNavigate();
-  const [activeUser, setActiveUserState] = useState(getActiveUser);
+  const activeUser = useActiveUser();
 
   // ── Module expansion state ──
   const [expandedModule, setExpandedModule] = useState<TrainingModuleId | null>(null);
-  const [localDifficulty, setLocalDifficulty] = usePersistedSetting('difficulty');
-  const [localRounds, setLocalRounds] = usePersistedSetting('totalRounds');
+  const [localDifficulty, setLocalDifficulty] = useAppSetting('difficulty');
+  const [localRounds, setLocalRounds] = useAppSetting('totalRounds');
   const [customRoundsInput, setCustomRoundsInput] = useState('');
-  const [oculomotorMode, setOculomotorMode] = usePersistedSetting('oculomotorMode');
-  const [oculomotorPattern, setOculomotorPattern] = usePersistedSetting('oculomotorPattern');
-  const [oculomotorDurationSec, setOculomotorDurationSec] = usePersistedSetting('oculomotorDurationSec');
-  const [oculomotorSpeedDegPerSec, setOculomotorSpeedDegPerSec] = usePersistedSetting('oculomotorSpeedDegPerSec');
-  const [oculomotorTargetSizeMm, setOculomotorTargetSizeMm] = usePersistedSetting('oculomotorTargetSizeMm');
-  const [oculomotorDistractorCount, setOculomotorDistractorCount] = usePersistedSetting('oculomotorDistractorCount');
-  const [oculomotorTargetColor, setOculomotorTargetColor] = usePersistedSetting('oculomotorTargetColor');
-  const [oculomotorBackgroundColor, setOculomotorBackgroundColor] = usePersistedSetting('oculomotorBackgroundColor');
-  const [oculomotorTargetShape, setOculomotorTargetShape] = usePersistedSetting('oculomotorTargetShape');
-  const [oculomotorCustomTargetImage, setOculomotorCustomTargetImage] = usePersistedSetting('oculomotorCustomTargetImage');
-  const [oculomotorTargetOpacity, setOculomotorTargetOpacity] = usePersistedSetting('oculomotorTargetOpacity');
-  const [oculomotorBackgroundImage, setOculomotorBackgroundImage] = usePersistedSetting('oculomotorBackgroundImage');
-  const [oculomotorAudio, setOculomotorAudio] = usePersistedSetting('oculomotorAudio');
-  const [oculomotorBounceJitter, setOculomotorBounceJitter] = usePersistedSetting('oculomotorBounceJitter');
-  const [oculomotorEnableWebgazer, setOculomotorEnableWebgazer] = usePersistedSetting('oculomotorEnableWebgazer');
+  const [oculomotorMode, setOculomotorMode] = useAppSetting('oculomotorMode');
+  const [oculomotorPattern, setOculomotorPattern] = useAppSetting('oculomotorPattern');
+  const [oculomotorDurationSec, setOculomotorDurationSec] = useAppSetting('oculomotorDurationSec');
+  const [oculomotorSpeedDegPerSec, setOculomotorSpeedDegPerSec] = useAppSetting('oculomotorSpeedDegPerSec');
+  const [oculomotorTargetSizeMm, setOculomotorTargetSizeMm] = useAppSetting('oculomotorTargetSizeMm');
+  const [oculomotorDistractorCount, setOculomotorDistractorCount] = useAppSetting('oculomotorDistractorCount');
+  const [oculomotorTargetColor, setOculomotorTargetColor] = useAppSetting('oculomotorTargetColor');
+  const [oculomotorBackgroundColor, setOculomotorBackgroundColor] = useAppSetting('oculomotorBackgroundColor');
+  const [oculomotorTargetShape, setOculomotorTargetShape] = useAppSetting('oculomotorTargetShape');
+  const [oculomotorCustomTargetImage, setOculomotorCustomTargetImage] = useAppSetting('oculomotorCustomTargetImage');
+  const [oculomotorTargetOpacity, setOculomotorTargetOpacity] = useAppSetting('oculomotorTargetOpacity');
+  const [oculomotorBackgroundImage, setOculomotorBackgroundImage] = useAppSetting('oculomotorBackgroundImage');
+  const [oculomotorAudio, setOculomotorAudio] = useAppSetting('oculomotorAudio');
+  const [oculomotorBounceJitter, setOculomotorBounceJitter] = useAppSetting('oculomotorBounceJitter');
+  const [oculomotorEnableWebgazer, setOculomotorEnableWebgazer] = useAppSetting('oculomotorEnableWebgazer');
   const [gaborDurationSec, setGaborDurationSec] = useState(60);
   const [gaborMaxSpots, setGaborMaxSpots] = useState(10);
-  const [readingWPS, setReadingWPS] = usePersistedSetting('readingWPS');
-  const [readingCrowding, setReadingCrowding] = usePersistedSetting('readingCrowding');
-  const [readingContrast, setReadingContrast] = usePersistedSetting('readingContrast');
-  const [drivingDurationSec, setDrivingDurationSec] = usePersistedSetting('drivingDurationSec');
-  const [drivingRedFlashEnabled, setDrivingRedFlashEnabled] = usePersistedSetting('drivingRedFlashEnabled');
-  const [drivingDifficulty, setDrivingDifficulty] = usePersistedSetting('drivingDifficulty');
-  const [drivingControlMode, setDrivingControlMode] = usePersistedSetting('drivingControlMode');
+  const [readingWPS, setReadingWPS] = useAppSetting('readingWPS');
+  const [readingCrowding, setReadingCrowding] = useAppSetting('readingCrowding');
+  const [readingContrast, setReadingContrast] = useAppSetting('readingContrast');
+  const [drivingDurationSec, setDrivingDurationSec] = useAppSetting('drivingDurationSec');
+  const [drivingRedFlashEnabled, setDrivingRedFlashEnabled] = useAppSetting('drivingRedFlashEnabled');
+  const [drivingDifficulty, setDrivingDifficulty] = useAppSetting('drivingDifficulty');
+  const [drivingControlMode, setDrivingControlMode] = useAppSetting('drivingControlMode');
   const [prewarmed, setPrewarmed] = useState(() => pixiAppManager.ready);
   const [isStartingTraining, setIsStartingTraining] = useState(false);
   const startTrainingButtonLabel = isStartingTraining ? t('btn.preparingTraining') : t('btn.startTraining');
@@ -288,7 +290,7 @@ export function HomePage() {
   return (
     <div className="page-content">
       {/* ── User Selector ── */}
-      <UserSelector onUserChange={setActiveUserState} />
+      <UserSelector />
 
       {/* ── Calibration Notice ── */}
       {!calibrated && (
@@ -315,22 +317,23 @@ export function HomePage() {
       <p className="section-subtitle fade-in-up">{t('home.listSubtitle')}</p>
 
       {/* ── Training Cards ── */}
-      <div className="training-grid">
+      <div className="selection-grid">
         {TRAINING_MODULES.map((module) => (
-          <TrainingModuleCard
+          <SelectionCard
             key={module.id}
-            module={module}
-            expandedModule={expandedModule}
-            onSelect={handleCardClick}
-            t={t}
+            title={t(module.titleKey)}
+            description={t(module.descKey)}
+            icon={module.icon}
+            isSelected={expandedModule === module.id}
+            actionLabel={expandedModule === module.id ? t('btn.collapseSettings') : t('btn.selectModule')}
+            onSelect={() => handleCardClick(module.id)}
           />
         ))}
       </div>
 
       {/* ── Module Config Panel ── */}
       {expandedModule === 'moving-card' && (
-        <div className="config-modal-overlay fade-in" onClick={() => setExpandedModule(null)}>
-          <div className="module-config-panel config-modal-panel" onClick={(e) => e.stopPropagation()}>
+        <ConfigDialog ariaLabel={t('home.module.movingCard.title')} onClose={() => setExpandedModule(null)}>
             {/* Difficulty */}
             <div className="config-section">
               <div className="config-label">{t('home.config.difficulty')}</div>
@@ -351,27 +354,16 @@ export function HomePage() {
             {/* Rounds */}
             <div className="config-section">
               <div className="config-label">{t('home.config.rounds')}</div>
-              <div className="rounds-selector">
-                {roundsPresets.map((r) => (
-                  <button
-                    key={r}
-                    className={`rounds-btn ${localRounds === r && !customRoundsInput ? 'active' : ''}`}
-                    onClick={(e) => { e.stopPropagation(); handleRoundsPreset(r); }}
-                  >
-                    {r}
-                  </button>
-                ))}
-                <input
-                  className="rounds-custom-input"
-                  type="number"
-                  min="1"
-                  max="100"
-                  placeholder={t('home.config.custom')}
-                  value={customRoundsInput}
-                  onClick={(e) => e.stopPropagation()}
-                  onChange={(e) => handleCustomRoundsChange(e.target.value)}
-                />
-              </div>
+              <NumberPresetSelector
+                value={localRounds}
+                customValue={customRoundsInput}
+                presets={roundsPresets}
+                min={1}
+                max={100}
+                placeholder={t('home.config.custom')}
+                onPresetSelect={handleRoundsPreset}
+                onCustomChange={handleCustomRoundsChange}
+              />
             </div>
 
             {/* Actions */}
@@ -402,13 +394,11 @@ export function HomePage() {
               {t('home.config.diffLabel')} <strong>{diffOptions.find((d) => d.key === localDifficulty)?.label}</strong> ·{' '}
               {t('home.config.roundsLabel')} <strong>{localRounds}</strong>
             </div>
-          </div>
-        </div>
+        </ConfigDialog>
       )}
 
       {expandedModule === 'oculomotor-training' && (
-        <div className="config-modal-overlay fade-in" onClick={() => setExpandedModule(null)}>
-          <div className="module-config-panel config-modal-panel" onClick={(e) => e.stopPropagation()}>
+        <ConfigDialog ariaLabel={t('home.module.oculomotor.title')} onClose={() => setExpandedModule(null)}>
             <div className="config-section">
               <div className="config-label">{t('home.config.trainingMode')}</div>
               <div className="difficulty-selector">
@@ -446,11 +436,11 @@ export function HomePage() {
 
             <div className="config-section">
               <div className="config-label">{t('home.config.durationSec')}</div>
-              <div className="rounds-selector">
+              <div className="number-preset-selector">
                 {durationPresets.map((duration) => (
                   <button
                     key={duration}
-                    className={`rounds-btn ${oculomotorDurationSec === duration ? 'active' : ''}`}
+                    className={`number-preset-button ${oculomotorDurationSec === duration ? 'active' : ''}`}
                     onClick={(e) => {
                       e.stopPropagation();
                       setOculomotorDurationSec(duration);
@@ -460,7 +450,7 @@ export function HomePage() {
                   </button>
                 ))}
                 <input
-                  className="rounds-custom-input"
+                  className="number-preset-input"
                   type="number"
                   min="15"
                   max="300"
@@ -496,7 +486,7 @@ export function HomePage() {
                 <label className="diff-btn" style={{ cursor: 'default', alignItems: 'stretch' }}>
                   <span className="diff-btn-desc">{t('home.config.speed')}</span>
                   <input
-                    className="rounds-custom-input"
+                    className="number-preset-input"
                     type="number"
                     min="2"
                     max="80"
@@ -514,7 +504,7 @@ export function HomePage() {
                 <label className="diff-btn" style={{ cursor: 'default', alignItems: 'stretch' }}>
                   <span className="diff-btn-desc">{t('home.config.size')}</span>
                   <input
-                    className="rounds-custom-input"
+                    className="number-preset-input"
                     type="number"
                     min="2"
                     max="100"
@@ -532,7 +522,7 @@ export function HomePage() {
                 <label className="diff-btn" style={{ cursor: 'default', alignItems: 'stretch' }}>
                   <span className="diff-btn-desc">{t('home.config.distractors')}</span>
                   <input
-                    className="rounds-custom-input"
+                    className="number-preset-input"
                     type="number"
                     min="0"
                     max="12"
@@ -724,13 +714,11 @@ export function HomePage() {
               {t('home.config.modeLabel')} <strong>{t(`preset.mode.${oculomotorModes.find((mode) => mode.id === oculomotorMode)?.id}` as any)}</strong> ·{' '}
               {t('home.config.durationLabel')} <strong>{oculomotorDurationSec}s</strong>
             </div>
-          </div>
-        </div>
+        </ConfigDialog>
       )}
 
       {expandedModule === 'gabor-patching' && (
-        <div className="config-modal-overlay fade-in" onClick={() => setExpandedModule(null)}>
-          <div className="module-config-panel config-modal-panel" onClick={(e) => e.stopPropagation()}>
+        <ConfigDialog ariaLabel={t('home.module.gaborPatching.title')} onClose={() => setExpandedModule(null)}>
             {/* Difficulty */}
             <div className="config-section">
               <div className="config-label">{t('home.config.difficulty')}</div>
@@ -751,11 +739,11 @@ export function HomePage() {
             {/* Duration */}
             <div className="config-section">
               <div className="config-label">{t('home.config.gaborDuration')}</div>
-              <div className="rounds-selector">
+              <div className="number-preset-selector">
                 {durationPresets.map((duration) => (
                   <button
                     key={duration}
-                    className={`rounds-btn ${gaborDurationSec === duration ? 'active' : ''}`}
+                    className={`number-preset-button ${gaborDurationSec === duration ? 'active' : ''}`}
                     onClick={(e) => {
                       e.stopPropagation();
                       setGaborDurationSec(duration);
@@ -765,7 +753,7 @@ export function HomePage() {
                   </button>
                 ))}
                 <input
-                  className="rounds-custom-input"
+                  className="number-preset-input"
                   type="number"
                   min="15"
                   max="300"
@@ -786,7 +774,7 @@ export function HomePage() {
               <div className="config-label">{t('home.config.gaborMaxSpots')}</div>
               <div className="difficulty-selector">
                 <input
-                  className="rounds-custom-input"
+                  className="number-preset-input"
                   type="number"
                   min="3"
                   max="50"
@@ -830,13 +818,11 @@ export function HomePage() {
               {t('home.config.durationLabel')} <strong>{gaborDurationSec}s</strong> ·{' '}
               {t('home.config.gaborMaxSpots')} <strong>{gaborMaxSpots}</strong>
             </div>
-          </div>
-        </div>
+        </ConfigDialog>
       )}
 
       {expandedModule === 'reading-training' && (
-        <div className="config-modal-overlay fade-in" onClick={() => setExpandedModule(null)}>
-          <div className="module-config-panel config-modal-panel" onClick={(e) => e.stopPropagation()}>
+        <ConfigDialog ariaLabel={t('home.module.reading.title')} onClose={() => setExpandedModule(null)}>
 
             <div className="config-section">
               <div className="config-label">{t('home.config.readingSettings')}</div>
@@ -844,7 +830,7 @@ export function HomePage() {
                 <label className="diff-btn" style={{ cursor: 'default', alignItems: 'stretch' }}>
                   <span className="diff-btn-desc">{t('home.config.readingWps')}</span>
                   <input
-                    className="rounds-custom-input"
+                    className="number-preset-input"
                     type="number"
                     min="1"
                     max="20"
@@ -860,7 +846,7 @@ export function HomePage() {
                 <label className="diff-btn" style={{ cursor: 'default', alignItems: 'stretch' }}>
                   <span className="diff-btn-desc">{t('home.config.readingCrowding')}</span>
                   <input
-                    className="rounds-custom-input"
+                    className="number-preset-input"
                     type="number"
                     min="1"
                     max="5"
@@ -915,13 +901,11 @@ export function HomePage() {
               {t('home.config.user')} <strong>{activeUser}</strong> ·{' '}
               {t('home.config.storyLabel')} <strong>{t('home.config.randomStory')}</strong>
             </div>
-          </div>
-        </div>
+        </ConfigDialog>
       )}
 
       {expandedModule === 'driving-rehab' && (
-        <div className="config-modal-overlay fade-in" onClick={() => setExpandedModule(null)}>
-          <div className="module-config-panel config-modal-panel" onClick={(e) => e.stopPropagation()}>
+        <ConfigDialog ariaLabel={t('home.module.driving.title')} onClose={() => setExpandedModule(null)}>
             <div className="config-section">
               <div className="config-label">{t('home.config.drivingReactionDifficulty')}</div>
               <div className="difficulty-selector">
@@ -942,11 +926,11 @@ export function HomePage() {
 
             <div className="config-section">
               <div className="config-label">{t('home.config.drivingDuration')}</div>
-              <div className="rounds-selector">
+              <div className="number-preset-selector">
                 {drivingDurationPresets.map((duration) => (
                   <button
                     key={duration}
-                    className={`rounds-btn ${drivingDurationSec === duration ? 'active' : ''}`}
+                    className={`number-preset-button ${drivingDurationSec === duration ? 'active' : ''}`}
                     onClick={(e) => {
                       e.stopPropagation();
                       setDrivingDurationSec(duration);
@@ -956,7 +940,7 @@ export function HomePage() {
                   </button>
                 ))}
                 <input
-                  className="rounds-custom-input"
+                  className="number-preset-input"
                   type="number"
                   min={DRIVING_DURATION_MIN_SEC}
                   max={DRIVING_DURATION_MAX_SEC}
@@ -1034,13 +1018,11 @@ export function HomePage() {
               {t('home.config.diffLabel')} <strong>{drivingDifficultyLabels[drivingDifficulty]}</strong> ·{' '}
               {t('home.config.drivingRedFlash')} <strong>{drivingRedFlashEnabled ? t('common.on') : t('common.off')}</strong>
             </div>
-          </div>
-        </div>
+        </ConfigDialog>
       )}
 
       {expandedModule === 'hart-chart' && (
-        <div className="config-modal-overlay fade-in" onClick={() => setExpandedModule(null)}>
-          <div className="module-config-panel config-modal-panel" onClick={(e) => e.stopPropagation()}>
+        <ConfigDialog ariaLabel={t('home.module.hartChart.title')} onClose={() => setExpandedModule(null)}>
             <div className="config-section">
               <div className="config-label">{t('home.module.hartChart.title')}</div>
               <p className="calibration-warning-message">{t('home.config.hartChartSummary')}</p>
@@ -1066,8 +1048,7 @@ export function HomePage() {
                 {t('btn.cancel')}
               </button>
             </div>
-          </div>
-        </div>
+        </ConfigDialog>
       )}
     </div>
   );
