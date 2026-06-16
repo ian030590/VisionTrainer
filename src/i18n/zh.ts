@@ -383,6 +383,8 @@ export const zh = {
   'credits.foveaflow.desc': '參考 Jesper-N/foveaflow 的多項目標追蹤設計',
   'credits.gaborPatching.title': '蓋伯斑塊練習',
   'credits.gaborPatching.desc': '參考 Fordi/gabor-patching 的遊戲機制',
+  'credits.visiontherapy.title': 'Vision Therapy Tools',
+  'credits.visiontherapy.desc': '參考 visiontherapy.github.io 的視覺治療訓練工具與練習',
 
   // Extra
   'nav.brand': 'Vision Trainer',

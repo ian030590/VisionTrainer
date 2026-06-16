@@ -384,6 +384,8 @@ export const en: Record<TranslationKey, string> = {
   'credits.foveaflow.desc': 'Referenced MOT design from Jesper-N/foveaflow',
   'credits.gaborPatching.title': 'Gabor Patching',
   'credits.gaborPatching.desc': 'Referenced game mechanics from Fordi/gabor-patching',
+  'credits.visiontherapy.title': 'Vision Therapy Tools',
+  'credits.visiontherapy.desc': 'Referenced vision therapy training tools and exercises from visiontherapy.github.io',
 
   // Extra
   'nav.brand': 'Vision Trainer',
