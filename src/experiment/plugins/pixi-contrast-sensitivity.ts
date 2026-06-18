@@ -1,6 +1,6 @@
 import { JsPsych, ParameterType } from 'jspsych';
 import type { JsPsychPlugin, TrialType } from 'jspsych';
-import { Application, Sprite, Texture, Graphics } from 'pixi.js';
+import { Sprite, Texture, Graphics } from 'pixi.js';
 import {
   attachPixiTrialCanvas,
   cleanupPixiTrial,
@@ -90,7 +90,6 @@ function keyToDirection(key: string): number {
 
 class PixiContrastSensitivityPlugin implements JsPsychPlugin<Info> {
   static info = info;
-  private app: Application | null = null;
   private keyboardListener: any;
 
   constructor(private jsPsych: JsPsych) {}
@@ -99,7 +98,6 @@ class PixiContrastSensitivityPlugin implements JsPsychPlugin<Info> {
     const container = createPixiTrialContainer(display_element);
 
     runPixiTrial(display_element, (app) => {
-      this.app = app;
       attachPixiTrialCanvas(container);
       app.renderer.background.color = trial.back_color!;
 

@@ -7,7 +7,6 @@ import {
   createPixiTrialContainer,
   runPixiTrial,
 } from '../../utils/pixiPool';
-import { typography } from '../../theme';
 import { SoundManager } from '../../utils/soundManager';
 
 const info = {
@@ -220,7 +219,6 @@ class PixiGaborPatchingPlugin implements JsPsychPlugin<Info> {
         const targetSize = maxSize;
         sprite.scale.set(minSize);
         
-        const minOp = trial.min_opacity ?? 0.15;
         const maxOp = trial.max_opacity ?? 0.8;
         const targetOpacity = maxOp;
         sprite.alpha = 0;

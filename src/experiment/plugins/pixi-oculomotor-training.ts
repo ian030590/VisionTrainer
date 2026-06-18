@@ -384,8 +384,6 @@ class PixiOculomotorTrainingPlugin implements JsPsychPlugin<Info> {
         return Math.max(0, now - startTime - pausedMs - activePause - calibrationPausedMs);
       };
 
-      const getElapsedSec = () => getElapsedMs() / 1000;
-
       const ensureTargetSprite = (index: number) => {
         if (!customTexture) return null;
         if (!targetSprites[index]) {

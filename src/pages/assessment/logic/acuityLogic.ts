@@ -6,7 +6,6 @@
  */
 
 import { pixelFromDegree, degreeFromPixel } from '../../../utils/spatialUtils';
-import { getSetting } from '../../../utils/settings';
 
 // ── LogMAR ↔ decimal VA ──
 
@@ -53,12 +52,8 @@ export function lettersFromLogMAR(logMAR: number): number {
 
 // ── Snellen fraction ──
 
-const METER_TO_FEET = 3.28084;
-
 /** Format a Snellen fraction string (e.g. "20/20") */
-export function formatSnellenFraction(decVA: number, distanceCM?: number): string {
-  const dist = distanceCM ?? getSetting('distanceInCM');
-  const distFeet = (dist / 100) * METER_TO_FEET;
+export function formatSnellenFraction(decVA: number): string {
   // Use 20 as standard denominator base
   const testDistFeet = 20;
   const denominator = Math.round(testDistFeet / decVA);

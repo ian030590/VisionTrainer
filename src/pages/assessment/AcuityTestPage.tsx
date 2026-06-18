@@ -174,7 +174,6 @@ export function AcuityTestPage() {
   const gazeExtensionRef = useRef<any>(null);
 
   const userName = getActiveUser() || t('exp.unknownUser');
-  const nAlternatives = getAlternativeCount(testType);
 
   // Keep phaseRef in sync
   useEffect(() => { phaseRef.current = phase; }, [phase]);
