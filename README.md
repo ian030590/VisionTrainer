@@ -1,4 +1,4 @@
->⚠️ This repo will be archived and all intergrate in new repo. The old web url is still searchable, and will be redirect to new url: https://rehabtrainerhub.pages.dev
+>⚠️ This repo will be archived intergrated to a new repo. The old web url is still searchable, and will be redirect to new url: https://rehabtrainerhub.pages.dev
 
 # Vision Trainer
 
