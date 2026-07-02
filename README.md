@@ -1,3 +1,5 @@
+>⚠️ This repo will be archived and all intergrate in new repo. The old web url is still searchable, and will be redirect to new url: https://rehabtrainerhub.pages.dev
+
 # Vision Trainer
 
 ![Vision Trainer logo](./public/assets/logo2.png)
